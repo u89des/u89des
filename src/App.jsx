@@ -50,7 +50,7 @@ const initialProjects = [
     type: "صناعة علامة",
     client: "شركة الذائقة",
     status: "بانتظار الاعتماد",
-    stage: 4,
+    stage: 5,
     next: "اعتماد اتجاه التغليف",
     due: "اليوم، 4:30 م",
     value: "18,500 ر.س",
@@ -63,7 +63,7 @@ const initialProjects = [
     type: "تطوير علامة",
     client: "مجموعة أختر",
     status: "قيد التنفيذ",
-    stage: 3,
+    stage: 4,
     next: "رفع تطبيقات الواجهة",
     due: "غداً، 11:00 ص",
     value: "14,200 ر.س",
@@ -76,7 +76,7 @@ const initialProjects = [
     type: "هوية ومحتوى",
     client: "مخابز مامولا",
     status: "مراجعة داخلية",
-    stage: 3,
+    stage: 4,
     next: "مراجعة دليل النبرة",
     due: "الخميس، 1:00 م",
     value: "22,000 ر.س",
@@ -85,15 +85,18 @@ const initialProjects = [
   },
 ];
 
-const stages = ["الطلب", "العرض", "العقد", "التنفيذ", "البروفات", "التسليم", "المتابعة"];
+const stages = ["الطلب", "البريف", "العرض", "العقد", "التنفيذ", "البروفات", "التسليم", "المتابعة"];
 
 const navItems = [
   { id: "overview", label: "نظرة اليوم", icon: SquaresFour },
   { id: "projects", label: "المشاريع", icon: FolderOpen },
   { id: "requests", label: "طلبات العملاء", icon: Tray },
+  { id: "briefs", label: "البريفات", icon: List },
+  { id: "documents", label: "العروض والعقود", icon: FileText },
   { id: "clients", label: "العملاء", icon: UsersThree },
   { id: "finance", label: "الحسابات", icon: Wallet },
   { id: "team", label: "فريق العمل", icon: UserFocus },
+  { id: "studio-settings", label: "إعدادات العمل", icon: SlidersHorizontal },
   { id: "site-admin", label: "إدارة الموقع", icon: Globe },
 ];
 
@@ -106,6 +109,235 @@ const serviceList = [
   ["الاستشارات الإبداعية", "نربط التصميم بالمحتوى والحملات والتجربة."],
 ];
 
+const defaultBriefTemplates = [
+  {
+    id: "brief-personality",
+    serviceId: "service-1",
+    title: "بريف شخصية العلامة",
+    description: "يفهم السياق والجمهور والانطباع الحالي، ثم يحدد الشخصية والنبرة المرغوبة.",
+    enabled: true,
+    sections: [
+      { id: "context", title: "السياق والقرار", fields: [
+        { id: "project_intro", label: "حدثنا ببساطة عن العلامة وماذا تقدم؟", type: "textarea", required: true },
+        { id: "main_goal", label: "ما الهدف الرئيسي من بناء شخصية العلامة؟", type: "textarea", required: true },
+        { id: "decision_maker", label: "من صاحب القرار النهائي ونقطة التواصل؟", type: "text", required: true },
+      ] },
+      { id: "audience", title: "الجمهور والانطباع", fields: [
+        { id: "main_audience", label: "من الجمهور الرئيسي؟", type: "textarea", required: true },
+        { id: "secondary_audience", label: "هل يوجد جمهور ثانوي مهم؟", type: "textarea", required: false },
+        { id: "current_perception", label: "كيف يصف الناس العلامة حالياً؟", type: "textarea", required: false },
+        { id: "desired_perception", label: "كيف تريد أن يصفها الناس مستقبلاً؟", type: "textarea", required: true },
+      ] },
+      { id: "character", title: "الشخصية والنبرة", fields: [
+        { id: "human_traits", label: "لو كانت العلامة شخصاً، ما أبرز صفاتها؟", type: "textarea", required: true },
+        { id: "tone_voice", label: "ما نبرة الصوت المناسبة؟", type: "multiselect", required: true, options: ["ودودة", "واثقة", "خبيرة", "جريئة", "هادئة", "مرحة"] },
+        { id: "avoid", label: "ما الذي يجب ألا تبدو أو تتحدث به العلامة؟", type: "textarea", required: true },
+        { id: "brand_word", label: "صف العلامة بكلمة واحدة", type: "text", required: true },
+        { id: "references", label: "أرفق أمثلة أو مراجع تعبر عن الاتجاه", type: "file", required: false },
+      ] },
+    ],
+  },
+  {
+    id: "brief-naming",
+    serviceId: "service-2",
+    title: "بريف تسمية العلامة",
+    description: "يجمع أساس التسمية والاتجاهات اللغوية والقيود قبل البحث وتوليد الأسماء.",
+    enabled: true,
+    sections: [
+      { id: "business", title: "المشروع والفرصة", fields: [
+        { id: "project_intro", label: "ما المشروع وماذا يقدم تحديداً؟", type: "textarea", required: true },
+        { id: "naming_reason", label: "لماذا تحتاج إلى اسم جديد الآن؟", type: "textarea", required: true },
+        { id: "difference", label: "ما القيمة أو الفرق الذي تريد أن يحمله الاسم؟", type: "textarea", required: true },
+        { id: "audience", label: "من سيستخدم الاسم أو يتعامل معه؟", type: "textarea", required: true },
+      ] },
+      { id: "direction", title: "اتجاه الاسم", fields: [
+        { id: "language", label: "لغة الاسم المفضلة", type: "select", required: true, options: ["عربي", "إنجليزي", "ثنائي اللغة", "مفتوح للاقتراح"] },
+        { id: "style", label: "ما أنواع الأسماء الأقرب لك؟", type: "multiselect", required: false, options: ["وصفي", "مبتكر", "مجازي", "مختصر", "مرتبط بمكان أو قصة", "اسم شخص"] },
+        { id: "preferred_words", label: "هل توجد كلمات أو معان تريد الاقتراب منها؟", type: "textarea", required: false },
+        { id: "avoid_words", label: "ما الكلمات أو المعاني التي يجب تجنبها؟", type: "textarea", required: true },
+      ] },
+      { id: "constraints", title: "القيود والاعتماد", fields: [
+        { id: "must_include", label: "هل توجد أحرف أو كلمة يجب تضمينها؟", type: "text", required: false },
+        { id: "domain", label: "هل توفر نطاق إلكتروني محدد شرط أساسي؟", type: "text", required: false },
+        { id: "legal", label: "ما الأسواق أو الدول التي يلزم التحقق فيها؟", type: "textarea", required: false },
+        { id: "deadline", label: "متى تحتاج اعتماد الاسم؟", type: "date", required: true },
+        { id: "references", label: "أرفق أسماء أو مراجع تحبها مع السبب", type: "file", required: false },
+      ] },
+    ],
+  },
+  {
+    id: "brief-brand-build",
+    serviceId: "service-3",
+    title: "بريف صناعة العلامة",
+    description: "بريف الهوية الأعمق: المشروع والرسالة والجمهور والشخصية والمخرجات والتفضيلات البصرية.",
+    enabled: true,
+    sections: [
+      { id: "general", title: "معلومات المشروع", fields: [
+        { id: "project_intro", label: "حدثنا ببساطة عن مشروعك وماذا يفعل؟", type: "textarea", required: true },
+        { id: "field", label: "صف مجال عمل المشروع", type: "textarea", required: true },
+        { id: "impact", label: "كيف يحسن المشروع حياة الأفراد أو الشركات؟", type: "textarea", required: true },
+        { id: "required", label: "ما المطلوب تنفيذه ضمن هذه المرحلة؟", type: "textarea", required: true },
+        { id: "launch", label: "ما التاريخ المتوقع لإطلاق المشروع؟", type: "date", required: true },
+      ] },
+      { id: "strategy", title: "الرسالة والجمهور", fields: [
+        { id: "main_goal", label: "ما الهدف الرئيسي من المشروع؟", type: "textarea", required: true },
+        { id: "one_sentence", label: "ما رسالة المشروع في جملة واحدة؟", type: "textarea", required: true },
+        { id: "main_audience", label: "من الجمهور الرئيسي؟", type: "textarea", required: true },
+        { id: "secondary_audience", label: "هل يوجد جمهور ثانوي؟", type: "textarea", required: false },
+        { id: "audience_action", label: "ماذا تتوقع من الجمهور بعد تلقي الرسالة؟", type: "textarea", required: true },
+        { id: "personality", label: "ما تصورك لشخصية العلامة ونبرة صوتها؟", type: "textarea", required: true },
+      ] },
+      { id: "visual", title: "الاتجاه البصري والمخرجات", fields: [
+        { id: "likes", label: "ما الذي يعجبك في توجهك البصري الحالي؟", type: "textarea", required: false },
+        { id: "dislikes", label: "ما الذي لا يعجبك ولا تريد الاستمرار عليه؟", type: "textarea", required: false },
+        { id: "competitors", label: "من المنافسون أو البدائل في السوق؟", type: "textarea", required: true },
+        { id: "deliverables", label: "ما التطبيقات والمخرجات المطلوبة عند الإطلاق؟", type: "textarea", required: true },
+        { id: "one_word", label: "صف المشروع بكلمة واحدة", type: "text", required: true },
+        { id: "references", label: "أرفق الهوية الحالية والمراجع والصور المهمة", type: "file", required: false },
+      ] },
+    ],
+  },
+  {
+    id: "brief-brand-development",
+    serviceId: "service-4",
+    title: "بريف تطوير العلامة",
+    description: "يرصد ما يجب الحفاظ عليه وما يجب تغييره، ويربط التطوير بهدف تجاري واضح.",
+    enabled: true,
+    sections: [
+      { id: "current", title: "العلامة اليوم", fields: [
+        { id: "brand_intro", label: "قدم العلامة الحالية ومنتجاتها أو خدماتها", type: "textarea", required: true },
+        { id: "why_now", label: "لماذا تحتاج العلامة إلى التطوير الآن؟", type: "textarea", required: true },
+        { id: "what_works", label: "ما الذي يعمل جيداً ويجب الحفاظ عليه؟", type: "textarea", required: true },
+        { id: "what_fails", label: "ما الذي لم يعد يعمل أو يسبب مشكلة؟", type: "textarea", required: true },
+        { id: "assets_keep", label: "هل توجد أصول أو رموز أو ألوان لا تريد فقدها؟", type: "textarea", required: false },
+      ] },
+      { id: "future", title: "الاتجاه القادم", fields: [
+        { id: "business_goal", label: "ما الهدف التجاري الذي يجب أن يخدمه التطوير؟", type: "textarea", required: true },
+        { id: "audience", label: "من الجمهور الحالي والجمهور الذي تريد الوصول إليه؟", type: "textarea", required: true },
+        { id: "current_perception", label: "كيف ينظر السوق إلى العلامة الآن؟", type: "textarea", required: false },
+        { id: "desired_perception", label: "ما الانطباع المطلوب بعد التطوير؟", type: "textarea", required: true },
+      ] },
+      { id: "scope", title: "النطاق والقيود", fields: [
+        { id: "touchpoints", label: "ما أهم نقاط الاتصال التي تحتاج التغيير؟", type: "multiselect", required: true, options: ["الشعار", "التغليف", "الموقع", "المتجر", "المحتوى", "العروض والمطبوعات"] },
+        { id: "constraints", label: "ما القيود القانونية أو التشغيلية أو التقنية؟", type: "textarea", required: false },
+        { id: "launch", label: "متى يجب إطلاق النسخة المطورة؟", type: "date", required: true },
+        { id: "references", label: "أرفق ملفات العلامة الحالية وأمثلة التطوير المرجعية", type: "file", required: true },
+      ] },
+    ],
+  },
+  {
+    id: "brief-typeface",
+    serviceId: "service-5",
+    title: "بريف الخطوط الطباعية",
+    description: "يحدد وظيفة الخط ولغاته وبيئات استخدامه وشخصيته ومتطلباته التقنية.",
+    enabled: true,
+    sections: [
+      { id: "purpose", title: "الهدف والاستخدام", fields: [
+        { id: "project_intro", label: "ما العلامة أو المشروع الذي سيستخدم الخط؟", type: "textarea", required: true },
+        { id: "purpose", label: "ما المشكلة التي يجب أن يحلها الخط؟", type: "textarea", required: true },
+        { id: "languages", label: "ما اللغات المطلوبة؟", type: "multiselect", required: true, options: ["العربية", "الإنجليزية", "الفرنسية", "لغات أخرى"] },
+        { id: "audience", label: "من سيقرأ أو يستخدم هذا الخط؟", type: "textarea", required: true },
+      ] },
+      { id: "function", title: "الوظيفة التقنية", fields: [
+        { id: "uses", label: "ما الاستخدامات الأساسية؟", type: "multiselect", required: true, options: ["شعار", "عناوين", "نصوص طويلة", "تغليف", "واجهات رقمية", "لوحات مكانية"] },
+        { id: "environments", label: "أين سيعمل الخط؟", type: "multiselect", required: true, options: ["طباعة", "ويب", "تطبيق", "شاشات", "لافتات"] },
+        { id: "characters", label: "هل توجد محارف أو أرقام أو رموز خاصة؟", type: "textarea", required: false },
+        { id: "formats", label: "ما صيغ التسليم أو المتطلبات التقنية؟", type: "textarea", required: false },
+      ] },
+      { id: "character", title: "الشخصية والمرجع", fields: [
+        { id: "personality", label: "ما الصفات التي يجب أن يعبر عنها الخط؟", type: "textarea", required: true },
+        { id: "legibility", label: "ما أولوية الوضوح مقارنة بالتعبير؟", type: "scale", required: true },
+        { id: "licensing", label: "من سيستخدم الخط وما نطاق الترخيص المطلوب؟", type: "textarea", required: true },
+        { id: "deadline", label: "متى يلزم الاختبار أو التسليم؟", type: "date", required: true },
+        { id: "references", label: "أرفق خطوطاً أو تطبيقات مرجعية", type: "file", required: false },
+      ] },
+    ],
+  },
+  {
+    id: "brief-consulting",
+    serviceId: "service-6",
+    title: "بريف الاستشارة الإبداعية",
+    description: "يحول المشكلة المفتوحة إلى قرار واضح ومخرجات استشارية قابلة للتنفيذ.",
+    enabled: true,
+    sections: [
+      { id: "challenge", title: "التحدي والقرار", fields: [
+        { id: "main_problem", label: "ما المشكلة أو الفرصة التي تريد العمل عليها؟", type: "textarea", required: true },
+        { id: "decision", label: "ما القرار الذي تحتاج إلى اتخاذه؟", type: "textarea", required: true },
+        { id: "why_now", label: "لماذا هذا الموضوع مهم الآن؟", type: "textarea", required: true },
+        { id: "stakeholders", label: "من أصحاب المصلحة وصاحب القرار النهائي؟", type: "textarea", required: true },
+      ] },
+      { id: "context", title: "المعطيات والقيود", fields: [
+        { id: "tried", label: "ما الذي جربتموه حتى الآن وما نتيجته؟", type: "textarea", required: false },
+        { id: "evidence", label: "ما البيانات أو آراء العملاء المتاحة؟", type: "textarea", required: false },
+        { id: "constraints", label: "ما القيود الزمنية أو المالية أو التشغيلية؟", type: "textarea", required: true },
+        { id: "files", label: "أرفق المواد والتقارير ذات الصلة", type: "file", required: false },
+      ] },
+      { id: "outcome", title: "النتيجة المطلوبة", fields: [
+        { id: "expected_outcome", label: "ما النتيجة التي تريد الخروج بها؟", type: "textarea", required: true },
+        { id: "deliverable", label: "ما شكل المخرج الأنسب لك؟", type: "select", required: true, options: ["جلسة وملخص قرارات", "تقرير وتوصيات", "خارطة طريق", "ورشة عمل", "مراجعة وتوجيه"] },
+        { id: "success", label: "كيف سنعرف أن الاستشارة نجحت؟", type: "textarea", required: true },
+        { id: "deadline", label: "متى تحتاج القرار أو المخرج؟", type: "date", required: true },
+      ] },
+    ],
+  },
+];
+
+const reusableBriefTemplates = [
+  {
+    id: "brief-single-output",
+    serviceId: "any",
+    title: "بريف مخرج واحد",
+    description: "نسخة سريعة لقطعة واحدة مثل منشور أو تقرير أو كتيب أو إنفوجرافيك.",
+    enabled: true,
+    sections: [
+      { id: "request", title: "الطلب", fields: [
+        { id: "design_type", label: "ما نوع المخرج المطلوب؟", type: "select", required: true, options: ["منشور", "إنفوجرافيك", "تقرير", "كتيب", "عرض تقديمي", "أخرى"] },
+        { id: "decision_maker", label: "من نقطة التواصل وصاحب الاعتماد؟", type: "text", required: true },
+        { id: "importance", label: "ما درجة أهمية الطلب؟", type: "scale", required: true },
+        { id: "deadline", label: "متى يلزم اكتمال التصميم؟", type: "date", required: true },
+      ] },
+      { id: "content", title: "المحتوى والنتيجة", fields: [
+        { id: "goal", label: "ما الهدف الرئيسي من التصميم؟", type: "textarea", required: true },
+        { id: "required_content", label: "ما المعلومات التي يجب أن يتضمنها؟", type: "textarea", required: true },
+        { id: "channel", label: "أين سيستخدم المخرج وما مقاسه؟", type: "textarea", required: true },
+        { id: "files", label: "أرفق النصوص والصور والهوية اللازمة", type: "file", required: true },
+      ] },
+    ],
+  },
+  {
+    id: "brief-campaign",
+    serviceId: "any",
+    title: "بريف حملة إبداعية",
+    description: "قالب للحملات يربط الهدف والجمهور والقنوات والمخرجات ومؤشرات النجاح.",
+    enabled: true,
+    sections: [
+      { id: "summary", title: "ملخص الحملة", fields: [
+        { id: "campaign_name", label: "ما اسم الحملة أو عنوانها المؤقت؟", type: "text", required: true },
+        { id: "decision_maker", label: "من نقطة التواصل وصاحب الاعتماد؟", type: "text", required: true },
+        { id: "importance", label: "ما درجة أهمية الحملة؟", type: "scale", required: true },
+        { id: "launch", label: "ما تاريخ إطلاق الحملة؟", type: "date", required: true },
+        { id: "goal", label: "ما الهدف الرئيسي من الحملة؟", type: "textarea", required: true },
+      ] },
+      { id: "audience", title: "الجمهور والرسالة", fields: [
+        { id: "main_audience", label: "من الجمهور المستهدف؟", type: "textarea", required: true },
+        { id: "secondary_audience", label: "هل يوجد جمهور ثانوي؟", type: "textarea", required: false },
+        { id: "tone", label: "ما نبرة الصوت المقترحة؟", type: "textarea", required: true },
+        { id: "value", label: "ما القيمة التي تضيفها الحملة؟", type: "textarea", required: true },
+        { id: "problem", label: "ما المشكلة التي ستحلها الحملة؟", type: "textarea", required: true },
+      ] },
+      { id: "delivery", title: "التواصل والقياس", fields: [
+        { id: "communication_objective", label: "ما هدف التواصل؟", type: "multiselect", required: true, options: ["وعي عام", "مشاركة أولية", "اكتساب", "بيع", "توسيع", "بناء علاقات", "متابعة", "تعليم"] },
+        { id: "channels", label: "ما قنوات التواصل المطلوبة؟", type: "multiselect", required: true, options: ["مطبوعات", "فيديو", "بريد", "إعلانات خارجية", "منصات رقمية", "داخل الفروع", "رعاية"] },
+        { id: "deliverables", label: "ما المخرجات والكميات المطلوبة؟", type: "textarea", required: true },
+        { id: "must_include", label: "ما المعلومات التي يجب تضمينها؟", type: "textarea", required: true },
+        { id: "success", label: "ما مؤشرات نجاح الحملة؟", type: "textarea", required: true },
+        { id: "budget", label: "ما الميزانية المتوقعة؟", type: "text", required: false },
+        { id: "files", label: "أرفق المواد المرجعية والمحتوى المتاح", type: "file", required: false },
+      ] },
+    ],
+  },
+];
+
 const defaultSiteContent = {
   heroTitle: "نصنع علامات يصعب تجاوزها.",
   heroBody: "من الاستراتيجية والتسمية إلى الهوية والتجربة، نبني علامة واضحة تعيش في ذهن الناس وتعمل في السوق.",
@@ -113,7 +345,7 @@ const defaultSiteContent = {
   servicesTitle: "كل ما تحتاجه العلامة لتبدأ بوضوح.",
   workTitle: "علامات صممنا لها حضوراً خاصاً.",
   finalTitle: "مشروعك القادم يبدأ بسؤال جيد.",
-  email: "W@U89DES.COM",
+  email: "w@u89des.com",
   phone: "+966 555 8 777 33",
   domain: "U89DES.COM",
   seoTitle: "U89 | صناعة وتطوير العلامات",
@@ -122,6 +354,32 @@ const defaultSiteContent = {
   acceptingRequests: true,
   requireBudget: true,
   requireDeadline: false,
+  ownerNameAr: "عبد الوهاب بن سليمان السويد",
+  ownerNameEn: "Abdulwahab Suliman Alsaweed",
+  bankName: "مصرف الراجحي",
+  bankAccount: "418608010094429",
+  bankIban: "SA1480000418608010094429",
+  vatRegistered: false,
+  defaultCurrency: "SAR",
+  collaboratorCurrencies: ["SAR", "USD", "EUR"],
+  quoteValidityDays: 10,
+  firstProofDays: 14,
+  revisionRounds: "يحدد لكل مشروع",
+  revisionDays: 7,
+  restartDays: 10,
+  finalizationDays: 14,
+  services: serviceList.map(([title, description], index) => ({ id: `service-${index + 1}`, title, description, active: true })),
+  briefTemplates: [...defaultBriefTemplates, ...reusableBriefTemplates],
+  requestQuestions: [
+    { id: "goal", label: "ما الذي تريد تحقيقه؟", type: "textarea", required: true, enabled: true },
+    { id: "audience", label: "من الجمهور الذي تريد الوصول إليه؟", type: "textarea", required: false, enabled: true },
+    { id: "budget", label: "الميزانية المتوقعة", type: "select", required: true, enabled: true, options: ["أقل من 10,000 ر.س", "10,000 إلى 25,000 ر.س", "25,000 إلى 50,000 ر.س", "أكثر من 50,000 ر.س"] },
+    { id: "deadline", label: "الموعد المستهدف", type: "date", required: false, enabled: true },
+  ],
+  paymentPlans: [
+    { id: "two-50", label: "دفعتان 50% / 50%", percentages: [50, 50] },
+    { id: "three-40", label: "ثلاث دفعات 40% / 30% / 30%", percentages: [40, 30, 30] },
+  ],
   serviceVisibility: [true, true, true, true, true, true],
   workVisibility: [true, true, true],
   maintenance: false,
@@ -141,10 +399,33 @@ const retainerRequests = [
   { id: 4, title: "إعلان منتج موسمي", client: "قصر التوابل", assignee: "ريم", due: "14 أغسطس", status: "مراجعة" },
 ];
 
+const incomingProjectRequests = [
+  { id: "REQ-0318", client: "شركة مدار", contact: "نورة العبدالله", service: "صناعة العلامة", serviceId: "service-3", project: "هوية منصة مدار", received: "منذ 45 دقيقة", status: "يحتاج قرارك" },
+  { id: "REQ-0317", client: "نُزل أصيل", contact: "فهد السبيعي", service: "تسمية العلامة", serviceId: "service-2", project: "تسمية مشروع ضيافة", received: "أمس", status: "بانتظار معلومات" },
+];
+
+const initialBriefs = [
+  { id: "BRF-0243", requestId: "REQ-0318", templateId: "brief-brand-build", client: "شركة مدار", contact: "نورة العبدالله", project: "هوية منصة مدار", service: "صناعة العلامة", status: "جاهز لمراجعتك", answered: 15, total: 17, updated: "منذ 12 دقيقة", answers: { project_intro: "منصة تربط أصحاب المشاريع بالمختصين المحليين.", field: "خدمات مهنية رقمية موجهة للسوق السعودي.", impact: "تختصر البحث وتزيد الثقة في اختيار مقدم الخدمة.", required: "الاستراتيجية والهوية البصرية وتطبيقات الإطلاق الأساسية.", launch: "2026-11-01", main_goal: "بناء علامة موثوقة تسهل الاختيار وتقلل التردد.", one_sentence: "المختص المناسب أقرب مما تتوقع.", main_audience: "أصحاب المشاريع الصغيرة في مرحلة التأسيس.", secondary_audience: "المختصون المستقلون ومكاتب الخدمات.", audience_action: "إنشاء طلب والتواصل مع مختص مناسب.", personality: "قريبة وواثقة وعملية من دون تعقيد.", likes: "وضوح المنتج وسهولة الوصول إلى الخدمة.", competitors: "منصات العمل الحر والأدلة المهنية المحلية.", deliverables: "هوية أساسية وواجهة إطلاق وقوالب تواصل.", one_word: "تمكين" } },
+  { id: "BRF-0242", requestId: "REQ-0316", templateId: "brief-naming", client: "نُزل أصيل", contact: "فهد السبيعي", project: "تسمية مشروع ضيافة", service: "تسمية العلامة", status: "بانتظار إجابة العميل", answered: 5, total: 13, updated: "أرسل أمس", answers: { project_intro: "تجربة ضيافة ريفية في منطقة عسير.", naming_reason: "نحتاج اسماً مستقلاً قبل الإطلاق والحجز المباشر.", difference: "ضيافة هادئة مرتبطة بطبيعة عسير وثقافتها.", audience: "العائلات والأزواج الباحثون عن إقامة ريفية نوعية.", language: "عربي" } },
+  { id: "BRF-0241", requestId: "REQ-0315", templateId: "brief-campaign", client: "قصر التوابل", contact: "سلمان الشمري", project: "حملة افتتاح فرع العليا", service: "حملة إبداعية", status: "معتمد", answered: 17, total: 17, updated: "3 أغسطس", answers: { campaign_name: "افتتاح العليا", decision_maker: "سلمان الشمري", importance: "5", launch: "2026-08-20", goal: "رفع الوعي بالفرع الجديد وتحفيز الزيارة خلال أسبوع الافتتاح.", main_audience: "العائلات وسكان الأحياء القريبة.", secondary_audience: "موظفو الشركات والزوار في منطقة العليا.", tone: "مرحبة وغنية بالنكهة من دون مبالغة.", value: "تجربة قريبة تجمع النكهة المعروفة مع موقع أسهل.", problem: "ضعف معرفة الجمهور بوجود الفرع الجديد.", communication_objective: ["وعي عام", "اكتساب"], channels: ["منصات رقمية", "داخل الفروع"], deliverables: "فيديو قصير و6 منشورات وشاشات داخل الفرع.", must_include: "الموقع وساعات العمل وعرض الافتتاح.", success: "الزيارات واستخدام رمز الحملة.", budget: "35,000 ر.س", files: "4 ملفات مرفوعة" } },
+];
+
 const invoices = [
-  { id: "INV-2408", client: "شركة الذائقة", project: "سيد مندي", amount: "9,250", due: "8 أغسطس", status: "مستحقة" },
-  { id: "INV-2394", client: "مجموعة أختر", project: "بخاري أختر", amount: "7,100", due: "12 أغسطس", status: "مجدولة" },
-  { id: "INV-2378", client: "مخابز مامولا", project: "عقد أغسطس", amount: "6,500", due: "تم التحصيل", status: "مدفوعة" },
+  { id: "INV-2408", client: "شركة الذائقة", project: "سيد مندي", amount: "9,250", currency: "SAR", due: "8 أغسطس", status: "مستحقة", type: "فاتورة غير ضريبية" },
+  { id: "INV-2394", client: "مجموعة أختر", project: "بخاري أختر", amount: "7,100", currency: "SAR", due: "12 أغسطس", status: "مجدولة", type: "فاتورة غير ضريبية" },
+  { id: "INV-2378", client: "مخابز مامولا", project: "عقد أغسطس", amount: "6,500", currency: "SAR", due: "تم التحصيل", status: "مدفوعة", type: "فاتورة غير ضريبية" },
+];
+
+const collaboratorBills = [
+  { id: "COL-014", collaborator: "ريم السالم", project: "سيد مندي", item: "3 تطبيقات هوية", amount: "1,050", currency: "SAR", status: "بانتظار الاعتماد" },
+  { id: "COL-015", collaborator: "Lina Moretti", project: "مامولا", item: "معالجة 4 صور", amount: "220", currency: "USD", status: "مستحقة" },
+  { id: "COL-016", collaborator: "Marc Vidal", project: "بخاري أختر", item: "موك أب واجهة", amount: "180", currency: "EUR", status: "مدفوعة" },
+];
+
+const initialDocuments = [
+  { id: "Q-0482", type: "quote", title: "عرض سعر", client: "شركة أصناف للتجارة", contact: "أحمد البشري", project: "صناعة علامة وهوية بصرية", amount: "10850", currency: "SAR", paymentPlan: "two-50", status: "مسودة", updated: "اليوم" },
+  { id: "C-0118", type: "contract", title: "عقد تقديم خدمات إبداعية", client: "مجموعة أختر", contact: "خالد أختر", project: "تطوير العلامة", amount: "14200", currency: "SAR", paymentPlan: "three-40", status: "يحتاج مراجعتك", updated: "منذ ساعتين" },
+  { id: "Q-0479", type: "quote", title: "عرض سعر", client: "خلية فارس", contact: "ياسر المحيميد", project: "صناعة علامة تجارية وهوية بصرية", amount: "3000", currency: "SAR", paymentPlan: "two-50", status: "معتمد", updated: "30 أكتوبر" },
 ];
 
 const team = [
@@ -224,21 +505,24 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
             <label>الاسم<input required placeholder="اسمك الكامل" /></label>
             <label>اسم المنشأة<input required placeholder="اسم العلامة أو المنشأة" /></label>
           </div>
+          <div className="field-row">
+            <label>البريد الإلكتروني<input type="email" required dir="ltr" placeholder="name@company.com" /></label>
+            <label>رقم الجوال<input type="tel" required dir="ltr" placeholder="+966 5X XXX XXXX" /></label>
+          </div>
+          <div className="field-row">
+            <label>التواصل المفضل<select required defaultValue="whatsapp"><option value="whatsapp">واتساب</option><option value="email">البريد الإلكتروني</option><option value="phone">اتصال هاتفي</option></select></label>
+            <label>إشعارات المشروع<select required defaultValue="whatsapp"><option value="whatsapp">واتساب</option><option value="email">البريد الإلكتروني</option><option value="both">واتساب والبريد</option></select></label>
+          </div>
           <label>الخدمة المطلوبة
-            <select defaultValue="brand-making">
-              <option value="brand-making">صناعة علامة جديدة</option>
-              <option value="brand-development">تطوير علامة قائمة</option>
-              <option value="retainer">عقد تسويقي مستمر</option>
-              <option value="consulting">استشارة إبداعية</option>
-            </select>
+            <select required defaultValue=""><option value="" disabled>اختر الخدمة</option>{(settings.services || []).filter((service) => service.active).map((service) => <option value={service.id} key={service.id}>{service.title}</option>)}</select>
           </label>
-          <label>ما الذي تريد تحقيقه؟
-            <textarea required rows="4" placeholder="اكتب النتيجة التي تتمنى الوصول إليها، وليس قائمة التصاميم فقط." />
-          </label>
-          {(settings.requireBudget || settings.requireDeadline) && <div className="field-row">
-            {settings.requireBudget && <label>الميزانية المتوقعة<select required defaultValue=""><option value="" disabled>اختر النطاق</option><option>أقل من 10,000 ر.س</option><option>10,000 إلى 25,000 ر.س</option><option>25,000 إلى 50,000 ر.س</option><option>أكثر من 50,000 ر.س</option></select></label>}
-            {settings.requireDeadline && <label>الموعد المستهدف<input type="date" required /></label>}
-          </div>}
+          {(settings.requestQuestions || []).filter((question) => question.enabled).map((question) => <label key={question.id}>{question.label}
+            {question.type === "textarea" && <textarea required={question.required} rows="4" placeholder="اكتب التفاصيل التي تساعدنا على فهم الطلب" />}
+            {question.type === "date" && <input type="date" required={question.required} />}
+            {question.type === "text" && <input type="text" required={question.required} />}
+            {question.type === "select" && <select required={question.required} defaultValue=""><option value="" disabled>اختر الإجابة</option>{(question.options || []).map((option) => <option key={option}>{option}</option>)}</select>}
+          </label>)}
+          <label className="consent-field"><input type="checkbox" required /><span>أوافق على التواصل وإرسال إشعارات الطلب عبر القناة التي اخترتها.</span></label>
           <div className="form-note"><ShieldCheck size={19} /> تحفظ معلوماتك داخل مساحة خاصة بالمشروع.</div>
           <button className="button primary full" type="submit">إرسال الطلب <ArrowLeft size={18} /></button>
         </form>
@@ -323,11 +607,11 @@ function LandingPage({ theme, onTheme, onAccess, onRequest, content }) {
             <p>نبدأ من جوهر العلامة، ثم نبني كل ما يجعلها مفهومة ومتماسكة وقابلة للنمو.</p>
           </div>
           <div className="services-mosaic">
-            {serviceList.map(([title, text], index) => content.serviceVisibility[index] && (
-              <article className={`service-item item-${index + 1}`} key={title}>
+            {(content.services || []).map((service, index) => service.active && (
+              <article className={`service-item item-${index + 1}`} key={service.id}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
-                <h3>{title}</h3>
-                <p>{text}</p>
+                <h3>{service.title}</h3>
+                <p>{service.description}</p>
               </article>
             ))}
           </div>
@@ -356,7 +640,7 @@ function LandingPage({ theme, onTheme, onAccess, onRequest, content }) {
 
         {visible.about && <section className="studio-about" id="about">
           <div className="about-mark">U89<span /></div>
-          <div><h2>فضول قديم، وخبرة تعرف أين تبحث.</h2><p>بدأت الحكاية من مراقبة لوحات المحلات وفهم أثرها على الناس. اليوم نضع هذه الخبرة بين يدي كل علامة تريد أن تقول شيئاً واضحاً ومختلفاً.</p><a className="text-link" href="mailto:W@U89DES.COM">تحدث معنا <ArrowLeft size={18} /></a></div>
+          <div><h2>فضول قديم، وخبرة تعرف أين تبحث.</h2><p>بدأت الحكاية من مراقبة لوحات المحلات وفهم أثرها على الناس. اليوم نضع هذه الخبرة بين يدي كل علامة تريد أن تقول شيئاً واضحاً ومختلفاً.</p><a className="text-link" href={`mailto:${content.email}`}>تحدث معنا <ArrowLeft size={18} /></a></div>
         </section>}
 
         <section className="final-cta">
@@ -486,15 +770,32 @@ function ProjectsView({ onProject }) {
   );
 }
 
-function RequestsView({ onToast }) {
+function RequestsView({ onToast, setSection }) {
   const [requests, setRequests] = useState(retainerRequests);
+  const [projectRequests, setProjectRequests] = useState(incomingProjectRequests);
   const assign = (id, assignee) => {
     setRequests((items) => items.map((item) => item.id === id ? { ...item, assignee, status: "تم الإسناد" } : item));
     onToast(`تم إسناد الطلب إلى ${assignee}`);
   };
+  const acceptProject = (id) => {
+    setProjectRequests((items) => items.map((item) => item.id === id ? { ...item, status: "تم إنشاء البريف" } : item));
+    onToast("تم قبول الطلب وإنشاء البريف المناسب للخدمة");
+    window.setTimeout(() => setSection("briefs"), 450);
+  };
   return (
     <div className="dashboard-content page-stack">
-      <div className="page-title"><div><h1>طلبات العملاء</h1><p>طلبات العقود المستمرة تتحول مباشرة إلى مهام قابلة للإسناد.</p></div><button className="button primary"><Plus size={18} /> تسجيل طلب</button></div>
+      <div className="page-title"><div><h1>طلبات العملاء</h1><p>راجع الطلب أولاً. بعد القبول ينشأ بريف الخدمة قبل أي عرض سعر.</p></div><button className="button primary"><Plus size={18} /> تسجيل طلب</button></div>
+      <section className="panel project-intake-panel">
+        <div className="panel-heading"><div><h2>طلبات مشاريع جديدة</h2><p>قرارك هنا يفتح البريف المناسب، ولا ينشئ عرض السعر مباشرة.</p></div><span className="sample-label">{projectRequests.length} طلبات</span></div>
+        <div className="project-intake-list">{projectRequests.map((request) => <article key={request.id}>
+          <span className="intake-icon"><Tray size={21} /></span>
+          <span><strong>{request.project}</strong><small>{request.id} · {request.client}</small></span>
+          <span><small>الخدمة</small><strong>{request.service}</strong></span>
+          <span><small>وصل</small><strong>{request.received}</strong></span>
+          <span className="status-badge">{request.status}</span>
+          {request.status === "يحتاج قرارك" ? <button className="button primary small" onClick={() => acceptProject(request.id)}>قبول وإنشاء البريف</button> : <button className="button ghost small" onClick={() => setSection("briefs")}>فتح البريفات</button>}
+        </article>)}</div>
+      </section>
       <section className="retainer-summary">
         <div><span>عقود نشطة</span><strong>4</strong><small>إجمالي 26,000 ر.س شهرياً</small></div>
         <div><span>طلبات أغسطس</span><strong>17 من 28</strong><small>السعة المتبقية موزعة حسب العقد</small></div>
@@ -513,6 +814,179 @@ function RequestsView({ onToast }) {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function BriefFieldInput({ field, value, onChange }) {
+  if (field.type === "textarea") return <textarea rows="4" value={value || ""} onChange={(event) => onChange(event.target.value)} placeholder="اكتب إجابة واضحة ومباشرة" />;
+  if (field.type === "date") return <input type="date" value={value || ""} onChange={(event) => onChange(event.target.value)} />;
+  if (field.type === "select") return <select value={value || ""} onChange={(event) => onChange(event.target.value)}><option value="">اختر الإجابة</option>{(field.options || []).map((option) => <option key={option}>{option}</option>)}</select>;
+  if (field.type === "multiselect") {
+    const selected = Array.isArray(value) ? value : value ? [value] : [];
+    return <div className="brief-choice-grid">{(field.options || []).map((option) => <label key={option} className={selected.includes(option) ? "selected" : ""}><input type="checkbox" checked={selected.includes(option)} onChange={() => onChange(selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option])} />{option}</label>)}</div>;
+  }
+  if (field.type === "scale") return <div className="brief-scale" aria-label={field.label}>{[1, 2, 3, 4, 5].map((score) => <label key={score} className={Number(value) === score ? "selected" : ""}><input type="radio" name={field.id} checked={Number(value) === score} onChange={() => onChange(score)} />{score}</label>)}<small>1 منخفض، 5 مرتفع</small></div>;
+  if (field.type === "file") return <label className="brief-file-input"><FileArrowUp size={19} /><span>{value || "رفع ملفات أو مراجع"}</span><input type="file" multiple onChange={(event) => onChange(event.target.files?.length ? `${event.target.files.length} ملفات مرفوعة` : "")} /></label>;
+  return <input type="text" value={value || ""} onChange={(event) => onChange(event.target.value)} placeholder="اكتب الإجابة" />;
+}
+
+function BriefCreateModal({ templates, onClose, onCreate }) {
+  const [templateId, setTemplateId] = useState(templates[0]?.id || "");
+  const [client, setClient] = useState("");
+  const [project, setProject] = useState("");
+  const template = templates.find((item) => item.id === templateId);
+  const total = template?.sections.reduce((sum, section) => sum + section.fields.length, 0) || 0;
+  return <Modal title="إنشاء بريف" onClose={onClose}>
+    <form className="request-form brief-create-form" onSubmit={(event) => { event.preventDefault(); onCreate({ templateId, client, project, total }); }}>
+      <label>قالب البريف<select value={templateId} onChange={(event) => setTemplateId(event.target.value)}>{templates.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
+      <div className="field-row"><label>العميل<input required value={client} onChange={(event) => setClient(event.target.value)} placeholder="اسم العميل أو المنشأة" /></label><label>المشروع<input required value={project} onChange={(event) => setProject(event.target.value)} placeholder="اسم المشروع" /></label></div>
+      <div className="form-note"><List size={19} /> يحتوي القالب المختار على {total} سؤالاً موزعة على {template?.sections.length || 0} أقسام.</div>
+      <button className="button primary full" type="submit">إنشاء المسودة <ArrowLeft size={18} /></button>
+    </form>
+  </Modal>;
+}
+
+function BriefEditorModal({ brief, template, onClose, onUpdate, onToast, onOpenQuote }) {
+  const [answers, setAnswers] = useState(brief.answers || {});
+  const [status, setStatus] = useState(brief.status);
+  const fields = template.sections.flatMap((section) => section.fields);
+  const answered = fields.filter((field) => {
+    const value = answers[field.id];
+    return Array.isArray(value) ? value.length > 0 : Boolean(value);
+  }).length;
+  const save = () => {
+    onUpdate({ ...brief, answers, answered, status, updated: "الآن" });
+    onToast("تم حفظ إجابات البريف وملاحظات المراجعة");
+  };
+  const approve = () => {
+    const next = "معتمد";
+    setStatus(next);
+    onUpdate({ ...brief, answers, answered, status: next, updated: "الآن" });
+    onToast("تم اعتماد البريف وفتح إنشاء عرض السعر");
+  };
+  return <Modal title={`${template.title} - ${brief.project}`} onClose={onClose} size="wide">
+    <div className="brief-review-layout">
+      <form className="brief-response-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
+        <div className="brief-review-head"><span><small>{brief.id}</small><strong>{brief.client}</strong><b>{brief.contact}</b></span><span className="status-badge">{status}</span></div>
+        {template.sections.map((section, sectionIndex) => <section className="brief-response-section" key={section.id}>
+          <header><span>{sectionIndex + 1}</span><div><h3>{section.title}</h3><small>{section.fields.length} أسئلة</small></div></header>
+          <div>{section.fields.map((field) => <div className="brief-answer-field" key={field.id}><span>{field.label}{field.required && <b>مطلوب</b>}</span><BriefFieldInput field={field} value={answers[field.id]} onChange={(value) => setAnswers((current) => ({ ...current, [field.id]: value }))} /></div>)}</div>
+        </section>)}
+        <div className="document-form-actions"><button type="button" className="button ghost" onClick={save}><FloppyDisk size={18} /> حفظ المراجعة</button>{status === "جاهز لمراجعتك" && <button type="button" className="button primary" onClick={approve}><ShieldCheck size={18} /> اعتماد البريف</button>}{status === "بانتظار إجابة العميل" && <button type="button" className="button primary" onClick={() => onToast("تم إرسال تذكير واحد للعميل عبر قناته المفضلة")}><PaperPlaneTilt size={18} /> تذكير العميل</button>}{status === "مسودة داخلية" && <button type="button" className="button primary" onClick={() => { setStatus("بانتظار إجابة العميل"); onUpdate({ ...brief, answers, answered, status: "بانتظار إجابة العميل", updated: "الآن" }); onToast("تم إرسال البريف إلى العميل"); }}><PaperPlaneTilt size={18} /> إرسال للعميل</button>}{status === "معتمد" && <button type="button" className="button primary" onClick={onOpenQuote}><FileText size={18} /> إنشاء عرض السعر</button>}</div>
+      </form>
+      <aside className="brief-review-aside">
+        <div className="brief-progress-ring"><strong>{answered}</strong><span>من {fields.length}</span><small>إجابة مكتملة</small></div>
+        <section><h3>بوابة قبل التسعير</h3><p>لا ينشأ عرض السعر حتى يصبح البريف معتمداً منك. بعدها ينتقل الهدف والنطاق والمخرجات والموعد تلقائياً إلى مسودة العرض.</p></section>
+        <section><h3>ما سيغذي عرض السعر</h3><div className="brief-output-list"><span><Check size={16} /> الهدف والنتيجة</span><span><Check size={16} /> الجمهور والسياق</span><span><Check size={16} /> نطاق المخرجات</span><span><Check size={16} /> الموعد والقيود</span></div></section>
+        <div className="document-rule-note"><ShieldCheck size={21} /><div><strong>اعتماد بشري إلزامي</strong><p>الإجابات تساعد على صياغة العرض، ولا تحدد السعر أو ترسل مستنداً تلقائياً.</p></div></div>
+      </aside>
+    </div>
+  </Modal>;
+}
+
+function BriefsView({ settings, onToast, setSection }) {
+  const templates = (settings.briefTemplates || [...defaultBriefTemplates, ...reusableBriefTemplates]).filter((template) => template.enabled);
+  const [briefs, setBriefs] = useState(initialBriefs);
+  const [selected, setSelected] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const updateBrief = (brief) => setBriefs((items) => items.map((item) => item.id === brief.id ? brief : item));
+  const createBrief = ({ templateId, client, project, total }) => {
+    const template = templates.find((item) => item.id === templateId);
+    const next = { id: `BRF-${String(244 + briefs.length)}`, requestId: "يدوي", templateId, client, contact: "", project, service: template?.title.replace("بريف ", "") || "خدمة إبداعية", status: "مسودة داخلية", answered: 0, total, updated: "الآن", answers: {} };
+    setBriefs((items) => [next, ...items]);
+    setCreating(false);
+    setSelected(next);
+  };
+  const selectedTemplate = selected ? templates.find((template) => template.id === selected.templateId) : null;
+  return <div className="dashboard-content page-stack briefs-page">
+    <div className="page-title"><div><h1>البريفات</h1><p>مرحلة إلزامية بعد قبول الطلب وقبل تسعير المشروع.</p></div><button className="button primary" onClick={() => setCreating(true)}><Plus size={18} /> إنشاء بريف</button></div>
+    <section className="brief-gate-flow">
+      <div><Tray size={21} /><span><small>الطلب</small><strong>تراجعه وتقبله</strong></span></div><ArrowLeft size={17} />
+      <div className="active"><List size={21} /><span><small>البريف</small><strong>يجيب العميل</strong></span></div><ArrowLeft size={17} />
+      <div><ShieldCheck size={21} /><span><small>اعتمادك</small><strong>اكتمال النطاق</strong></span></div><ArrowLeft size={17} />
+      <div><FileText size={21} /><span><small>عرض السعر</small><strong>يصاغ من البريف</strong></span></div>
+    </section>
+    <section className="brief-summary-strip"><div><strong>{briefs.filter((item) => item.status === "جاهز لمراجعتك").length}</strong><span>جاهزة لمراجعتك</span></div><div><strong>{briefs.filter((item) => item.status === "بانتظار إجابة العميل").length}</strong><span>بانتظار العميل</span></div><div><strong>{templates.length}</strong><span>قوالب فعالة</span></div><div className="brief-summary-note"><Sparkle size={23} /><span><strong>السؤال يظهر في وقته.</strong><small>العميل لا يرى إلا بريف الخدمة التي وافقت عليها.</small></span></div></section>
+    <section className="panel brief-list-panel">
+      <div className="panel-heading"><div><h2>البريفات الحالية</h2><p>ابدأ بالجاهز للمراجعة، ثم تابع البريفات المتوقفة.</p></div><span className="sample-label">بيانات تجريبية</span></div>
+      <div className="brief-list">{briefs.map((brief) => <button key={brief.id} onClick={() => setSelected(brief)}><span className="brief-list-icon"><List size={21} /></span><span><strong>{brief.project}</strong><small>{brief.id} · {brief.client}</small></span><span><small>القالب</small><strong>{templates.find((item) => item.id === brief.templateId)?.title || brief.service}</strong></span><span className="brief-list-progress"><b>{brief.answered}/{brief.total}</b><small>إجابة</small></span><span className="status-badge">{brief.status}</span><ArrowLeft size={17} /></button>)}</div>
+    </section>
+    <div className="brief-gate-note"><LockKey size={23} /><div><strong>عرض السعر مقفل حتى اعتماد البريف.</strong><p>يمكنك تعديل أسئلة كل خدمة من إدارة الموقع، وحذف ما لا يلزم أو إضافة سؤال خاص بطريقتك.</p></div><button className="button ghost small" onClick={() => setSection("site-admin")}>تعديل القوالب</button></div>
+    {creating && <BriefCreateModal templates={templates} onClose={() => setCreating(false)} onCreate={createBrief} />}
+    {selected && selectedTemplate && <BriefEditorModal brief={selected} template={selectedTemplate} onClose={() => setSelected(null)} onUpdate={(brief) => { updateBrief(brief); setSelected(brief); }} onToast={onToast} onOpenQuote={() => { setSelected(null); setSection("documents"); onToast("فتحنا مركز العروض لإنشاء المسودة من البريف المعتمد"); }} />}
+  </div>;
+}
+
+function DocumentEditorModal({ document, settings, onClose, onSave, onToast }) {
+  const [draft, setDraft] = useState({
+    scope: "تقديم الخدمة الإبداعية وفق نطاق البريف المعتمد والمخرجات الموضحة في هذا العرض.",
+    payments: (settings.paymentPlans.find((plan) => plan.id === document.paymentPlan)?.percentages || [50, 50]),
+    notes: "",
+    ...document,
+  });
+  const update = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
+  const updatePayment = (index, value) => setDraft((current) => ({ ...current, payments: current.payments.map((amount, amountIndex) => amountIndex === index ? Number(value) : amount) }));
+  const selectPlan = (id) => {
+    const plan = settings.paymentPlans.find((item) => item.id === id);
+    setDraft((current) => ({ ...current, paymentPlan: id, payments: plan?.percentages || current.payments }));
+  };
+  const amount = Number(draft.amount || 0).toLocaleString("en-US");
+  const isContract = draft.type === "contract";
+  const bankTail = settings.bankAccount?.slice(-4) || "";
+  const save = () => {
+    onSave(draft);
+    onToast(`تم حفظ ${draft.title} كمسودة`);
+    onClose();
+  };
+
+  return (
+    <Modal title={`تحرير ${draft.title}`} onClose={onClose} size="wide">
+      <div className="document-builder">
+        <form className="document-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
+          <div className="field-row"><label>العميل<input value={draft.client} onChange={(event) => update("client", event.target.value)} /></label><label>المسؤول لدى العميل<input value={draft.contact} onChange={(event) => update("contact", event.target.value)} /></label></div>
+          <label>الخدمة أو المشروع<input value={draft.project} onChange={(event) => update("project", event.target.value)} /></label>
+          <label>وصف النطاق<textarea rows="4" value={draft.scope} onChange={(event) => update("scope", event.target.value)} /></label>
+          <div className="field-row"><label>القيمة<input type="number" value={draft.amount} onChange={(event) => update("amount", event.target.value)} /></label><label>العملة<select value={draft.currency} onChange={(event) => update("currency", event.target.value)}>{settings.collaboratorCurrencies.map((currency) => <option key={currency}>{currency}</option>)}</select></label></div>
+          <label>خطة الدفعات<select value={draft.paymentPlan} onChange={(event) => selectPlan(event.target.value)}>{settings.paymentPlans.map((plan) => <option value={plan.id} key={plan.id}>{plan.label}</option>)}</select></label>
+          <div className="payment-editor">{draft.payments.map((payment, index) => <label key={index}>الدفعة {index + 1}<span><input type="number" min="0" max="100" value={payment} onChange={(event) => updatePayment(index, event.target.value)} />%</span></label>)}</div>
+          <label>ملاحظات خاصة بالمستند<textarea rows="3" value={draft.notes} onChange={(event) => update("notes", event.target.value)} placeholder="أي استثناء أو اتفاق خاص بهذا المشروع" /></label>
+          <div className="document-form-actions"><button type="button" className="button ghost" onClick={() => onToast("تم تجهيز معاينة PDF داخل النموذج")}>معاينة PDF</button><button className="button primary" type="submit"><FloppyDisk size={18} /> حفظ المسودة</button></div>
+        </form>
+
+        <aside className="document-preview-sheet">
+          <header><Logo compact /><div><strong>{draft.title}</strong><small>{draft.id}</small></div></header>
+          <div className="document-party"><span><small>مقدم الخدمة</small><strong>{settings.ownerNameAr}</strong><b>{settings.ownerNameEn}</b></span><span><small>العميل</small><strong>{draft.client}</strong><b>{draft.contact}</b></span></div>
+          <section><small>موضوع المستند</small><h3>{draft.project}</h3><p>{draft.scope}</p></section>
+          <div className="document-total"><span>القيمة الإجمالية</span><strong>{amount} {draft.currency}</strong><small>{settings.vatRegistered ? "تراجع المعالجة الضريبية قبل الإصدار" : "مستند غير ضريبي"}</small></div>
+          <section><small>جدول الدفعات</small><div className="preview-payments">{draft.payments.map((payment, index) => <span key={index}><b>{payment}%</b><small>الدفعة {index + 1}</small></span>)}</div></section>
+          {isContract ? <section className="contract-clauses"><small>بنود العقد الأولية</small><p>تبدأ مدة التنفيذ بعد توقيع الطرفين واستلام الدفعة الأولى وتفاصيل العمل.</p><p>تقدم البروفة الأولى خلال {settings.firstProofDays} يوم عمل، وتنفذ التعديلات خلال {settings.revisionDays} أيام عمل، ويستغرق التأسيس من جديد {settings.restartDays} أيام عمل.</p><p>جولات التعديل: {settings.revisionRounds || "يحدد لكل مشروع"}، ويثبت العدد النهائي في هذا العقد قبل توقيعه.</p><p>تبقى الأفكار والمقترحات غير المعتمدة ملكاً لمقدم الخدمة، وتنتقل حقوق استخدام المخرجات النهائية بعد سداد كامل المستحقات.</p><p>تخضع الصياغة النهائية لمراجعة واعتماد مقدم الخدمة والعميل قبل التوقيع.</p></section> : <section className="contract-clauses"><small>الشروط الأولية</small><p>صلاحية العرض {settings.quoteValidityDays} أيام من تاريخ إصداره.</p><p>التنفيذ النهائي خلال {settings.finalizationDays} يوم عمل بعد اعتماد البروفات.</p><p>يصدر عقد مستقل بعد اعتماد العرض وقبل بدء العمل.</p></section>}
+          <footer><span>{settings.email}<br />{settings.phone}</span><span>الحساب المحفوظ: •••• {bankTail}<br />{settings.bankName}</span></footer>
+        </aside>
+      </div>
+    </Modal>
+  );
+}
+
+function DocumentsView({ settings, onToast }) {
+  const [documents, setDocuments] = useState(initialDocuments);
+  const [selected, setSelected] = useState(null);
+  const save = (document) => setDocuments((items) => items.map((item) => item.id === document.id ? { ...document, updated: "الآن" } : item));
+  const createFromBrief = () => setSelected({ id: `Q-${String(483 + documents.length)}`, type: "quote", title: "عرض سعر", client: "بريف معتمد", contact: "", project: settings.services.find((service) => service.active)?.title || "خدمة إبداعية", amount: "0", currency: settings.defaultCurrency, paymentPlan: settings.paymentPlans[0].id, status: "مسودة من بريف", updated: "الآن" });
+  const open = (document) => setSelected(document);
+
+  return (
+    <div className="dashboard-content page-stack documents-page">
+      <div className="page-title"><div><h1>العروض والعقود</h1><p>ينشأ عرض السعر من بريف معتمد، ثم لا يخرج إلا بعد مراجعتك.</p></div><button className="button primary" onClick={createFromBrief}><Plus size={18} /> إنشاء من بريف معتمد</button></div>
+      <section className="document-flow">
+        <div><Tray size={22} /><span><small>الطلب</small><strong>مقبول</strong></span></div><ArrowLeft size={18} /><div><List size={22} /><span><small>البريف</small><strong>معتمد</strong></span></div><ArrowLeft size={18} /><div><FileText size={22} /><span><small>العرض</small><strong>تصاغ مسودته</strong></span></div><ArrowLeft size={18} /><div><Handshake size={22} /><span><small>العقد</small><strong>بعد قبول العرض</strong></span></div>
+      </section>
+      <section className="panel document-list-panel">
+        <div className="panel-heading"><div><h2>المستندات الحالية</h2><p>النطاق والمخرجات والموعد تأتي من البريف، مع فصل العرض عن العقد.</p></div><span className="sample-label">بيانات تجريبية</span></div>
+        <div className="document-list">{documents.map((document) => <button key={document.id} onClick={() => open(document)}><span className={`document-type ${document.type}`}><FileText size={21} /></span><span><strong>{document.title}</strong><small>{document.id} · {document.client}</small></span><span><small>المشروع</small><strong>{document.project}</strong></span><span><small>القيمة</small><strong>{Number(document.amount).toLocaleString("en-US")} {document.currency}</strong></span><span className="status-badge">{document.status}</span><ArrowLeft size={17} /></button>)}</div>
+      </section>
+      <div className="document-safety"><ShieldCheck size={24} /><div><strong>المسودة الذكية لا تعني الإرسال التلقائي.</strong><p>السعر والبنود والدفعات والتوقيع تبقى بقرارك. الصيغة القانونية النهائية تحتاج مراجعة مختص قبل اعتماد القالب الإنتاجي.</p></div></div>
+      {selected && <DocumentEditorModal document={selected} settings={settings} onClose={() => setSelected(null)} onSave={(document) => { if (!documents.some((item) => item.id === document.id)) setDocuments((items) => [document, ...items]); else save(document); }} onToast={onToast} />}
     </div>
   );
 }
@@ -543,30 +1017,48 @@ function ClientsView() {
   );
 }
 
-function FinanceView({ onToast }) {
+function FinanceEntryModal({ kind, settings, onClose, onSave }) {
+  return <Modal title={kind === "client" ? "فاتورة عميل غير ضريبية" : "مطالبة خدمات متعاون"} onClose={onClose}>
+    <form className="request-form" onSubmit={(event) => { event.preventDefault(); onSave(); onClose(); }}>
+      {kind === "client" ? <div className="field-row"><label>العميل<input required placeholder="اسم العميل أو المنشأة" /></label><label>المشروع<input required placeholder="المشروع المرتبط" /></label></div> : <div className="field-row"><label>المتعاون<input required placeholder="اسم المتعاون" /></label><label>المشروع<input required placeholder="المشروع المرتبط" /></label></div>}
+      {kind === "collaborator" && <label>القطعة أو الخدمة<input required placeholder="مثال: تصميم 3 منشورات" /></label>}
+      <div className="field-row"><label>{kind === "collaborator" ? "سعر القطعة" : "المبلغ"}<input type="number" min="0" required /></label><label>العملة<select defaultValue={settings.defaultCurrency}>{settings.collaboratorCurrencies.map((currency) => <option key={currency}>{currency}</option>)}</select></label></div>
+      {kind === "collaborator" && <div className="field-row"><label>عدد القطع<input type="number" min="1" defaultValue="1" required /></label><label>تاريخ الاستحقاق<input type="date" required /></label></div>}
+      {kind === "client" && <label>تاريخ الاستحقاق<input type="date" required /></label>}
+      <div className="form-note"><ShieldCheck size={19} /> {kind === "client" ? "سيظهر المستند بوضوح على أنه غير ضريبي." : "تُسجل المطالبة كمبلغ مستحق على المشروع ولا تختلط بفواتير العملاء."}</div>
+      <button className="button primary full" type="submit">حفظ المسودة <ArrowLeft size={18} /></button>
+    </form>
+  </Modal>;
+}
+
+function FinanceView({ onToast, settings }) {
+  const [tab, setTab] = useState("clients");
+  const [entryKind, setEntryKind] = useState(null);
   return (
     <div className="dashboard-content page-stack">
-      <div className="page-title"><div><h1>الحسابات</h1><p>ما لك، وما عليك، وربحية كل مشروع دون ملف منفصل.</p></div><button className="button primary"><Plus size={18} /> فاتورة جديدة</button></div>
+      <div className="page-title"><div><h1>الحسابات</h1><p>ما لك، وما عليك، وربحية كل مشروع دون ملف منفصل.</p></div><button className="button primary" onClick={() => setEntryKind(tab === "clients" ? "client" : "collaborator")}><Plus size={18} /> {tab === "clients" ? "فاتورة عميل" : "مطالبة متعاون"}</button></div>
       <section className="finance-hero">
         <div className="finance-balance"><span>الرصيد المتوقع بعد الالتزامات</span><strong>36,420 <small>ر.س</small></strong><p>حتى نهاية أغسطس، بناء على العقود والفواتير المسجلة.</p></div>
-        <div className="finance-pairs"><div><Receipt size={22} /><span>مستحقات العملاء<strong>16,350 ر.س</strong></span></div><div><UsersThree size={22} /><span>دفعات المتعاونين<strong>4,800 ر.س</strong></span></div><div><ChartLineUp size={22} /><span>هامش المشاريع<strong>31%</strong></span></div></div>
+        <div className="finance-pairs"><div><Receipt size={22} /><span>مستحقات العملاء<strong>16,350 SAR</strong></span></div><div><UsersThree size={22} /><span>دفعات المتعاونين<strong>4,800 SAR + عملات</strong></span></div><div><ChartLineUp size={22} /><span>هامش المشاريع<strong>31%</strong></span></div></div>
       </section>
       <section className="panel">
-        <div className="panel-heading"><div><h2>الفواتير الأخيرة</h2><p>المتابعة التلقائية مفعلة للفواتير المستحقة.</p></div><button className="filter-button">تصدير التقرير</button></div>
-        <div className="invoice-list">
+        <div className="panel-heading finance-heading"><div><h2>{tab === "clients" ? "فواتير العملاء" : "مستحقات المتعاونين"}</h2><p>{tab === "clients" ? "فواتير عادية غير ضريبية مرتبطة بالدفعات والمشاريع." : "تكلفة كل قطعة بالعملة التي يعمل بها المتعاون."}</p></div><div className="finance-tabs"><button className={tab === "clients" ? "active" : ""} onClick={() => setTab("clients")}>العملاء</button><button className={tab === "collaborators" ? "active" : ""} onClick={() => setTab("collaborators")}>المتعاونون</button></div></div>
+        {tab === "clients" ? <div className="invoice-list">
           {invoices.map((invoice) => (
             <article key={invoice.id}>
               <span className="invoice-icon"><Invoice size={20} /></span>
-              <span><strong>{invoice.id}</strong><small>{invoice.project}</small></span>
+              <span><strong>{invoice.id}</strong><small>{invoice.type} · {invoice.project}</small></span>
               <span><small>العميل</small><strong>{invoice.client}</strong></span>
               <span><small>الاستحقاق</small><strong>{invoice.due}</strong></span>
-              <strong>{invoice.amount} ر.س</strong>
+              <strong>{invoice.amount} {invoice.currency}</strong>
               <span className={`payment-status ${invoice.status === "مدفوعة" ? "paid" : ""}`}>{invoice.status}</span>
               {invoice.status !== "مدفوعة" && <button className="icon-button" aria-label="إرسال تذكير" onClick={() => onToast(`تم إرسال تذكير فاتورة ${invoice.id}`)}><PaperPlaneTilt size={18} /></button>}
             </article>
           ))}
-        </div>
+        </div> : <div className="collaborator-bills">{collaboratorBills.map((bill) => <article key={bill.id}><span className="invoice-icon"><Coins size={20} /></span><span><strong>{bill.collaborator}</strong><small>{bill.id} · {bill.item}</small></span><span><small>المشروع</small><strong>{bill.project}</strong></span><strong>{bill.amount} {bill.currency}</strong><span className={`payment-status ${bill.status === "مدفوعة" ? "paid" : ""}`}>{bill.status}</span><button className="text-link" onClick={() => onToast(`تم فتح مطالبة ${bill.id}`)}>التفاصيل <ArrowLeft size={15} /></button></article>)}</div>}
       </section>
+      <div className="currency-note"><Coins size={22} /><div><strong>العملات لا تُجمع مباشرة.</strong><p>يبقى كل رصيد بعملته الأصلية، وتظهر قيمته المرجعية بالريال فقط عند إعداد تقرير الربحية وسعر الصرف المسجل.</p></div></div>
+      {entryKind && <FinanceEntryModal kind={entryKind} settings={settings} onClose={() => setEntryKind(null)} onSave={() => onToast(entryKind === "client" ? "تم حفظ فاتورة العميل كمسودة" : "تم حفظ مطالبة المتعاون")} />}
     </div>
   );
 }
@@ -610,6 +1102,31 @@ function ProjectDrawer({ project, onClose, onToast }) {
   );
 }
 
+function StudioSettingsView({ content, onSave, onToast }) {
+  const [tab, setTab] = useState("identity");
+  const [draft, setDraft] = useState(content);
+  const update = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
+  const updatePlan = (index, key, value) => setDraft((current) => ({ ...current, paymentPlans: current.paymentPlans.map((plan, planIndex) => planIndex === index ? { ...plan, [key]: value } : plan) }));
+  const updatePlanPayment = (planIndex, paymentIndex, value) => setDraft((current) => ({ ...current, paymentPlans: current.paymentPlans.map((plan, index) => index === planIndex ? { ...plan, percentages: plan.percentages.map((payment, itemIndex) => itemIndex === paymentIndex ? Number(value) : payment) } : plan) }));
+  const addPlan = () => setDraft((current) => ({ ...current, paymentPlans: [...current.paymentPlans, { id: `plan-${Date.now()}`, label: "خطة دفعات جديدة", percentages: [40, 30, 30] }] }));
+  const removePlan = (index) => setDraft((current) => ({ ...current, paymentPlans: current.paymentPlans.filter((_, planIndex) => planIndex !== index) }));
+  const toggleCurrency = (currency) => setDraft((current) => ({ ...current, collaboratorCurrencies: current.collaboratorCurrencies.includes(currency) ? current.collaboratorCurrencies.filter((item) => item !== currency) : [...current.collaboratorCurrencies, currency] }));
+  const save = () => {
+    onSave(draft);
+    onToast("تم حفظ إعدادات العمل والمستندات");
+  };
+
+  return <div className="dashboard-content page-stack studio-settings-page">
+    <div className="page-title"><div><h1>إعدادات العمل</h1><p>المصدر الواحد لبياناتك البنكية وقواعد العروض والعقود والعملات.</p></div><button className="button primary" onClick={save}><FloppyDisk size={18} /> حفظ الإعدادات</button></div>
+    <div className="settings-tabs"><button className={tab === "identity" ? "active" : ""} onClick={() => setTab("identity")}>الهوية والحساب</button><button className={tab === "documents" ? "active" : ""} onClick={() => setTab("documents")}>قواعد المستندات</button><button className={tab === "finance" ? "active" : ""} onClick={() => setTab("finance")}>الدفعات والعملات</button></div>
+    <section className="panel settings-panel">
+      {tab === "identity" && <><div className="settings-section-title"><div><h2>بيانات مقدم الخدمة</h2><p>تظهر في العرض والعقد والفاتورة، ولا تظهر بيانات البنك في الموقع العام.</p></div><ShieldCheck size={24} /></div><div className="cms-fields"><label className="cms-field full">الاسم بالعربية<input value={draft.ownerNameAr} onChange={(event) => update("ownerNameAr", event.target.value)} /></label><label className="cms-field full">الاسم بالإنجليزية<input dir="ltr" value={draft.ownerNameEn} onChange={(event) => update("ownerNameEn", event.target.value)} /></label><label className="cms-field">البريد<input dir="ltr" value={draft.email} onChange={(event) => update("email", event.target.value)} /></label><label className="cms-field">الجوال<input dir="ltr" value={draft.phone} onChange={(event) => update("phone", event.target.value)} /></label><label className="cms-field">البنك<input value={draft.bankName} onChange={(event) => update("bankName", event.target.value)} /></label><label className="cms-field">رقم الحساب<input dir="ltr" value={draft.bankAccount} onChange={(event) => update("bankAccount", event.target.value)} /></label><label className="cms-field full">IBAN<input dir="ltr" value={draft.bankIban} onChange={(event) => update("bankIban", event.target.value)} /></label></div><label className="cms-toggle danger"><span><strong>مسجل في ضريبة القيمة المضافة</strong><small>{draft.vatRegistered ? "يجب تطبيق قواعد الفاتورة الضريبية قبل الإصدار" : "المستندات الحالية غير ضريبية"}</small></span><input type="checkbox" checked={draft.vatRegistered} onChange={(event) => update("vatRegistered", event.target.checked)} /></label></>}
+      {tab === "documents" && <><div className="settings-section-title"><div><h2>المواعيد الافتراضية</h2><p>تملأ بها المسودة تلقائياً ويمكن تغييرها لكل مشروع.</p></div><FileText size={24} /></div><div className="cms-fields timeline-settings"><label className="cms-field">صلاحية العرض بالأيام<input type="number" value={draft.quoteValidityDays} onChange={(event) => update("quoteValidityDays", Number(event.target.value))} /></label><label className="cms-field">البروفة الأولى، أيام عمل<input type="number" value={draft.firstProofDays} onChange={(event) => update("firstProofDays", Number(event.target.value))} /></label><label className="cms-field">جولات التعديل الافتراضية<input value={draft.revisionRounds || ""} onChange={(event) => update("revisionRounds", event.target.value)} placeholder="مثال: جولتان" /></label><label className="cms-field">مدة التعديل، أيام عمل<input type="number" value={draft.revisionDays} onChange={(event) => update("revisionDays", Number(event.target.value))} /></label><label className="cms-field">التأسيس من جديد، أيام عمل<input type="number" value={draft.restartDays} onChange={(event) => update("restartDays", Number(event.target.value))} /></label><label className="cms-field">التنفيذ بعد الاعتماد، أيام عمل<input type="number" value={draft.finalizationDays} onChange={(event) => update("finalizationDays", Number(event.target.value))} /></label></div><div className="document-rule-note"><Handshake size={23} /><div><strong>العقد مستقل عن العرض.</strong><p>اعتماد العرض ينشئ مسودة عقد، ولا يبدأ المشروع إلا بعد توقيع العقد وتسجيل الدفعة الأولى.</p></div></div></>}
+      {tab === "finance" && <><div className="settings-section-title"><div><h2>خطط الدفعات</h2><p>اختر الخطة في كل عرض، ثم عدّل النسب قبل الإرسال.</p></div><button className="button ghost small" onClick={addPlan}><Plus size={17} /> إضافة خطة</button></div><div className="payment-plan-list">{draft.paymentPlans.map((plan, planIndex) => <article key={plan.id}><div><label>اسم الخطة<input value={plan.label} onChange={(event) => updatePlan(planIndex, "label", event.target.value)} /></label><div className="payment-editor">{plan.percentages.map((payment, paymentIndex) => <label key={paymentIndex}>دفعة {paymentIndex + 1}<span><input type="number" min="0" max="100" value={payment} onChange={(event) => updatePlanPayment(planIndex, paymentIndex, event.target.value)} />%</span></label>)}</div></div><button aria-label={`حذف ${plan.label}`} onClick={() => removePlan(planIndex)}><X size={18} /></button></article>)}</div><div className="currency-settings"><h3>عملات المتعاونين</h3><p>تبقى المطالبة بعملتها، ولا تحول إلى الريال إلا في تقرير الربحية.</p><div>{["SAR", "USD", "EUR", "GBP", "AED"].map((currency) => <label key={currency} className={draft.collaboratorCurrencies.includes(currency) ? "active" : ""}><input type="checkbox" checked={draft.collaboratorCurrencies.includes(currency)} onChange={() => toggleCurrency(currency)} />{currency}</label>)}</div></div></>}
+    </section>
+  </div>;
+}
+
 function SiteAdminView({ content, onPublish, onPreview, onToast }) {
   const [tab, setTab] = useState("content");
   const [draft, setDraft] = useState(content);
@@ -618,6 +1135,7 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
     ["services", "الخدمات", SquaresFour],
     ["work", "الأعمال", Briefcase],
     ["forms", "نموذج الطلب", Tray],
+    ["briefs", "قوالب البريف", List],
     ["seo", "SEO والمشاركة", ChartLineUp],
     ["settings", "الإعدادات", SlidersHorizontal],
   ];
@@ -630,6 +1148,31 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
     ...current,
     sectionVisibility: { ...current.sectionVisibility, [key]: value },
   }));
+  const updateService = (index, key, value) => setDraft((current) => ({ ...current, services: current.services.map((service, serviceIndex) => serviceIndex === index ? { ...service, [key]: value } : service) }));
+  const addService = () => {
+    const id = `service-${Date.now()}`;
+    setDraft((current) => ({
+      ...current,
+      services: [...current.services, { id, title: "خدمة جديدة", description: "اكتب وصفاً واضحاً للخدمة.", active: true }],
+      briefTemplates: [...(current.briefTemplates || []), { id: `brief-${id}`, serviceId: id, title: "بريف الخدمة الجديدة", description: "أسئلة العميل بعد قبول الطلب وقبل عرض السعر.", enabled: true, sections: [{ id: `section-${Date.now()}`, title: "فهم الطلب", fields: [{ id: `field-${Date.now()}`, label: "ما النتيجة التي تريد تحقيقها؟", type: "textarea", required: true }] }] }],
+    }));
+  };
+  const removeService = (index) => setDraft((current) => {
+    const serviceId = current.services[index].id;
+    return { ...current, services: current.services.filter((_, serviceIndex) => serviceIndex !== index), briefTemplates: (current.briefTemplates || []).filter((template) => template.serviceId !== serviceId) };
+  });
+  const updateQuestion = (index, key, value) => setDraft((current) => ({ ...current, requestQuestions: current.requestQuestions.map((question, questionIndex) => questionIndex === index ? { ...question, [key]: value } : question) }));
+  const addQuestion = () => setDraft((current) => ({ ...current, requestQuestions: [...current.requestQuestions, { id: `question-${Date.now()}`, label: "سؤال جديد", type: "text", required: false, enabled: true }] }));
+  const removeQuestion = (index) => setDraft((current) => ({ ...current, requestQuestions: current.requestQuestions.filter((_, questionIndex) => questionIndex !== index) }));
+  const addBriefTemplate = () => setDraft((current) => ({ ...current, briefTemplates: [...(current.briefTemplates || []), { id: `brief-${Date.now()}`, serviceId: "any", title: "قالب بريف جديد", description: "حدد متى يستخدم هذا القالب.", enabled: true, sections: [{ id: `section-${Date.now()}`, title: "القسم الأول", fields: [{ id: `field-${Date.now()}`, label: "سؤال جديد", type: "textarea", required: true }] }] }] }));
+  const updateBriefTemplate = (templateIndex, key, value) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, [key]: value } : template) }));
+  const removeBriefTemplate = (templateIndex) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.filter((_, index) => index !== templateIndex) }));
+  const addBriefSection = (templateIndex) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: [...template.sections, { id: `section-${Date.now()}`, title: "قسم جديد", fields: [] }] } : template) }));
+  const updateBriefSection = (templateIndex, sectionIndex, key, value) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.map((section, itemIndex) => itemIndex === sectionIndex ? { ...section, [key]: value } : section) } : template) }));
+  const removeBriefSection = (templateIndex, sectionIndex) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.filter((_, itemIndex) => itemIndex !== sectionIndex) } : template) }));
+  const addBriefField = (templateIndex, sectionIndex) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.map((section, itemIndex) => itemIndex === sectionIndex ? { ...section, fields: [...section.fields, { id: `field-${Date.now()}`, label: "سؤال جديد", type: "textarea", required: false }] } : section) } : template) }));
+  const updateBriefField = (templateIndex, sectionIndex, fieldIndex, key, value) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.map((section, itemIndex) => itemIndex === sectionIndex ? { ...section, fields: section.fields.map((field, questionIndex) => questionIndex === fieldIndex ? { ...field, [key]: value } : field) } : section) } : template) }));
+  const removeBriefField = (templateIndex, sectionIndex, fieldIndex) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.map((section, itemIndex) => itemIndex === sectionIndex ? { ...section, fields: section.fields.filter((_, questionIndex) => questionIndex !== fieldIndex) } : section) } : template) }));
   const publish = () => {
     onPublish(draft);
     onToast("تم نشر التغييرات على الموقع التعريفي");
@@ -666,8 +1209,8 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
           </>}
 
           {tab === "services" && <>
-            <div className="cms-editor-heading"><div><h2>الخدمات المعروضة</h2><p>اختر ما يظهر حالياً في الموقع. يمكن ربط كل خدمة بنموذج طلب مخصص لاحقاً.</p></div><span>{draft.serviceVisibility.filter(Boolean).length} ظاهرة</span></div>
-            <div className="cms-list">{serviceList.map(([title, text], index) => <label className="cms-list-item" key={title}><span className="cms-list-index">{String(index + 1).padStart(2, "0")}</span><span><strong>{title}</strong><small>{text}</small></span><input type="checkbox" checked={draft.serviceVisibility[index]} onChange={(event) => updateVisibility("serviceVisibility", index, event.target.checked)} /></label>)}</div>
+            <div className="cms-editor-heading"><div><h2>الخدمات المعروضة</h2><p>أضف وعدّل واحذف أي خدمة، وحدد ما يظهر في الموقع ونموذج الطلب.</p></div><button className="button ghost small" onClick={addService}><Plus size={17} /> إضافة خدمة</button></div>
+            <div className="service-editor-list">{draft.services.map((service, index) => <article className="service-editor-item" key={service.id}><span className="cms-list-index">{String(index + 1).padStart(2, "0")}</span><div><label>اسم الخدمة<input value={service.title} onChange={(event) => updateService(index, "title", event.target.value)} /></label><label>الوصف<textarea rows="2" value={service.description} onChange={(event) => updateService(index, "description", event.target.value)} /></label></div><div className="service-editor-actions"><label><input type="checkbox" checked={service.active} onChange={(event) => updateService(index, "active", event.target.checked)} /> ظاهرة</label><button aria-label={`حذف ${service.title}`} onClick={() => removeService(index)}><X size={17} /></button></div></article>)}</div>
           </>}
 
           {tab === "work" && <>
@@ -676,13 +1219,28 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
           </>}
 
           {tab === "forms" && <>
-            <div className="cms-editor-heading"><div><h2>نموذج طلب الخدمة</h2><p>حدد متى يستقبل الموقع الطلبات وما البيانات المطلوبة من العميل.</p></div><span>النموذج الرئيسي</span></div>
+            <div className="cms-editor-heading"><div><h2>نموذج طلب الخدمة</h2><p>بيانات التواصل ثابتة لحماية المتابعة، وبقية الأسئلة قابلة للتعديل والإضافة والحذف.</p></div><button className="button ghost small" onClick={addQuestion}><Plus size={17} /> إضافة سؤال</button></div>
             <div className="cms-toggle-stack">
               <label className="cms-toggle"><span><strong>استقبال طلبات جديدة</strong><small>عند إيقافه يظهر للزائر أن جدول المشاريع ممتلئ.</small></span><input type="checkbox" checked={draft.acceptingRequests} onChange={(event) => update("acceptingRequests", event.target.checked)} /></label>
-              <label className="cms-toggle"><span><strong>إلزام العميل بالميزانية المتوقعة</strong><small>يساعد في فرز الطلبات قبل المراجعة.</small></span><input type="checkbox" checked={draft.requireBudget} onChange={(event) => update("requireBudget", event.target.checked)} /></label>
-              <label className="cms-toggle"><span><strong>إلزام العميل بموعد مستهدف</strong><small>يظهر حقل التاريخ كجزء مطلوب من الطلب.</small></span><input type="checkbox" checked={draft.requireDeadline} onChange={(event) => update("requireDeadline", event.target.checked)} /></label>
             </div>
+            <div className="fixed-contact-fields"><ShieldCheck size={22} /><div><strong>حقول التواصل الأساسية</strong><p>الاسم، المنشأة، البريد، الجوال، وسيلة التواصل وقناة الإشعارات. هذه الحقول مطلوبة دائماً.</p></div></div>
+            <div className="question-editor-list">{draft.requestQuestions.map((question, index) => <article key={question.id}><div className="question-main"><label>السؤال<input value={question.label} onChange={(event) => updateQuestion(index, "label", event.target.value)} /></label><label>نوع الإجابة<select value={question.type} onChange={(event) => updateQuestion(index, "type", event.target.value)}><option value="text">نص قصير</option><option value="textarea">نص طويل</option><option value="date">تاريخ</option><option value="select">اختيارات</option></select></label></div>{question.type === "select" && <label className="question-options">الاختيارات<input value={(question.options || []).join("، ")} onChange={(event) => updateQuestion(index, "options", event.target.value.split("،").map((item) => item.trim()).filter(Boolean))} /></label>}<div className="question-actions"><label><input type="checkbox" checked={question.required} onChange={(event) => updateQuestion(index, "required", event.target.checked)} /> مطلوب</label><label><input type="checkbox" checked={question.enabled} onChange={(event) => updateQuestion(index, "enabled", event.target.checked)} /> ظاهر</label><button aria-label={`حذف سؤال ${question.label}`} onClick={() => removeQuestion(index)}><X size={17} /></button></div></article>)}</div>
             <div className="cms-note"><LockKey size={22} /><div><strong>من الطلب إلى مساحة العمل</strong><p>بعد قبول الطلب تنشئ الإدارة المشروع وترسل دعوة خاصة للعميل. تفاصيل المشروع لا تظهر أبداً في الموقع العام.</p></div></div>
+          </>}
+
+          {tab === "briefs" && <>
+            <div className="cms-editor-heading"><div><h2>قوالب البريف</h2><p>لكل خدمة أسئلتها. ترسل بعد قبول الطلب، ويجب اعتماد الإجابات قبل إنشاء عرض السعر.</p></div><button className="button ghost small" onClick={addBriefTemplate}><Plus size={17} /> إضافة قالب</button></div>
+            <div className="brief-template-editor-list">{(draft.briefTemplates || []).map((template, templateIndex) => <article className="brief-template-editor" key={template.id}>
+              <header><span className="brief-template-mark"><List size={21} /></span><div><label>اسم القالب<input value={template.title} onChange={(event) => updateBriefTemplate(templateIndex, "title", event.target.value)} /></label><label>الخدمة<select value={template.serviceId} onChange={(event) => updateBriefTemplate(templateIndex, "serviceId", event.target.value)}><option value="any">قالب مشترك</option>{draft.services.map((service) => <option value={service.id} key={service.id}>{service.title}</option>)}</select></label></div><label className="brief-template-enabled"><input type="checkbox" checked={template.enabled} onChange={(event) => updateBriefTemplate(templateIndex, "enabled", event.target.checked)} /> فعال</label><button aria-label={`حذف قالب ${template.title}`} onClick={() => removeBriefTemplate(templateIndex)}><X size={18} /></button></header>
+              <label className="brief-template-description">وصف الاستخدام<textarea rows="2" value={template.description} onChange={(event) => updateBriefTemplate(templateIndex, "description", event.target.value)} /></label>
+              <div className="brief-section-editor-list">{template.sections.map((section, sectionIndex) => <section className="brief-section-editor" key={section.id}>
+                <header><label>عنوان القسم<input value={section.title} onChange={(event) => updateBriefSection(templateIndex, sectionIndex, "title", event.target.value)} /></label><span>{section.fields.length} أسئلة</span><button aria-label={`حذف قسم ${section.title}`} onClick={() => removeBriefSection(templateIndex, sectionIndex)}><X size={17} /></button></header>
+                <div>{section.fields.map((field, fieldIndex) => <article className="brief-question-editor" key={field.id}><span className="cms-list-index">{fieldIndex + 1}</span><div><label>السؤال<input value={field.label} onChange={(event) => updateBriefField(templateIndex, sectionIndex, fieldIndex, "label", event.target.value)} /></label>{["select", "multiselect"].includes(field.type) && <label>الاختيارات<input value={(field.options || []).join("، ")} onChange={(event) => updateBriefField(templateIndex, sectionIndex, fieldIndex, "options", event.target.value.split("،").map((item) => item.trim()).filter(Boolean))} /></label>}</div><label>نوع الإجابة<select value={field.type} onChange={(event) => updateBriefField(templateIndex, sectionIndex, fieldIndex, "type", event.target.value)}><option value="text">نص قصير</option><option value="textarea">نص طويل</option><option value="date">تاريخ</option><option value="select">اختيار واحد</option><option value="multiselect">اختيارات متعددة</option><option value="scale">مقياس 1-5</option><option value="file">رفع ملفات</option></select></label><div className="brief-question-actions"><label><input type="checkbox" checked={field.required} onChange={(event) => updateBriefField(templateIndex, sectionIndex, fieldIndex, "required", event.target.checked)} /> مطلوب</label><button aria-label={`حذف سؤال ${field.label}`} onClick={() => removeBriefField(templateIndex, sectionIndex, fieldIndex)}><X size={17} /></button></div></article>)}</div>
+                <button className="add-brief-question" onClick={() => addBriefField(templateIndex, sectionIndex)}><Plus size={16} /> إضافة سؤال لهذا القسم</button>
+              </section>)}</div>
+              <button className="button ghost small add-brief-section" onClick={() => addBriefSection(templateIndex)}><Plus size={17} /> إضافة قسم</button>
+            </article>)}</div>
+            <div className="cms-note"><ShieldCheck size={22} /><div><strong>القالب ليس عرض سعر.</strong><p>الإجابات تصبح مرجع النطاق والتسعير، لكن السعر والمدة والدفعات لا تعتمد إلا بقرارك داخل مركز العروض.</p></div></div>
           </>}
 
           {tab === "seo" && <>
@@ -735,12 +1293,12 @@ function Sidebar({ section, setSection, onSite }) {
       <nav aria-label="أقسام الإدارة">
         {navItems.map((item) => {
           const Icon = item.icon;
-          return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label}</span>{item.id === "requests" && <b>2</b>}</button>;
+          return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label}</span>{item.id === "requests" && <b>2</b>}{item.id === "briefs" && <b>1</b>}</button>;
         })}
       </nav>
       <div className="sidebar-card"><Sparkle size={21} weight="fill" /><strong>وضع التركيز</strong><p>يعرض لك قراراً واحداً فقط، ويؤجل البقية حتى تنتهي.</p><button>ابدأ 25 دقيقة</button></div>
       <button className="back-to-site" onClick={onSite}><House size={19} /> الموقع التعريفي</button>
-      <div className="profile-mini"><span>ع</span><div><strong>عبدالوهاب السويد</strong><small>مالك الاستوديو</small></div><CaretDown size={15} /></div>
+      <div className="profile-mini"><span>ع</span><div><strong>عبد الوهاب السويد</strong><small>مالك الاستوديو</small></div><CaretDown size={15} /></div>
     </aside>
   );
 }
@@ -768,10 +1326,13 @@ function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExi
 
 function OwnerApp({ section, setSection, onProject, onCapture, onToast, siteContent, onPublishSite, onSite }) {
   if (section === "projects") return <ProjectsView onProject={onProject} />;
-  if (section === "requests") return <RequestsView onToast={onToast} />;
+  if (section === "requests") return <RequestsView onToast={onToast} setSection={setSection} />;
+  if (section === "briefs") return <BriefsView settings={siteContent} onToast={onToast} setSection={setSection} />;
+  if (section === "documents") return <DocumentsView settings={siteContent} onToast={onToast} />;
   if (section === "clients") return <ClientsView />;
-  if (section === "finance") return <FinanceView onToast={onToast} />;
+  if (section === "finance") return <FinanceView onToast={onToast} settings={siteContent} />;
   if (section === "team") return <TeamView />;
+  if (section === "studio-settings") return <StudioSettingsView content={siteContent} onSave={onPublishSite} onToast={onToast} />;
   if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} />;
   return <OwnerOverview onProject={onProject} onCapture={onCapture} setSection={setSection} />;
 }
@@ -788,16 +1349,16 @@ function ClientPortal({ onToast }) {
     <div className="portal-page dashboard-content">
       <section className="portal-welcome"><div><small>صباح الخير، خالد</small><h1>كل شيء يمشي كما اتفقنا.</h1><p>مشروع سيد مندي الآن عند قرار واحد منك.</p></div><button className="button primary" onClick={() => setRequestOpen(true)}><Plus size={18} /> طلب جديد</button></section>
       <section className="client-project-hero">
-        <div className="client-project-copy"><span className="status-badge">{proofState === "approved" ? "تم الاعتماد" : "بانتظار قرارك"}</span><h2>سيد مندي</h2><p>صناعة العلامة والتغليف</p><StageTrack current={proofState === "approved" ? 5 : 4} /></div>
+        <div className="client-project-copy"><span className="status-badge">{proofState === "approved" ? "تم الاعتماد" : "بانتظار قرارك"}</span><h2>سيد مندي</h2><p>صناعة العلامة والتغليف</p><StageTrack current={proofState === "approved" ? 6 : 5} /></div>
         <div className="client-decision">
           {proofState === "approved" ? <><CheckCircle size={40} weight="fill" /><h3>شكراً، تم الاعتماد.</h3><p>انتقل المشروع إلى تجهيز الملفات النهائية والفاتورة.</p></> : <><span>يحتاج قرارك</span><h3>البروفة الثانية جاهزة</h3><p>راجع تطبيقات العبوة والواجهة، ثم اعتمد أو اطلب تعديلاً واحداً واضحاً.</p><button className="button inverted" onClick={() => setProofOpen(true)}>مراجعة البروفة <ArrowLeft size={18} /></button></>}
         </div>
       </section>
       <section className="client-columns">
         <div className="panel timeline-panel"><div className="panel-heading"><div><h2>آخر ما حدث</h2><p>تحديثات مفهومة بلا مصطلحات داخلية.</p></div></div><div className="client-timeline"><div className="done"><CheckCircle size={19} weight="fill" /><span><strong>رفع البروفة الثانية</strong><small>اليوم، 9:26 ص</small></span></div><div className="done"><CheckCircle size={19} weight="fill" /><span><strong>تجميع ملاحظات البروفة الأولى</strong><small>3 أغسطس</small></span></div><div><Clock size={19} /><span><strong>الفاتورة النهائية</strong><small>بعد اعتماد البروفة</small></span></div></div></div>
-        <div className="panel client-files"><div className="panel-heading"><div><h2>الملفات والفواتير</h2><p>كل نسخة محفوظة، ولا روابط ضائعة.</p></div></div><button><FileText size={22} /><span><strong>ملخص المشروع.pdf</strong><small>معتمد عند بدء المشروع</small></span><ArrowLeft size={17} /></button><button><Invoice size={22} /><span><strong>فاتورة الدفعة الأولى</strong><small>مدفوعة، 9,250 ر.س</small></span><CheckCircle size={18} weight="fill" /></button></div>
+        <div className="panel client-files"><div className="panel-heading"><div><h2>الملفات والفواتير</h2><p>كل نسخة محفوظة، ولا روابط ضائعة.</p></div></div><button><List size={22} /><span><strong>البريف المعتمد</strong><small>مرجع النطاق قبل عرض السعر</small></span><CheckCircle size={18} weight="fill" /></button><button><Invoice size={22} /><span><strong>فاتورة الدفعة الأولى</strong><small>مدفوعة، 9,250 ر.س</small></span><CheckCircle size={18} weight="fill" /></button></div>
       </section>
-      {proofOpen && <Modal title="البروفة الثانية" onClose={() => setProofOpen(false)} size="wide"><div className="proof-modal"><img src="/work-mandi.jpg" alt="البروفة الثانية لمشروع سيد مندي" /><div className="proof-actions"><div><h3>هوية العبوة وتطبيقات الواجهة</h3><p>راجع اللون، وضوح الاسم، وطريقة حضور العلامة عند الاستخدام.</p></div><textarea rows="3" placeholder="اكتب طلب التعديل هنا عند الحاجة" /><div><button className="button ghost" onClick={() => { setProofOpen(false); onToast("تم إرسال طلب التعديل إلى عبدالوهاب"); }}>طلب تعديل</button><button className="button primary" onClick={() => { approve(); setProofOpen(false); }}>اعتماد البروفة <Check size={18} /></button></div></div></div></Modal>}
+      {proofOpen && <Modal title="البروفة الثانية" onClose={() => setProofOpen(false)} size="wide"><div className="proof-modal"><img src="/work-mandi.jpg" alt="البروفة الثانية لمشروع سيد مندي" /><div className="proof-actions"><div><h3>هوية العبوة وتطبيقات الواجهة</h3><p>راجع اللون، وضوح الاسم، وطريقة حضور العلامة عند الاستخدام.</p></div><textarea rows="3" placeholder="اكتب طلب التعديل هنا عند الحاجة" /><div><button className="button ghost" onClick={() => { setProofOpen(false); onToast("تم إرسال طلب التعديل إلى عبد الوهاب"); }}>طلب تعديل</button><button className="button primary" onClick={() => { approve(); setProofOpen(false); }}>اعتماد البروفة <Check size={18} /></button></div></div></div></Modal>}
       {requestOpen && <Modal title="طلب جديد ضمن العقد" onClose={() => setRequestOpen(false)}><form className="request-form" onSubmit={(event) => { event.preventDefault(); setRequestOpen(false); onToast("وصل الطلب الجديد إلى طابور التنفيذ"); }}><label>عنوان الطلب<input required placeholder="مثال: حملة افتتاح الفرع" /></label><label>النتيجة المطلوبة<textarea rows="4" required placeholder="ما الذي يجب أن ينجح بعد تنفيذ هذا الطلب؟" /></label><div className="field-row"><label>الأولوية<select><option>عادية</option><option>مرتفعة</option></select></label><label>الموعد المطلوب<input type="date" required /></label></div><button className="button primary full" type="submit">إرسال الطلب <ArrowLeft size={18} /></button></form></Modal>}
     </div>
   );
@@ -812,7 +1373,7 @@ function CollaboratorPortal({ onToast }) {
   const start = (id) => setTasks((items) => items.map((item) => item.id === id ? { ...item, status: "يعمل عليه" } : item));
   const deliver = (id) => {
     setTasks((items) => items.map((item) => item.id === id ? { ...item, status: "تم الرفع" } : item));
-    onToast("تم رفع الملف وإشعار عبدالوهاب للمراجعة");
+    onToast("تم رفع الملف وإشعار عبد الوهاب للمراجعة");
   };
   return (
     <div className="dashboard-content page-stack collaborator-page">
@@ -903,7 +1464,11 @@ export default function App() {
     try {
       const saved = JSON.parse(window.localStorage.getItem("u89-site-content"));
       if (!saved) return defaultSiteContent;
-      return { ...defaultSiteContent, ...saved, sectionVisibility: { ...defaultSiteContent.sectionVisibility, ...saved.sectionVisibility } };
+      const merged = { ...defaultSiteContent, ...saved, sectionVisibility: { ...defaultSiteContent.sectionVisibility, ...saved.sectionVisibility } };
+      if (saved.email === "W@U89DES.COM") merged.email = defaultSiteContent.email;
+      if (!saved.revisionRounds) merged.revisionRounds = defaultSiteContent.revisionRounds;
+      if (!Array.isArray(saved.briefTemplates)) merged.briefTemplates = defaultSiteContent.briefTemplates;
+      return merged;
     } catch {
       return defaultSiteContent;
     }
