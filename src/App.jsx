@@ -87,8 +87,43 @@ const initialProjects = [
 
 const stages = ["الطلب", "البريف", "العرض", "العقد", "التنفيذ", "البروفات", "التسليم", "المتابعة"];
 
+const scenarioMilestones = [
+  { label: "مراجعة الطلب", role: "owner", section: "requests", description: "راجع بيانات العميل واقبل المشروع لإنشاء البريف المناسب." },
+  { label: "تعبئة البريف", role: "client", section: "briefs", description: "ادخل بوابة العميل وأكمل بريف صناعة العلامة." },
+  { label: "اعتماد البريف", role: "owner", section: "briefs", description: "راجع إجابات العميل واعتمد النطاق قبل التسعير." },
+  { label: "إرسال عرض السعر", role: "owner", section: "documents", description: "راجع النطاق والقيمة والدفعات ثم أرسل العرض." },
+  { label: "اعتماد العرض", role: "client", section: "documents", description: "راجع العرض من بوابة العميل ووافق عليه." },
+  { label: "توقيع العقد", role: "client", section: "documents", description: "راجع البنود ووقّع العقد التجريبي." },
+  { label: "سداد الدفعة الأولى", role: "client", section: "finance", description: "سدد الدفعة الأولى لفتح التنفيذ." },
+  { label: "رفع البروفة", role: "collaborator", section: "team", description: "ادخل مساحة المتعاون وارفع البروفة المسندة." },
+  { label: "قرار البروفة", role: "client", section: "projects", description: "راجع البروفة واعتمدها أو اطلب تعديلاً." },
+  { label: "سداد الدفعة الأخيرة", role: "client", section: "finance", description: "أكمل الدفعة الأخيرة قبل تسليم الملفات." },
+  { label: "إطلاق التسليم", role: "owner", section: "projects", description: "أكد اكتمال الحزمة وافتحها للعميل." },
+  { label: "تأكيد الاستلام", role: "client", section: "projects", description: "نزّل الحزمة النهائية وأكد استلامها." },
+  { label: "المتابعة", role: "client", section: "clients", description: "أرسل تقييم التجربة وأغلق المشروع." },
+  { label: "مكتمل", role: "owner", section: "scenario", description: "اكتمل السيناريو وأصبحت كل السجلات مترابطة." },
+];
+
+const scenarioRoleLabels = {
+  owner: "الإدارة",
+  client: "العميل",
+  collaborator: "المتعاون",
+};
+
+const scenarioToProjectStage = (step) => {
+  if (step <= 0) return 0;
+  if (step <= 2) return 1;
+  if (step <= 4) return 2;
+  if (step <= 6) return 3;
+  if (step === 7) return 4;
+  if (step === 8) return 5;
+  if (step <= 11) return 6;
+  return 7;
+};
+
 const navItems = [
   { id: "overview", label: "نظرة اليوم", icon: SquaresFour },
+  { id: "scenario", label: "التجربة الكاملة", icon: Target },
   { id: "projects", label: "المشاريع", icon: FolderOpen },
   { id: "requests", label: "طلبات العملاء", icon: Tray },
   { id: "briefs", label: "البريفات", icon: List },
@@ -404,6 +439,76 @@ const incomingProjectRequests = [
   { id: "REQ-0317", client: "نُزل أصيل", contact: "فهد السبيعي", service: "تسمية العلامة", serviceId: "service-2", project: "تسمية مشروع ضيافة", received: "أمس", status: "بانتظار معلومات" },
 ];
 
+const defaultScenario = {
+  id: "LIVE-0001",
+  step: 0,
+  createdAt: "5 أغسطس 2026",
+  source: "نموذج الموقع",
+  client: {
+    name: "شهد القحطاني",
+    company: "شركة سُرى للتقنية",
+    email: "shahad@sura.sa",
+    phone: "+966 55 410 7826",
+    communication: "واتساب",
+    notifications: "واتساب والبريد",
+  },
+  project: {
+    name: "هوية منصة سُرى",
+    serviceId: "service-3",
+    service: "صناعة العلامة",
+    goal: "إطلاق منصة تساعد العائلات على تنظيم الرحلات المحلية واكتشاف التجارب الموثوقة.",
+    audience: "العائلات الشابة في المدن السعودية.",
+    budget: "25,000 إلى 50,000 ر.س",
+    deadline: "2026-11-15",
+  },
+  briefAnswers: {},
+  quote: {
+    id: "Q-0501",
+    amount: "32000",
+    currency: "SAR",
+    paymentPlan: "two-50",
+    scope: "استراتيجية مختصرة للعلامة، نظام هوية بصري، دليل استخدام، و8 تطبيقات للإطلاق.",
+    validityDays: 10,
+  },
+  contract: { id: "C-0124", signedAt: null },
+  payments: { first: false, final: false },
+  collaborator: { name: "ريم السالم", task: "تطوير الاتجاه البصري وتجهيز بروفة الهوية", due: "12 أغسطس 2026" },
+  proof: { version: 1, status: "لم ترفع", revisionNote: "" },
+  delivery: { released: false, received: false },
+  feedback: { rating: 0, note: "" },
+  activity: [
+    { label: "أرسلت شهد طلب صناعة العلامة من الموقع", actor: "العميل", at: "الآن" },
+  ],
+};
+
+function scenarioFromRequest(data, settings) {
+  const service = settings.services.find((item) => item.id === data.serviceId);
+  return {
+    ...defaultScenario,
+    id: `LIVE-${String(Date.now()).slice(-4)}`,
+    createdAt: "الآن",
+    client: {
+      name: data.name || "عميل جديد",
+      company: data.organization || "منشأة جديدة",
+      email: data.email || "",
+      phone: data.phone || "",
+      communication: data.communication || "واتساب",
+      notifications: data.notifications || "واتساب",
+    },
+    project: {
+      ...defaultScenario.project,
+      name: data.project || `مشروع ${data.organization || "جديد"}`,
+      serviceId: data.serviceId || "service-3",
+      service: service?.title || "صناعة العلامة",
+      goal: data.goal || "بانتظار مراجعة تفاصيل الطلب.",
+      audience: data.audience || "لم يحدد بعد",
+      budget: data.budget || "لم يحدد",
+      deadline: data.deadline || "غير محدد",
+    },
+    activity: [{ label: `أرسل ${data.name || "العميل"} طلباً جديداً من الموقع`, actor: "العميل", at: "الآن" }],
+  };
+}
+
 const initialBriefs = [
   { id: "BRF-0243", requestId: "REQ-0318", templateId: "brief-brand-build", client: "شركة مدار", contact: "نورة العبدالله", project: "هوية منصة مدار", service: "صناعة العلامة", status: "جاهز لمراجعتك", answered: 15, total: 17, updated: "منذ 12 دقيقة", answers: { project_intro: "منصة تربط أصحاب المشاريع بالمختصين المحليين.", field: "خدمات مهنية رقمية موجهة للسوق السعودي.", impact: "تختصر البحث وتزيد الثقة في اختيار مقدم الخدمة.", required: "الاستراتيجية والهوية البصرية وتطبيقات الإطلاق الأساسية.", launch: "2026-11-01", main_goal: "بناء علامة موثوقة تسهل الاختيار وتقلل التردد.", one_sentence: "المختص المناسب أقرب مما تتوقع.", main_audience: "أصحاب المشاريع الصغيرة في مرحلة التأسيس.", secondary_audience: "المختصون المستقلون ومكاتب الخدمات.", audience_action: "إنشاء طلب والتواصل مع مختص مناسب.", personality: "قريبة وواثقة وعملية من دون تعقيد.", likes: "وضوح المنتج وسهولة الوصول إلى الخدمة.", competitors: "منصات العمل الحر والأدلة المهنية المحلية.", deliverables: "هوية أساسية وواجهة إطلاق وقوالب تواصل.", one_word: "تمكين" } },
   { id: "BRF-0242", requestId: "REQ-0316", templateId: "brief-naming", client: "نُزل أصيل", contact: "فهد السبيعي", project: "تسمية مشروع ضيافة", service: "تسمية العلامة", status: "بانتظار إجابة العميل", answered: 5, total: 13, updated: "أرسل أمس", answers: { project_intro: "تجربة ضيافة ريفية في منطقة عسير.", naming_reason: "نحتاج اسماً مستقلاً قبل الإطلاق والحجز المباشر.", difference: "ضيافة هادئة مرتبطة بطبيعة عسير وثقافتها.", audience: "العائلات والأزواج الباحثون عن إقامة ريفية نوعية.", language: "عربي" } },
@@ -486,8 +591,9 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
   const [sent, setSent] = useState(false);
   const submit = (event) => {
     event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.currentTarget));
     setSent(true);
-    onSubmit();
+    onSubmit(data);
   };
 
   return (
@@ -502,25 +608,26 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
       ) : (
         <form className="request-form" onSubmit={submit}>
           <div className="field-row">
-            <label>الاسم<input required placeholder="اسمك الكامل" /></label>
-            <label>اسم المنشأة<input required placeholder="اسم العلامة أو المنشأة" /></label>
+            <label>الاسم<input name="name" required placeholder="اسمك الكامل" /></label>
+            <label>اسم المنشأة<input name="organization" required placeholder="اسم العلامة أو المنشأة" /></label>
           </div>
           <div className="field-row">
-            <label>البريد الإلكتروني<input type="email" required dir="ltr" placeholder="name@company.com" /></label>
-            <label>رقم الجوال<input type="tel" required dir="ltr" placeholder="+966 5X XXX XXXX" /></label>
+            <label>البريد الإلكتروني<input name="email" type="email" required dir="ltr" placeholder="name@company.com" /></label>
+            <label>رقم الجوال<input name="phone" type="tel" required dir="ltr" placeholder="+966 5X XXX XXXX" /></label>
           </div>
           <div className="field-row">
-            <label>التواصل المفضل<select required defaultValue="whatsapp"><option value="whatsapp">واتساب</option><option value="email">البريد الإلكتروني</option><option value="phone">اتصال هاتفي</option></select></label>
-            <label>إشعارات المشروع<select required defaultValue="whatsapp"><option value="whatsapp">واتساب</option><option value="email">البريد الإلكتروني</option><option value="both">واتساب والبريد</option></select></label>
+            <label>التواصل المفضل<select name="communication" required defaultValue="واتساب"><option value="واتساب">واتساب</option><option value="البريد الإلكتروني">البريد الإلكتروني</option><option value="اتصال هاتفي">اتصال هاتفي</option></select></label>
+            <label>إشعارات المشروع<select name="notifications" required defaultValue="واتساب"><option value="واتساب">واتساب</option><option value="البريد الإلكتروني">البريد الإلكتروني</option><option value="واتساب والبريد">واتساب والبريد</option></select></label>
           </div>
           <label>الخدمة المطلوبة
-            <select required defaultValue=""><option value="" disabled>اختر الخدمة</option>{(settings.services || []).filter((service) => service.active).map((service) => <option value={service.id} key={service.id}>{service.title}</option>)}</select>
+            <select name="serviceId" required defaultValue=""><option value="" disabled>اختر الخدمة</option>{(settings.services || []).filter((service) => service.active).map((service) => <option value={service.id} key={service.id}>{service.title}</option>)}</select>
           </label>
+          <label>اسم المشروع أو العلامة<input name="project" required placeholder="مثال: هوية منصة سُرى" /></label>
           {(settings.requestQuestions || []).filter((question) => question.enabled).map((question) => <label key={question.id}>{question.label}
-            {question.type === "textarea" && <textarea required={question.required} rows="4" placeholder="اكتب التفاصيل التي تساعدنا على فهم الطلب" />}
-            {question.type === "date" && <input type="date" required={question.required} />}
-            {question.type === "text" && <input type="text" required={question.required} />}
-            {question.type === "select" && <select required={question.required} defaultValue=""><option value="" disabled>اختر الإجابة</option>{(question.options || []).map((option) => <option key={option}>{option}</option>)}</select>}
+            {question.type === "textarea" && <textarea name={question.id} required={question.required} rows="4" placeholder="اكتب التفاصيل التي تساعدنا على فهم الطلب" />}
+            {question.type === "date" && <input name={question.id} type="date" required={question.required} />}
+            {question.type === "text" && <input name={question.id} type="text" required={question.required} />}
+            {question.type === "select" && <select name={question.id} required={question.required} defaultValue=""><option value="" disabled>اختر الإجابة</option>{(question.options || []).map((option) => <option key={option}>{option}</option>)}</select>}
           </label>)}
           <label className="consent-field"><input type="checkbox" required /><span>أوافق على التواصل وإرسال إشعارات الطلب عبر القناة التي اخترتها.</span></label>
           <div className="form-note"><ShieldCheck size={19} /> تحفظ معلوماتك داخل مساحة خاصة بالمشروع.</div>
@@ -681,6 +788,98 @@ function Metric({ label, value, note, icon: Icon }) {
   );
 }
 
+function ScenarioCenter({ scenario, onReset, setSection, setRole }) {
+  const current = scenarioMilestones[Math.min(scenario.step, scenarioMilestones.length - 1)];
+  const jumpToAction = () => {
+    if (current.role === "owner") {
+      setRole("owner");
+      setSection(current.section);
+      return;
+    }
+    setRole(current.role);
+  };
+  return (
+    <div className="dashboard-content page-stack scenario-page">
+      <div className="page-title scenario-title">
+        <div><span className="scenario-live-label"><Sparkle size={15} weight="fill" /> تجربة مترابطة</span><h1>جرّب المشروع من الطلب إلى المتابعة.</h1><p>كل إجراء هنا ينعكس مباشرة على الإدارة والعميل والمتعاون، ويبقى محفوظاً بعد تحديث الصفحة.</p></div>
+        <button className="button ghost" onClick={onReset}><CircleNotch size={18} /> إعادة السيناريو</button>
+      </div>
+
+      <section className="scenario-command">
+        <div className="scenario-command-main">
+          <span>الإجراء التالي عند {scenarioRoleLabels[current.role]}</span>
+          <h2>{current.label}</h2>
+          <p>{current.description}</p>
+          {scenario.step < scenarioMilestones.length - 1 ? <button className="button inverted" onClick={jumpToAction}>انتقل إلى الإجراء <ArrowLeft size={18} /></button> : <button className="button inverted" onClick={() => setSection("projects")}>فتح سجل المشروع <ArrowLeft size={18} /></button>}
+        </div>
+        <div className="scenario-command-project">
+          <small>{scenario.id}</small>
+          <strong>{scenario.project.name}</strong>
+          <span>{scenario.client.company}</span>
+          <StageTrack current={scenarioToProjectStage(scenario.step)} />
+          <div className="scenario-progress-copy"><span>التقدم الفعلي</span><b>{Math.min(scenario.step, 13)} من 13</b></div>
+          <div className="scenario-progress"><i style={{ width: `${Math.min(100, (scenario.step / 13) * 100)}%` }} /></div>
+        </div>
+      </section>
+
+      <section className="scenario-grid">
+        <div className="panel scenario-timeline-panel">
+          <div className="panel-heading"><div><h2>المسار الكامل</h2><p>الخطوة النشطة فقط هي التي تحتاج انتباهك الآن.</p></div><span className="sample-label">حالة مشتركة</span></div>
+          <div className="scenario-timeline">
+            {scenarioMilestones.slice(0, 13).map((item, index) => <button key={item.label} className={`${index < scenario.step ? "done" : ""} ${index === scenario.step ? "current" : ""}`} onClick={() => { if (index !== scenario.step) return; if (item.role === "owner") setSection(item.section); else setRole(item.role); }} disabled={index !== scenario.step}>
+              <span>{index < scenario.step ? <Check size={14} weight="bold" /> : index + 1}</span>
+              <div><strong>{item.label}</strong><small>{scenarioRoleLabels[item.role]}</small></div>
+              {index === scenario.step && <ArrowLeft size={16} />}
+            </button>)}
+          </div>
+        </div>
+        <aside className="scenario-side-stack">
+          <section className="panel scenario-facts">
+            <div className="panel-heading"><div><h2>بيانات التجربة</h2><p>يمكن تغييرها فعلياً خلال المسار.</p></div></div>
+            <dl><div><dt>العميل</dt><dd>{scenario.client.name}</dd></div><div><dt>التواصل</dt><dd>{scenario.client.communication}</dd></div><div><dt>الخدمة</dt><dd>{scenario.project.service}</dd></div><div><dt>القيمة</dt><dd>{Number(scenario.quote.amount).toLocaleString("en-US")} {scenario.quote.currency}</dd></div><div><dt>المتعاون</dt><dd>{scenario.collaborator.name}</dd></div></dl>
+          </section>
+          <section className="panel scenario-activity">
+            <div className="panel-heading"><div><h2>آخر الحركة</h2><p>سجل واحد يراه مدير المشروع.</p></div></div>
+            <div>{scenario.activity.slice(0, 5).map((item, index) => <article key={`${item.label}-${index}`}><span><CheckCircle size={17} weight="fill" /></span><div><strong>{item.label}</strong><small>{item.actor}، {item.at}</small></div></article>)}</div>
+          </section>
+        </aside>
+      </section>
+    </div>
+  );
+}
+
+function ScenarioBriefReviewModal({ scenario, onClose, onApprove, canApprove }) {
+  const answers = Object.entries(scenario.briefAnswers || {});
+  return <Modal title={`مراجعة بريف ${scenario.project.name}`} onClose={onClose} size="wide">
+    <div className="scenario-review-modal">
+      <div className="scenario-review-main">
+        <div className="scenario-review-intro"><span className="status-badge">جاهز لمراجعتك</span><h3>{scenario.client.company}</h3><p>راجع الإجابات باعتبارها مرجع النطاق الذي سيبنى عليه عرض السعر.</p></div>
+        <div className="scenario-answer-list">{answers.map(([key, value]) => <article key={key}><small>{{ project_intro: "نبذة المشروع", impact: "الأثر المطلوب", main_goal: "الهدف", main_audience: "الجمهور", personality: "الشخصية", deliverables: "المخرجات", launch: "موعد الإطلاق", references: "المراجع" }[key] || key}</small><p>{value}</p></article>)}</div>
+      </div>
+      <aside className="scenario-review-aside"><ShieldCheck size={28} /><h3>{canApprove ? "قرارك يفتح التسعير" : "بريف معتمد"}</h3><p>{canApprove ? "بعد الاعتماد سينشأ عرض مرتبط بهذا البريف، وستنتقل المخرجات والموعد إليه." : "هذا هو مرجع النطاق الذي بُني عليه عرض السعر والعقد."}</p>{canApprove && <button className="button primary full" onClick={onApprove}>اعتماد وفتح العرض <ArrowLeft size={18} /></button>}<button className="button ghost full" onClick={onClose}>إغلاق</button></aside>
+    </div>
+  </Modal>;
+}
+
+function ScenarioQuotePanel({ scenario, onPatch, onAdvance, onToast }) {
+  const quoteEditable = scenario.step === 3;
+  const status = scenario.step < 3 ? "مقفل حتى اعتماد البريف" : scenario.step === 3 ? "مسودة تحتاج مراجعتك" : scenario.step === 4 ? "بانتظار العميل" : "اعتمده العميل";
+  const updateQuote = (key, value) => onPatch({ quote: { ...scenario.quote, [key]: value } });
+  return <section className="panel scenario-document-panel">
+    <div className="panel-heading"><div><span className="scenario-live-label"><Sparkle size={14} weight="fill" /> المشروع التجريبي</span><h2>عرض {scenario.project.name}</h2><p>مرتبط بالبريف والعميل، ويتغير في بوابة العميل بعد الإرسال.</p></div><span className="status-badge">{status}</span></div>
+    <div className="scenario-document-grid">
+      <form onSubmit={(event) => { event.preventDefault(); onAdvance(4, "أرسل عبد الوهاب عرض السعر إلى العميل"); onToast("تم إرسال العرض وظهر فوراً في بوابة العميل"); }}>
+        <label>نطاق العمل<textarea rows="4" value={scenario.quote.scope} disabled={!quoteEditable} onChange={(event) => updateQuote("scope", event.target.value)} /></label>
+        <div className="field-row"><label>القيمة<input type="number" value={scenario.quote.amount} disabled={!quoteEditable} onChange={(event) => updateQuote("amount", event.target.value)} /></label><label>العملة<select value={scenario.quote.currency} disabled={!quoteEditable} onChange={(event) => updateQuote("currency", event.target.value)}><option>SAR</option><option>USD</option><option>EUR</option></select></label></div>
+        {quoteEditable && <button className="button primary" type="submit"><PaperPlaneTilt size={18} /> إرسال العرض للعميل</button>}
+        {scenario.step === 4 && <div className="scenario-waiting"><Clock size={19} /><span><strong>العرض لدى العميل الآن</strong><small>انتقل إلى معاينة العميل لاتخاذ القرار.</small></span></div>}
+        {scenario.step >= 5 && <div className="scenario-waiting success"><CheckCircle size={19} weight="fill" /><span><strong>اعتمد العميل العرض</strong><small>أنشئ العقد تلقائياً من البنود المعتمدة.</small></span></div>}
+      </form>
+      <aside><header><FileText size={22} /><span><strong>عرض سعر {scenario.quote.id}</strong><small>صالح {scenario.quote.validityDays} أيام</small></span></header><h3>{scenario.project.service}</h3><p>{scenario.quote.scope}</p><div><span>الإجمالي</span><strong>{Number(scenario.quote.amount).toLocaleString("en-US")} {scenario.quote.currency}</strong></div><div className="preview-payments"><span><b>50%</b><small>عند التوقيع</small></span><span><b>50%</b><small>قبل التسليم</small></span></div></aside>
+    </div>
+  </section>;
+}
+
 function OwnerOverview({ onProject, onCapture, setSection }) {
   return (
     <div className="dashboard-content">
@@ -745,12 +944,17 @@ function OwnerOverview({ onProject, onCapture, setSection }) {
   );
 }
 
-function ProjectsView({ onProject }) {
+function ProjectsView({ onProject, scenario, onAdvance, onToast }) {
   const [query, setQuery] = useState("");
   const filtered = initialProjects.filter((project) => `${project.name} ${project.client}`.includes(query));
   return (
     <div className="dashboard-content page-stack">
       <div className="page-title"><div><h1>المشاريع</h1><p>لكل مشروع قرار تالٍ ومالك واضح وملف مالي متصل.</p></div><button className="button primary"><Plus size={18} /> مشروع جديد</button></div>
+      <section className="panel scenario-project-row">
+        <span className="scenario-project-art"><img src="/work-mandi.jpg" alt="مرجع بصري للمشروع التجريبي" /></span>
+        <div><span className="scenario-live-label"><Sparkle size={13} weight="fill" /> المشروع التجريبي</span><h2>{scenario.project.name}</h2><p>{scenario.client.company}، {scenario.project.service}</p><StageTrack current={scenarioToProjectStage(scenario.step)} /></div>
+        <aside><small>الحالة الحالية</small><strong>{scenarioMilestones[Math.min(scenario.step, 13)].label}</strong>{scenario.step === 10 && <button className="button primary small" onClick={() => { onAdvance(11, "فتح عبد الوهاب ملفات التسليم النهائية للعميل", { delivery: { ...scenario.delivery, released: true } }); onToast("تم فتح حزمة التسليم في بوابة العميل"); }}>فتح التسليم للعميل</button>}</aside>
+      </section>
       <div className="toolbar"><label className="search"><MagnifyingGlass size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث باسم المشروع أو العميل" /></label><button className="filter-button">كل الحالات <CaretDown size={16} /></button></div>
       {filtered.length ? <div className="projects-grid">
         {filtered.map((project) => (
@@ -770,7 +974,7 @@ function ProjectsView({ onProject }) {
   );
 }
 
-function RequestsView({ onToast, setSection }) {
+function RequestsView({ onToast, setSection, setRole, scenario, onAdvance }) {
   const [requests, setRequests] = useState(retainerRequests);
   const [projectRequests, setProjectRequests] = useState(incomingProjectRequests);
   const assign = (id, assignee) => {
@@ -785,8 +989,14 @@ function RequestsView({ onToast, setSection }) {
   return (
     <div className="dashboard-content page-stack">
       <div className="page-title"><div><h1>طلبات العملاء</h1><p>راجع الطلب أولاً. بعد القبول ينشأ بريف الخدمة قبل أي عرض سعر.</p></div><button className="button primary"><Plus size={18} /> تسجيل طلب</button></div>
+      <section className="panel scenario-request-panel">
+        <div className="panel-heading"><div><span className="scenario-live-label"><Sparkle size={14} weight="fill" /> الطلب المتصل بالتجربة</span><h2>{scenario.project.name}</h2><p>{scenario.client.company}، أرسلته {scenario.client.name} عبر {scenario.source}.</p></div><span className="status-badge">{scenario.step === 0 ? "يحتاج قرارك" : "انتقل إلى البريف"}</span></div>
+        <div className="scenario-request-details"><div><small>الخدمة</small><strong>{scenario.project.service}</strong></div><div><small>التواصل</small><strong>{scenario.client.communication}</strong></div><div><small>الميزانية</small><strong>{scenario.project.budget}</strong></div><div><small>الموعد</small><strong>{scenario.project.deadline}</strong></div></div>
+        <blockquote>{scenario.project.goal}</blockquote>
+        <div className="scenario-request-actions">{scenario.step === 0 ? <button className="button primary" onClick={() => { onAdvance(1, "قبل عبد الوهاب الطلب وأنشأ بريف صناعة العلامة"); onToast("تم قبول الطلب وإرسال البريف إلى بوابة العميل"); }}><Check size={18} /> قبول وإرسال البريف</button> : scenario.step === 1 ? <button className="button primary" onClick={() => setRole("client")}>افتح بوابة العميل <ArrowLeft size={18} /></button> : <button className="button ghost" onClick={() => setSection("scenario")}>عرض موقعه في السيناريو</button>}</div>
+      </section>
       <section className="panel project-intake-panel">
-        <div className="panel-heading"><div><h2>طلبات مشاريع جديدة</h2><p>قرارك هنا يفتح البريف المناسب، ولا ينشئ عرض السعر مباشرة.</p></div><span className="sample-label">{projectRequests.length} طلبات</span></div>
+        <div className="panel-heading"><div><h2>أمثلة طلبات أخرى</h2><p>تظل هذه البيانات مستقلة عن المشروع التجريبي الحي.</p></div><span className="sample-label">بيانات تجريبية</span></div>
         <div className="project-intake-list">{projectRequests.map((request) => <article key={request.id}>
           <span className="intake-icon"><Tray size={21} /></span>
           <span><strong>{request.project}</strong><small>{request.id} · {request.client}</small></span>
@@ -885,11 +1095,12 @@ function BriefEditorModal({ brief, template, onClose, onUpdate, onToast, onOpenQ
   </Modal>;
 }
 
-function BriefsView({ settings, onToast, setSection }) {
+function BriefsView({ settings, onToast, setSection, setRole, scenario, onAdvance }) {
   const templates = (settings.briefTemplates || [...defaultBriefTemplates, ...reusableBriefTemplates]).filter((template) => template.enabled);
   const [briefs, setBriefs] = useState(initialBriefs);
   const [selected, setSelected] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [scenarioReviewOpen, setScenarioReviewOpen] = useState(false);
   const updateBrief = (brief) => setBriefs((items) => items.map((item) => item.id === brief.id ? brief : item));
   const createBrief = ({ templateId, client, project, total }) => {
     const template = templates.find((item) => item.id === templateId);
@@ -901,6 +1112,16 @@ function BriefsView({ settings, onToast, setSection }) {
   const selectedTemplate = selected ? templates.find((template) => template.id === selected.templateId) : null;
   return <div className="dashboard-content page-stack briefs-page">
     <div className="page-title"><div><h1>البريفات</h1><p>مرحلة إلزامية بعد قبول الطلب وقبل تسعير المشروع.</p></div><button className="button primary" onClick={() => setCreating(true)}><Plus size={18} /> إنشاء بريف</button></div>
+    <section className="panel scenario-brief-panel">
+      <div className="panel-heading"><div><span className="scenario-live-label"><Sparkle size={14} weight="fill" /> البريف المتصل بالتجربة</span><h2>{scenario.project.name}</h2><p>{scenario.client.company}، قالب بريف صناعة العلامة.</p></div><span className="status-badge">{scenario.step < 1 ? "لم يرسل" : scenario.step === 1 ? "بانتظار العميل" : scenario.step === 2 ? "جاهز لمراجعتك" : "معتمد"}</span></div>
+      <div className="scenario-brief-stats"><div><strong>{Object.keys(scenario.briefAnswers || {}).length}</strong><span>إجابات محفوظة</span></div><div><strong>8</strong><span>أسئلة أساسية</span></div><div><strong>{scenario.client.notifications}</strong><span>قناة الإشعارات</span></div></div>
+      <div className="scenario-brief-actions">
+        {scenario.step === 1 && <button className="button primary" onClick={() => setRole("client")}>تعبئة البريف كعميل <ArrowLeft size={18} /></button>}
+        {scenario.step === 2 && <button className="button primary" onClick={() => setScenarioReviewOpen(true)}>مراجعة واعتماد البريف <ArrowLeft size={18} /></button>}
+        {scenario.step >= 3 && <button className="button ghost" onClick={() => setScenarioReviewOpen(true)}>عرض البريف المعتمد</button>}
+        {scenario.step < 1 && <button className="button ghost" onClick={() => setSection("requests")}>العودة إلى الطلب</button>}
+      </div>
+    </section>
     <section className="brief-gate-flow">
       <div><Tray size={21} /><span><small>الطلب</small><strong>تراجعه وتقبله</strong></span></div><ArrowLeft size={17} />
       <div className="active"><List size={21} /><span><small>البريف</small><strong>يجيب العميل</strong></span></div><ArrowLeft size={17} />
@@ -915,6 +1136,7 @@ function BriefsView({ settings, onToast, setSection }) {
     <div className="brief-gate-note"><LockKey size={23} /><div><strong>عرض السعر مقفل حتى اعتماد البريف.</strong><p>يمكنك تعديل أسئلة كل خدمة من إدارة الموقع، وحذف ما لا يلزم أو إضافة سؤال خاص بطريقتك.</p></div><button className="button ghost small" onClick={() => setSection("site-admin")}>تعديل القوالب</button></div>
     {creating && <BriefCreateModal templates={templates} onClose={() => setCreating(false)} onCreate={createBrief} />}
     {selected && selectedTemplate && <BriefEditorModal brief={selected} template={selectedTemplate} onClose={() => setSelected(null)} onUpdate={(brief) => { updateBrief(brief); setSelected(brief); }} onToast={onToast} onOpenQuote={() => { setSelected(null); setSection("documents"); onToast("فتحنا مركز العروض لإنشاء المسودة من البريف المعتمد"); }} />}
+    {scenarioReviewOpen && <ScenarioBriefReviewModal scenario={scenario} canApprove={scenario.step === 2} onClose={() => setScenarioReviewOpen(false)} onApprove={() => { if (scenario.step === 2) { onAdvance(3, "اعتمد عبد الوهاب البريف وفتح عرض السعر"); setSection("documents"); onToast("تم اعتماد البريف وإنشاء مسودة العرض"); } setScenarioReviewOpen(false); }} />}
   </div>;
 }
 
@@ -968,7 +1190,7 @@ function DocumentEditorModal({ document, settings, onClose, onSave, onToast }) {
   );
 }
 
-function DocumentsView({ settings, onToast }) {
+function DocumentsView({ settings, onToast, scenario, onAdvance, onPatch }) {
   const [documents, setDocuments] = useState(initialDocuments);
   const [selected, setSelected] = useState(null);
   const save = (document) => setDocuments((items) => items.map((item) => item.id === document.id ? { ...document, updated: "الآن" } : item));
@@ -981,6 +1203,8 @@ function DocumentsView({ settings, onToast }) {
       <section className="document-flow">
         <div><Tray size={22} /><span><small>الطلب</small><strong>مقبول</strong></span></div><ArrowLeft size={18} /><div><List size={22} /><span><small>البريف</small><strong>معتمد</strong></span></div><ArrowLeft size={18} /><div><FileText size={22} /><span><small>العرض</small><strong>تصاغ مسودته</strong></span></div><ArrowLeft size={18} /><div><Handshake size={22} /><span><small>العقد</small><strong>بعد قبول العرض</strong></span></div>
       </section>
+      {scenario.step >= 3 && <ScenarioQuotePanel scenario={scenario} onPatch={onPatch} onAdvance={onAdvance} onToast={onToast} />}
+      {scenario.step >= 5 && <section className="panel scenario-contract-row"><span className="document-type contract"><Handshake size={22} /></span><div><small>{scenario.contract.id}</small><strong>عقد تقديم خدمات إبداعية، {scenario.project.name}</strong><p>نشأ من العرض المعتمد ويحمل النطاق والدفعات نفسها.</p></div><span className="status-badge">{scenario.step === 5 ? "بانتظار توقيع العميل" : "موقع من الطرفين"}</span></section>}
       <section className="panel document-list-panel">
         <div className="panel-heading"><div><h2>المستندات الحالية</h2><p>النطاق والمخرجات والموعد تأتي من البريف، مع فصل العرض عن العقد.</p></div><span className="sample-label">بيانات تجريبية</span></div>
         <div className="document-list">{documents.map((document) => <button key={document.id} onClick={() => open(document)}><span className={`document-type ${document.type}`}><FileText size={21} /></span><span><strong>{document.title}</strong><small>{document.id} · {document.client}</small></span><span><small>المشروع</small><strong>{document.project}</strong></span><span><small>القيمة</small><strong>{Number(document.amount).toLocaleString("en-US")} {document.currency}</strong></span><span className="status-badge">{document.status}</span><ArrowLeft size={17} /></button>)}</div>
@@ -1031,12 +1255,13 @@ function FinanceEntryModal({ kind, settings, onClose, onSave }) {
   </Modal>;
 }
 
-function FinanceView({ onToast, settings }) {
+function FinanceView({ onToast, settings, scenario, setRole }) {
   const [tab, setTab] = useState("clients");
   const [entryKind, setEntryKind] = useState(null);
   return (
     <div className="dashboard-content page-stack">
       <div className="page-title"><div><h1>الحسابات</h1><p>ما لك، وما عليك، وربحية كل مشروع دون ملف منفصل.</p></div><button className="button primary" onClick={() => setEntryKind(tab === "clients" ? "client" : "collaborator")}><Plus size={18} /> {tab === "clients" ? "فاتورة عميل" : "مطالبة متعاون"}</button></div>
+      {scenario.step >= 6 && <section className="panel scenario-invoice-panel"><span className="invoice-icon"><Invoice size={22} /></span><div><span className="scenario-live-label"><Sparkle size={13} weight="fill" /> المشروع التجريبي</span><strong>{scenario.step === 9 ? "فاتورة الدفعة الأخيرة" : "فاتورة الدفعة الأولى"}</strong><small>{scenario.project.name}، {scenario.client.company}</small></div><div><small>القيمة</small><strong>{(Number(scenario.quote.amount) * 0.5).toLocaleString("en-US")} {scenario.quote.currency}</strong></div><span className={`payment-status ${scenario.step > 9 || (scenario.step > 6 && scenario.step < 9) ? "paid" : ""}`}>{scenario.step === 6 || scenario.step === 9 ? "مستحقة" : "مدفوعة"}</span>{(scenario.step === 6 || scenario.step === 9) && <button className="button primary small" onClick={() => setRole("client")}>فتح بوابة العميل</button>}</section>}
       <section className="finance-hero">
         <div className="finance-balance"><span>الرصيد المتوقع بعد الالتزامات</span><strong>36,420 <small>ر.س</small></strong><p>حتى نهاية أغسطس، بناء على العقود والفواتير المسجلة.</p></div>
         <div className="finance-pairs"><div><Receipt size={22} /><span>مستحقات العملاء<strong>16,350 SAR</strong></span></div><div><UsersThree size={22} /><span>دفعات المتعاونين<strong>4,800 SAR + عملات</strong></span></div><div><ChartLineUp size={22} /><span>هامش المشاريع<strong>31%</strong></span></div></div>
@@ -1063,10 +1288,11 @@ function FinanceView({ onToast, settings }) {
   );
 }
 
-function TeamView() {
+function TeamView({ scenario, setRole }) {
   return (
     <div className="dashboard-content page-stack">
       <div className="page-title"><div><h1>فريق العمل</h1><p>توزيع عادل يظهر المتاح قبل أن يتحول الضغط إلى تأخير.</p></div><button className="button primary"><Plus size={18} /> دعوة متعاون</button></div>
+      {scenario.step >= 7 && <section className="panel scenario-team-task"><span className="person-avatar tone-1">{scenario.collaborator.name.slice(0, 1)}</span><div><span className="scenario-live-label"><Sparkle size={13} weight="fill" /> مهمة المشروع التجريبي</span><strong>{scenario.collaborator.task}</strong><small>{scenario.project.name}، التسليم {scenario.collaborator.due}</small></div><span className="status-badge">{scenario.step === 7 ? scenario.proof.revisionNote ? "تعديل مطلوب" : "قيد التنفيذ" : "تم رفع البروفة"}</span>{scenario.step === 7 && <button className="button primary small" onClick={() => setRole("collaborator")}>معاينة المتعاون</button>}</section>}
       <section className="team-layout">
         <div className="panel team-list">
           {team.map((person, index) => (
@@ -1324,77 +1550,91 @@ function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExi
   );
 }
 
-function OwnerApp({ section, setSection, onProject, onCapture, onToast, siteContent, onPublishSite, onSite }) {
-  if (section === "projects") return <ProjectsView onProject={onProject} />;
-  if (section === "requests") return <RequestsView onToast={onToast} setSection={setSection} />;
-  if (section === "briefs") return <BriefsView settings={siteContent} onToast={onToast} setSection={setSection} />;
-  if (section === "documents") return <DocumentsView settings={siteContent} onToast={onToast} />;
+function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast, siteContent, onPublishSite, onSite, scenario, onScenarioAdvance, onScenarioPatch, onScenarioReset }) {
+  if (section === "scenario") return <ScenarioCenter scenario={scenario} onReset={onScenarioReset} setSection={setSection} setRole={setRole} />;
+  if (section === "projects") return <ProjectsView onProject={onProject} scenario={scenario} onAdvance={onScenarioAdvance} onToast={onToast} />;
+  if (section === "requests") return <RequestsView onToast={onToast} setSection={setSection} setRole={setRole} scenario={scenario} onAdvance={onScenarioAdvance} />;
+  if (section === "briefs") return <BriefsView settings={siteContent} onToast={onToast} setSection={setSection} setRole={setRole} scenario={scenario} onAdvance={onScenarioAdvance} />;
+  if (section === "documents") return <DocumentsView settings={siteContent} onToast={onToast} scenario={scenario} onAdvance={onScenarioAdvance} onPatch={onScenarioPatch} />;
   if (section === "clients") return <ClientsView />;
-  if (section === "finance") return <FinanceView onToast={onToast} settings={siteContent} />;
-  if (section === "team") return <TeamView />;
+  if (section === "finance") return <FinanceView onToast={onToast} settings={siteContent} scenario={scenario} setRole={setRole} />;
+  if (section === "team") return <TeamView scenario={scenario} setRole={setRole} />;
   if (section === "studio-settings") return <StudioSettingsView content={siteContent} onSave={onPublishSite} onToast={onToast} />;
   if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} />;
   return <OwnerOverview onProject={onProject} onCapture={onCapture} setSection={setSection} />;
 }
 
-function ClientPortal({ onToast }) {
-  const [proofState, setProofState] = useState("waiting");
-  const [requestOpen, setRequestOpen] = useState(false);
-  const [proofOpen, setProofOpen] = useState(false);
-  const approve = () => {
-    setProofState("approved");
-    onToast("تم اعتماد البروفة وتحديث مسار المشروع");
-  };
-  return (
-    <div className="portal-page dashboard-content">
-      <section className="portal-welcome"><div><small>صباح الخير، خالد</small><h1>كل شيء يمشي كما اتفقنا.</h1><p>مشروع سيد مندي الآن عند قرار واحد منك.</p></div><button className="button primary" onClick={() => setRequestOpen(true)}><Plus size={18} /> طلب جديد</button></section>
-      <section className="client-project-hero">
-        <div className="client-project-copy"><span className="status-badge">{proofState === "approved" ? "تم الاعتماد" : "بانتظار قرارك"}</span><h2>سيد مندي</h2><p>صناعة العلامة والتغليف</p><StageTrack current={proofState === "approved" ? 6 : 5} /></div>
-        <div className="client-decision">
-          {proofState === "approved" ? <><CheckCircle size={40} weight="fill" /><h3>شكراً، تم الاعتماد.</h3><p>انتقل المشروع إلى تجهيز الملفات النهائية والفاتورة.</p></> : <><span>يحتاج قرارك</span><h3>البروفة الثانية جاهزة</h3><p>راجع تطبيقات العبوة والواجهة، ثم اعتمد أو اطلب تعديلاً واحداً واضحاً.</p><button className="button inverted" onClick={() => setProofOpen(true)}>مراجعة البروفة <ArrowLeft size={18} /></button></>}
-        </div>
-      </section>
-      <section className="client-columns">
-        <div className="panel timeline-panel"><div className="panel-heading"><div><h2>آخر ما حدث</h2><p>تحديثات مفهومة بلا مصطلحات داخلية.</p></div></div><div className="client-timeline"><div className="done"><CheckCircle size={19} weight="fill" /><span><strong>رفع البروفة الثانية</strong><small>اليوم، 9:26 ص</small></span></div><div className="done"><CheckCircle size={19} weight="fill" /><span><strong>تجميع ملاحظات البروفة الأولى</strong><small>3 أغسطس</small></span></div><div><Clock size={19} /><span><strong>الفاتورة النهائية</strong><small>بعد اعتماد البروفة</small></span></div></div></div>
-        <div className="panel client-files"><div className="panel-heading"><div><h2>الملفات والفواتير</h2><p>كل نسخة محفوظة، ولا روابط ضائعة.</p></div></div><button><List size={22} /><span><strong>البريف المعتمد</strong><small>مرجع النطاق قبل عرض السعر</small></span><CheckCircle size={18} weight="fill" /></button><button><Invoice size={22} /><span><strong>فاتورة الدفعة الأولى</strong><small>مدفوعة، 9,250 ر.س</small></span><CheckCircle size={18} weight="fill" /></button></div>
-      </section>
-      {proofOpen && <Modal title="البروفة الثانية" onClose={() => setProofOpen(false)} size="wide"><div className="proof-modal"><img src="/work-mandi.jpg" alt="البروفة الثانية لمشروع سيد مندي" /><div className="proof-actions"><div><h3>هوية العبوة وتطبيقات الواجهة</h3><p>راجع اللون، وضوح الاسم، وطريقة حضور العلامة عند الاستخدام.</p></div><textarea rows="3" placeholder="اكتب طلب التعديل هنا عند الحاجة" /><div><button className="button ghost" onClick={() => { setProofOpen(false); onToast("تم إرسال طلب التعديل إلى عبد الوهاب"); }}>طلب تعديل</button><button className="button primary" onClick={() => { approve(); setProofOpen(false); }}>اعتماد البروفة <Check size={18} /></button></div></div></div></Modal>}
-      {requestOpen && <Modal title="طلب جديد ضمن العقد" onClose={() => setRequestOpen(false)}><form className="request-form" onSubmit={(event) => { event.preventDefault(); setRequestOpen(false); onToast("وصل الطلب الجديد إلى طابور التنفيذ"); }}><label>عنوان الطلب<input required placeholder="مثال: حملة افتتاح الفرع" /></label><label>النتيجة المطلوبة<textarea rows="4" required placeholder="ما الذي يجب أن ينجح بعد تنفيذ هذا الطلب؟" /></label><div className="field-row"><label>الأولوية<select><option>عادية</option><option>مرتفعة</option></select></label><label>الموعد المطلوب<input type="date" required /></label></div><button className="button primary full" type="submit">إرسال الطلب <ArrowLeft size={18} /></button></form></Modal>}
-    </div>
-  );
+function ClientPortal({ onToast, scenario, onAdvance, onPatch }) {
+  const [brief, setBrief] = useState(scenario.briefAnswers || {});
+  const [agreed, setAgreed] = useState(false);
+  const [proofNote, setProofNote] = useState(scenario.proof.revisionNote || "");
+  const [rating, setRating] = useState(scenario.feedback.rating || 0);
+  const [feedbackNote, setFeedbackNote] = useState(scenario.feedback.note || "");
+  const fillExample = () => setBrief({
+    project_intro: "منصة سعودية لتنظيم الرحلات المحلية وحجز التجارب الموثوقة للعائلات.",
+    impact: "تقلل وقت البحث وتجمع التخطيط والحجز في تجربة واحدة.",
+    main_goal: "بناء علامة موثوقة ومحببة تساعد على الإطلاق والنمو.",
+    main_audience: "العائلات الشابة من 25 إلى 40 عاماً في المدن السعودية.",
+    personality: "دافئة، ذكية، مطمئنة، وقريبة من الثقافة المحلية.",
+    deliverables: "الاستراتيجية البصرية، الشعار، الألوان، الخطوط، دليل مختصر، و8 تطبيقات.",
+    launch: "2026-11-15",
+    references: "3 ملفات مرجعية مرفوعة",
+  });
+  const step = scenario.step;
+  const amount = (Number(scenario.quote.amount) * 0.5).toLocaleString("en-US");
+  let actionContent;
+
+  if (step === 0) actionContent = <div className="portal-wait-state"><Clock size={36} /><h2>الطلب قيد المراجعة</h2><p>وصل الطلب إلى عبد الوهاب. سيظهر البريف هنا بعد قبول المشروع.</p></div>;
+  if (step === 1) actionContent = <form className="client-brief-form" onSubmit={(event) => { event.preventDefault(); onPatch({ briefAnswers: brief }); onAdvance(2, `أكملت ${scenario.client.name} بريف المشروع`, { briefAnswers: brief }); onToast("تم إرسال البريف إلى عبد الوهاب للمراجعة"); }}>
+    <div className="portal-action-heading"><div><span>مطلوب منك الآن</span><h2>بريف صناعة العلامة</h2><p>الإجابات هنا ستصبح مرجع النطاق قبل عرض السعر.</p></div><button type="button" className="button ghost small" onClick={fillExample}><Sparkle size={17} /> تعبئة مثال</button></div>
+    <div className="client-brief-grid"><label>حدثنا عن المشروع<textarea required rows="3" value={brief.project_intro || ""} onChange={(event) => setBrief((current) => ({ ...current, project_intro: event.target.value }))} /></label><label>ما الأثر الذي تريد صنعه؟<textarea required rows="3" value={brief.impact || ""} onChange={(event) => setBrief((current) => ({ ...current, impact: event.target.value }))} /></label><label>ما الهدف الرئيسي؟<textarea required rows="3" value={brief.main_goal || ""} onChange={(event) => setBrief((current) => ({ ...current, main_goal: event.target.value }))} /></label><label>من الجمهور الرئيسي؟<textarea required rows="3" value={brief.main_audience || ""} onChange={(event) => setBrief((current) => ({ ...current, main_audience: event.target.value }))} /></label><label>صف شخصية العلامة<textarea required rows="3" value={brief.personality || ""} onChange={(event) => setBrief((current) => ({ ...current, personality: event.target.value }))} /></label><label>ما المخرجات المطلوبة؟<textarea required rows="3" value={brief.deliverables || ""} onChange={(event) => setBrief((current) => ({ ...current, deliverables: event.target.value }))} /></label><label>موعد الإطلاق<input required type="date" value={brief.launch || ""} onChange={(event) => setBrief((current) => ({ ...current, launch: event.target.value }))} /></label><label>المراجع والملفات<input type="text" value={brief.references || ""} placeholder="أسماء الملفات أو الروابط" onChange={(event) => setBrief((current) => ({ ...current, references: event.target.value }))} /></label></div>
+    <button className="button primary" type="submit">إرسال البريف للمراجعة <ArrowLeft size={18} /></button>
+  </form>;
+  if (step === 2) actionContent = <div className="portal-wait-state"><ShieldCheck size={36} /><h2>البريف لدى عبد الوهاب</h2><p>حُفظت إجاباتك، وسيظهر عرض السعر هنا بعد مراجعة النطاق.</p></div>;
+  if (step === 3) actionContent = <div className="portal-wait-state"><FileText size={36} /><h2>يُجهز عرض السعر</h2><p>اعتمد البريف، ويجري الآن تثبيت القيمة والدفعات قبل الإرسال.</p></div>;
+  if (step === 4) actionContent = <div className="client-document-action"><div className="portal-action-heading"><div><span>يحتاج موافقتك</span><h2>عرض السعر {scenario.quote.id}</h2><p>راجع النطاق والقيمة وخطة الدفعات.</p></div><span className="status-badge">صالح {scenario.quote.validityDays} أيام</span></div><article className="client-quote-sheet"><small>{scenario.project.service}</small><h3>{scenario.project.name}</h3><p>{scenario.quote.scope}</p><div className="client-quote-total"><span>القيمة الإجمالية</span><strong>{Number(scenario.quote.amount).toLocaleString("en-US")} {scenario.quote.currency}</strong></div><div className="preview-payments"><span><b>50%</b><small>دفعة أولى</small></span><span><b>50%</b><small>قبل التسليم</small></span></div></article><button className="button primary" onClick={() => { onAdvance(5, `اعتمدت ${scenario.client.name} عرض السعر`); onToast("تم اعتماد العرض وتجهيز العقد للتوقيع"); }}>اعتماد العرض <Check size={18} /></button></div>;
+  if (step === 5) actionContent = <div className="client-document-action"><div className="portal-action-heading"><div><span>التوقيع الإلكتروني التجريبي</span><h2>عقد تقديم الخدمات {scenario.contract.id}</h2><p>نطاق العرض المعتمد وخطة الدفع مرتبطان بهذا العقد.</p></div></div><div className="client-contract-clauses"><p>يبدأ التنفيذ بعد توقيع الطرفين واستلام الدفعة الأولى.</p><p>تقدم البروفة الأولى خلال 14 يوم عمل، والتعديل خلال 7 أيام عمل.</p><p>تنتقل حقوق استخدام المخرجات النهائية بعد سداد كامل المستحقات.</p><p>تثبت المخرجات والاستثناءات في هذا العقد قبل بدء العمل.</p></div><label className="consent-field"><input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} /><span>قرأت البنود وأوافق على توقيع العقد باسم {scenario.client.company}.</span></label><button className="button primary" disabled={!agreed} onClick={() => { onAdvance(6, `وقعت ${scenario.client.name} العقد`, { contract: { ...scenario.contract, signedAt: "الآن" } }); onToast("تم توقيع العقد وإصدار فاتورة الدفعة الأولى"); }}>توقيع العقد <Check size={18} /></button></div>;
+  if (step === 6) actionContent = <div className="client-payment-action"><Receipt size={34} /><span>فاتورة غير ضريبية</span><h2>الدفعة الأولى</h2><strong>{amount} {scenario.quote.currency}</strong><p>بعد السداد يبدأ المشروع وتظهر المهمة في مساحة المتعاون.</p><button className="button primary" onClick={() => { onAdvance(7, `سددت ${scenario.client.name} الدفعة الأولى`, { payments: { ...scenario.payments, first: true } }); onToast("تم تسجيل الدفعة وفتح مرحلة التنفيذ"); }}>محاكاة السداد الآمن <ArrowLeft size={18} /></button></div>;
+  if (step === 7) actionContent = <div className="portal-wait-state"><UserFocus size={36} /><h2>{scenario.proof.revisionNote ? "التعديل لدى الفريق" : "بدأ التنفيذ"}</h2><p>{scenario.proof.revisionNote ? `ملاحظة التعديل: ${scenario.proof.revisionNote}` : `تعمل ${scenario.collaborator.name} على البروفة الأولى، وسيصلك إشعار عند رفعها.`}</p></div>;
+  if (step === 8) actionContent = <div className="client-proof-action"><div className="portal-action-heading"><div><span>يحتاج قرارك</span><h2>البروفة رقم {scenario.proof.version}</h2><p>راجع الاتجاه البصري ودوّن قراراً واحداً واضحاً.</p></div></div><img src="/work-mandi.jpg" alt={`بروفة ${scenario.project.name}`} /><label>ملاحظة التعديل<textarea rows="3" value={proofNote} onChange={(event) => setProofNote(event.target.value)} placeholder="اكتب ملاحظة محددة عند طلب التعديل" /></label><div><button className="button ghost" disabled={!proofNote.trim()} onClick={() => { onAdvance(7, `طلبت ${scenario.client.name} تعديلاً على البروفة`, { proof: { ...scenario.proof, status: "تعديل مطلوب", revisionNote: proofNote, version: scenario.proof.version + 1 } }); onToast("وصل طلب التعديل إلى مساحة المتعاون"); }}>طلب تعديل</button><button className="button primary" onClick={() => { onAdvance(9, `اعتمدت ${scenario.client.name} البروفة`, { proof: { ...scenario.proof, status: "معتمدة", revisionNote: "" } }); onToast("تم اعتماد البروفة وإصدار الدفعة الأخيرة"); }}>اعتماد البروفة <Check size={18} /></button></div></div>;
+  if (step === 9) actionContent = <div className="client-payment-action"><Receipt size={34} /><span>فاتورة غير ضريبية</span><h2>الدفعة الأخيرة</h2><strong>{amount} {scenario.quote.currency}</strong><p>بعد السداد يجهز عبد الوهاب حزمة الملفات النهائية.</p><button className="button primary" onClick={() => { onAdvance(10, `سددت ${scenario.client.name} الدفعة الأخيرة`, { payments: { ...scenario.payments, final: true } }); onToast("تم تسجيل السداد وأصبح المشروع جاهزاً للتسليم"); }}>محاكاة السداد الآمن <ArrowLeft size={18} /></button></div>;
+  if (step === 10) actionContent = <div className="portal-wait-state"><FolderOpen size={36} /><h2>تُجهز حزمة التسليم</h2><p>اكتملت الدفعات، ويجري الآن فحص الملفات وتنظيمها قبل فتحها لك.</p></div>;
+  if (step === 11) actionContent = <div className="client-delivery-action"><CheckCircle size={38} weight="fill" /><span>التسليم النهائي جاهز</span><h2>حزمة الملفات النهائية</h2><p>{scenario.project.name}</p><div><button onClick={() => onToast("تم تنزيل ملف دليل الهوية التجريبي")}><FileText size={22} /><span><strong>دليل الهوية.pdf</strong><small>PDF، 18.4 MB</small></span><ArrowLeft size={17} /></button><button onClick={() => onToast("تم تنزيل حزمة الملفات التجريبية")}><FolderOpen size={22} /><span><strong>ملفات الهوية النهائية.zip</strong><small>ZIP، 126 MB</small></span><ArrowLeft size={17} /></button></div><button className="button primary" onClick={() => { onAdvance(12, `أكدت ${scenario.client.name} استلام الملفات`, { delivery: { released: true, received: true } }); onToast("تم تأكيد الاستلام وجدولة المتابعة"); }}>تأكيد الاستلام <Check size={18} /></button></div>;
+  if (step === 12) actionContent = <form className="client-feedback-action" onSubmit={(event) => { event.preventDefault(); onAdvance(13, `أرسلت ${scenario.client.name} تقييم المشروع`, { feedback: { rating, note: feedbackNote } }); onToast("شكراً، اكتمل المشروع وسُجلت المتابعة"); }}><span>متابعة بعد التسليم</span><h2>كيف كانت التجربة؟</h2><p>تقييمك يغلق الحلقة ويُحفظ في ملف العميل.</p><div className="feedback-scale">{[1, 2, 3, 4, 5].map((score) => <button type="button" key={score} className={rating === score ? "active" : ""} onClick={() => setRating(score)}>{score}</button>)}</div><label>ملاحظة أخيرة<textarea rows="3" value={feedbackNote} onChange={(event) => setFeedbackNote(event.target.value)} placeholder="ما الذي تريد أن نحافظ عليه أو نحسنه؟" /></label><button className="button primary" type="submit" disabled={!rating}>إرسال التقييم وإنهاء المشروع <Check size={18} /></button></form>;
+  if (step >= 13) actionContent = <div className="portal-complete-state"><CheckCircle size={46} weight="fill" /><span>اكتمل المشروع</span><h2>شكراً يا {scenario.client.name.split(" ")[0]}.</h2><p>العقد والدفعات والبروفات والتسليم والتقييم محفوظة في سجل واحد.</p></div>;
+
+  return <div className="portal-page dashboard-content scenario-client-portal">
+    <section className="portal-welcome"><div><small>مرحباً، {scenario.client.name}</small><h1>{scenario.project.name}</h1><p>{scenario.project.service} مع عبد الوهاب السويد.</p></div><span className="status-badge">{scenarioMilestones[Math.min(step, 13)].label}</span></section>
+    <section className="portal-project-progress"><StageTrack current={scenarioToProjectStage(step)} /><div><span>التقدم</span><strong>{Math.min(step, 13)} من 13</strong></div></section>
+    <section className="panel client-current-action">{actionContent}</section>
+    <section className="client-columns scenario-client-columns"><div className="panel timeline-panel"><div className="panel-heading"><div><h2>سجل المشروع</h2><p>آخر الإجراءات المشتركة بينك وبين الفريق.</p></div></div><div className="client-timeline">{scenario.activity.slice(0, 5).map((item, index) => <div className="done" key={`${item.label}-${index}`}><CheckCircle size={19} weight="fill" /><span><strong>{item.label}</strong><small>{item.actor}، {item.at}</small></span></div>)}</div></div><div className="panel client-files"><div className="panel-heading"><div><h2>المستندات</h2><p>تظهر تلقائياً عند بلوغ مرحلتها.</p></div></div>{step >= 2 && <button><List size={22} /><span><strong>البريف</strong><small>{step >= 3 ? "معتمد" : "بانتظار المراجعة"}</small></span><CheckCircle size={18} weight="fill" /></button>}{step >= 4 && <button><FileText size={22} /><span><strong>عرض السعر</strong><small>{step >= 5 ? "معتمد" : "بانتظار قرارك"}</small></span>{step >= 5 && <CheckCircle size={18} weight="fill" />}</button>}{step >= 6 && <button><Handshake size={22} /><span><strong>العقد</strong><small>موقع إلكترونياً</small></span><CheckCircle size={18} weight="fill" /></button>}</div></section>
+  </div>;
 }
 
-function CollaboratorPortal({ onToast }) {
-  const [tasks, setTasks] = useState([
-    { id: 1, title: "تطبيق واجهات سيد مندي", project: "سيد مندي", due: "اليوم، 2:00 م", status: "يعمل عليه" },
-    { id: 2, title: "قوالب منشورات العودة", project: "أصناف", due: "غداً، 11:00 ص", status: "جاهز للبدء" },
-    { id: 3, title: "موك أب العبوة الموسمية", project: "قصر التوابل", due: "الخميس", status: "بانتظار ملف" },
-  ]);
-  const start = (id) => setTasks((items) => items.map((item) => item.id === id ? { ...item, status: "يعمل عليه" } : item));
-  const deliver = (id) => {
-    setTasks((items) => items.map((item) => item.id === id ? { ...item, status: "تم الرفع" } : item));
-    onToast("تم رفع الملف وإشعار عبد الوهاب للمراجعة");
+function CollaboratorPortal({ onToast, scenario, onAdvance }) {
+  const deliver = () => {
+    if (scenario.step !== 7) return;
+    onAdvance(8, `رفعت ${scenario.collaborator.name} البروفة رقم ${scenario.proof.version}`, { proof: { ...scenario.proof, status: "بانتظار العميل", revisionNote: "" } });
+    onToast("تم رفع البروفة وظهرت فوراً في بوابة العميل");
   };
   return (
     <div className="dashboard-content page-stack collaborator-page">
-      <section className="collaborator-head"><div><small>مساحتك اليوم</small><h1>مرحباً ريم، لديك مهمة واحدة الآن.</h1><p>لن تظهر بقية المهام كعاجلة ما دمتِ تعملين على الحالية.</p></div><div><Clock size={27} /><span>الوقت المحجوز اليوم<strong>4 ساعات و30 دقيقة</strong></span></div></section>
+      <section className="collaborator-head"><div><small>مساحتك اليوم</small><h1>مرحباً {scenario.collaborator.name.split(" ")[0]}، لديك مهمة واحدة الآن.</h1><p>ترى المطلوب والموعد والملفات فقط، من دون معلومات العميل المالية.</p></div><div><Clock size={27} /><span>موعد المهمة<strong>{scenario.collaborator.due}</strong></span></div></section>
       <section className="collaborator-layout">
         <div className="task-stack">
-          {tasks.map((task, index) => (
-            <article className={`task-card ${index === 0 ? "active" : ""}`} key={task.id}>
-              <div className="task-index">{index + 1}</div>
-              <div className="task-copy"><span>{task.project}</span><h2>{task.title}</h2><p><CalendarBlank size={17} /> {task.due}</p></div>
-              <span className={`task-status ${task.status === "تم الرفع" ? "done" : ""}`}>{task.status}</span>
-              <div className="task-actions">
-                {task.status === "جاهز للبدء" && <button className="button ghost" onClick={() => start(task.id)}>بدء المهمة</button>}
-                {task.status === "يعمل عليه" && <label className="button primary upload-button">رفع التسليم <FileArrowUp size={18} /><input type="file" onChange={() => deliver(task.id)} /></label>}
-                {task.status === "بانتظار ملف" && <button className="button ghost" onClick={() => onToast("تم تذكير صاحب المهمة بالملف الناقص")}>طلب الملف</button>}
-                {task.status === "تم الرفع" && <CheckCircle size={28} weight="fill" />}
-              </div>
-            </article>
-          ))}
+          <article className="task-card active scenario-collaborator-task">
+            <div className="task-index">1</div>
+            <div className="task-copy"><span>{scenario.project.name}</span><h2>{scenario.collaborator.task}</h2><p><CalendarBlank size={17} /> {scenario.collaborator.due}</p>{scenario.proof.revisionNote && <blockquote>{scenario.proof.revisionNote}</blockquote>}</div>
+            <span className={`task-status ${scenario.step > 7 ? "done" : ""}`}>{scenario.step < 7 ? "لم تبدأ" : scenario.step === 7 ? scenario.proof.revisionNote ? "تعديل مطلوب" : "جاهزة للرفع" : "تم الرفع"}</span>
+            <div className="task-actions">
+              {scenario.step === 7 && <><label className="button ghost upload-button">اختيار ملف <FileArrowUp size={18} /><input type="file" onChange={deliver} /></label><button className="button primary" onClick={deliver}>رفع بروفة تجريبية <ArrowLeft size={18} /></button></>}
+              {scenario.step > 7 && <span className="collaborator-delivered"><CheckCircle size={28} weight="fill" /> ينتظر قرار العميل</span>}
+              {scenario.step < 7 && <span className="collaborator-locked"><LockKey size={20} /> تفتح بعد العقد والدفعة الأولى</span>}
+            </div>
+          </article>
+          <article className="task-card muted-task"><div className="task-index">2</div><div className="task-copy"><span>أصناف</span><h2>قوالب منشورات العودة</h2><p><CalendarBlank size={17} /> غداً، 11:00 ص</p></div><span className="task-status">لاحقاً</span></article>
         </div>
-        <aside className="brief-card"><div><FileText size={24} /><span><strong>ملخص المهمة الحالية</strong><small>نسخة واحدة واضحة</small></span></div><h3>المطلوب</h3><p>تطبيق الهوية على واجهة فرع واحد وعبوتين، مع الحفاظ على وضوح الاسم من مسافة بعيدة.</p><h3>ملفات المصدر</h3><button><FolderOpen size={18} /> حزمة الهوية النهائية <ArrowLeft size={16} /></button><h3>التسليم</h3><p>ملف PDF للعرض وملفات AI منظمة. لا حاجة لإرسالها عبر واتساب.</p></aside>
+        <aside className="brief-card"><div><FileText size={24} /><span><strong>ملخص المهمة الحالية</strong><small>من البريف المعتمد</small></span></div><h3>المطلوب</h3><p>{scenario.quote.scope}</p><h3>الهدف</h3><p>{scenario.briefAnswers.main_goal || scenario.project.goal}</p><h3>ملفات المصدر</h3><button onClick={() => onToast("تم فتح حزمة المصادر التجريبية")}><FolderOpen size={18} /> حزمة المشروع <ArrowLeft size={16} /></button><h3>التسليم</h3><p>ملف PDF للعرض وملفات المصدر المنظمة. لا حاجة لإرسالها عبر واتساب.</p></aside>
       </section>
     </div>
   );
@@ -1421,7 +1661,7 @@ function MobileNav({ section, setSection }) {
   );
 }
 
-function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublishSite }) {
+function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublishSite, scenario, onUpdateScenario, onResetScenario }) {
   const [role, setRole] = useState(initialRole);
   const canPreview = initialRole === "owner";
   const [section, setSection] = useState("overview");
@@ -1432,6 +1672,19 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
   };
+  const advanceScenario = (step, label, patch = {}) => onUpdateScenario((current) => ({
+    ...current,
+    ...patch,
+    step,
+    activity: [{ label, actor: scenarioRoleLabels[role], at: "الآن" }, ...current.activity],
+  }));
+  const patchScenario = (patch) => onUpdateScenario((current) => ({ ...current, ...patch }));
+  const resetScenario = () => {
+    onResetScenario();
+    setRole("owner");
+    setSection("scenario");
+    showToast("بدأ سيناريو جديد من طلب الخدمة");
+  };
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
   }, [role, section]);
@@ -1440,9 +1693,9 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
       {canPreview && role === "owner" && <Sidebar section={section} setSection={setSection} onSite={onSite} />}
       <div className={`workspace-main ${role !== "owner" || !canPreview ? "portal-main" : ""}`}>
         <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} canPreview={canPreview} onExit={onSite} />
-        {canPreview && role === "owner" && <OwnerApp section={section} setSection={setSection} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} />}
-        {role === "client" && <ClientPortal onToast={showToast} />}
-        {role === "collaborator" && <CollaboratorPortal onToast={showToast} />}
+        {canPreview && role === "owner" && <OwnerApp section={section} setSection={setSection} setRole={setRole} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} scenario={scenario} onScenarioAdvance={advanceScenario} onScenarioPatch={patchScenario} onScenarioReset={resetScenario} />}
+        {role === "client" && <ClientPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} onPatch={patchScenario} />}
+        {role === "collaborator" && <CollaboratorPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} />}
       </div>
       {canPreview && role === "owner" && <MobileNav section={section} setSection={setSection} />}
       {canPreview && captureOpen && <CaptureModal onClose={() => setCaptureOpen(false)} onAdd={(text) => showToast(`تم حفظ: ${text}`)} />}
@@ -1473,6 +1726,27 @@ export default function App() {
       return defaultSiteContent;
     }
   });
+  const [scenario, setScenario] = useState(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("u89-demo-scenario"));
+      if (!saved || typeof saved.step !== "number") return defaultScenario;
+      return {
+        ...defaultScenario,
+        ...saved,
+        client: { ...defaultScenario.client, ...saved.client },
+        project: { ...defaultScenario.project, ...saved.project },
+        quote: { ...defaultScenario.quote, ...saved.quote },
+        contract: { ...defaultScenario.contract, ...saved.contract },
+        payments: { ...defaultScenario.payments, ...saved.payments },
+        collaborator: { ...defaultScenario.collaborator, ...saved.collaborator },
+        proof: { ...defaultScenario.proof, ...saved.proof },
+        delivery: { ...defaultScenario.delivery, ...saved.delivery },
+        feedback: { ...defaultScenario.feedback, ...saved.feedback },
+      };
+    } catch {
+      return defaultScenario;
+    }
+  });
   const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
@@ -1487,6 +1761,9 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+  useEffect(() => {
+    window.localStorage.setItem("u89-demo-scenario", JSON.stringify(scenario));
+  }, [scenario]);
   useEffect(() => {
     document.title = siteContent.seoTitle;
     const description = document.querySelector('meta[name="description"]');
@@ -1517,9 +1794,9 @@ export default function App() {
       {view === "site" ? (
         <LandingPage theme={theme} onTheme={toggleTheme} onAccess={() => setAccessOpen(true)} onRequest={openRequest} content={siteContent} />
       ) : (
-        <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} />
+        <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} />
       )}
-      {requestOpen && <ServiceRequestModal onClose={() => setRequestOpen(false)} onSubmit={() => {}} settings={siteContent} />}
+      {requestOpen && <ServiceRequestModal onClose={() => setRequestOpen(false)} onSubmit={(data) => setScenario(scenarioFromRequest(data, siteContent))} settings={siteContent} />}
       {accessOpen && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} />}
     </>
   );
