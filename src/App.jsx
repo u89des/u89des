@@ -15,17 +15,22 @@ import {
   Command,
   FileArrowUp,
   FileText,
+  FloppyDisk,
   FolderOpen,
+  Globe,
   Handshake,
   House,
   Invoice,
   List,
+  LockKey,
   MagnifyingGlass,
   Moon,
   PaperPlaneTilt,
   Plus,
   Receipt,
   ShieldCheck,
+  SignOut,
+  SlidersHorizontal,
   Sparkle,
   SquaresFour,
   Sun,
@@ -89,6 +94,7 @@ const navItems = [
   { id: "clients", label: "العملاء", icon: UsersThree },
   { id: "finance", label: "الحسابات", icon: Wallet },
   { id: "team", label: "فريق العمل", icon: UserFocus },
+  { id: "site-admin", label: "إدارة الموقع", icon: Globe },
 ];
 
 const serviceList = [
@@ -99,6 +105,34 @@ const serviceList = [
   ["الخطوط الطباعية", "نصمم صوتاً بصرياً خاصاً يثبت حضور العلامة."],
   ["الاستشارات الإبداعية", "نربط التصميم بالمحتوى والحملات والتجربة."],
 ];
+
+const defaultSiteContent = {
+  heroTitle: "نصنع علامات يصعب تجاوزها.",
+  heroBody: "من الاستراتيجية والتسمية إلى الهوية والتجربة، نبني علامة واضحة تعيش في ذهن الناس وتعمل في السوق.",
+  heroCta: "اطلب مشروعك",
+  servicesTitle: "كل ما تحتاجه العلامة لتبدأ بوضوح.",
+  workTitle: "علامات صممنا لها حضوراً خاصاً.",
+  finalTitle: "مشروعك القادم يبدأ بسؤال جيد.",
+  email: "W@U89DES.COM",
+  phone: "+966 555 8 777 33",
+  domain: "U89DES.COM",
+  seoTitle: "U89 | صناعة وتطوير العلامات",
+  seoDescription: "استوديو سعودي لصناعة وتسمية وتطوير العلامات التجارية والخطوط الطباعية.",
+  indexable: true,
+  acceptingRequests: true,
+  requireBudget: true,
+  requireDeadline: false,
+  serviceVisibility: [true, true, true, true, true, true],
+  workVisibility: [true, true, true],
+  maintenance: false,
+  sectionVisibility: {
+    statement: true,
+    services: true,
+    method: true,
+    work: true,
+    about: true,
+  },
+};
 
 const retainerRequests = [
   { id: 1, title: "حملة افتتاح فرع العليا", client: "قصر التوابل", assignee: "ريم", due: "7 أغسطس", status: "جديد" },
@@ -167,7 +201,7 @@ function Modal({ title, children, onClose, size = "normal" }) {
   );
 }
 
-function ServiceRequestModal({ onClose, onSubmit }) {
+function ServiceRequestModal({ onClose, onSubmit, settings }) {
   const [sent, setSent] = useState(false);
   const submit = (event) => {
     event.preventDefault();
@@ -201,6 +235,10 @@ function ServiceRequestModal({ onClose, onSubmit }) {
           <label>ما الذي تريد تحقيقه؟
             <textarea required rows="4" placeholder="اكتب النتيجة التي تتمنى الوصول إليها، وليس قائمة التصاميم فقط." />
           </label>
+          {(settings.requireBudget || settings.requireDeadline) && <div className="field-row">
+            {settings.requireBudget && <label>الميزانية المتوقعة<select required defaultValue=""><option value="" disabled>اختر النطاق</option><option>أقل من 10,000 ر.س</option><option>10,000 إلى 25,000 ر.س</option><option>25,000 إلى 50,000 ر.س</option><option>أكثر من 50,000 ر.س</option></select></label>}
+            {settings.requireDeadline && <label>الموعد المستهدف<input type="date" required /></label>}
+          </div>}
           <div className="form-note"><ShieldCheck size={19} /> تحفظ معلوماتك داخل مساحة خاصة بالمشروع.</div>
           <button className="button primary full" type="submit">إرسال الطلب <ArrowLeft size={18} /></button>
         </form>
@@ -209,84 +247,83 @@ function ServiceRequestModal({ onClose, onSubmit }) {
   );
 }
 
-function SiteHeader({ theme, onTheme, onOpenApp, onRequest }) {
+function AccessModal({ onClose, onEnter }) {
+  return (
+    <Modal title="دخول المنصة" onClose={onClose} size="compact">
+      <div className="access-panel">
+        <p>كل مستخدم يدخل إلى مساحته الخاصة فقط. الخيارات هنا لعرض النموذج التجريبي.</p>
+        <button onClick={() => onEnter("client")}><UserCircle size={24} /><span><strong>بوابة العميل</strong><small>المشاريع والبروفات والطلبات والفواتير</small></span><ArrowLeft size={18} /></button>
+        <button onClick={() => onEnter("collaborator")}><UserFocus size={24} /><span><strong>مساحة المتعاون</strong><small>المهام والملفات والتسليمات المسندة</small></span><ArrowLeft size={18} /></button>
+        <button onClick={() => onEnter("owner")}><LockKey size={24} /><span><strong>إدارة الاستوديو</strong><small>التشغيل والماليات والموقع والصلاحيات</small></span><ArrowLeft size={18} /></button>
+      </div>
+    </Modal>
+  );
+}
+
+function SiteHeader({ theme, onTheme, onAccess, onRequest, acceptingRequests }) {
   return (
     <header className="site-header">
       <Logo />
       <nav aria-label="التنقل الرئيسي">
         <a href="#services">الخدمات</a>
-        <a href="#system">طريقة العمل</a>
         <a href="#work">الأعمال</a>
+        <a href="#about">عن U89</a>
       </nav>
       <div className="header-actions">
         <ThemeButton theme={theme} onToggle={onTheme} />
-        <button className="button ghost header-login" onClick={onOpenApp}>دخول مساحة العمل</button>
-        <button className="button primary" onClick={onRequest}>ابدأ مشروعك</button>
+        <button className="button ghost header-login" onClick={onAccess}>دخول المنصة</button>
+        <button className="button primary" onClick={onRequest} disabled={!acceptingRequests}>{acceptingRequests ? "اطلب مشروعك" : "الطلبات متوقفة"}</button>
       </div>
     </header>
   );
 }
 
-function LivePreview({ onOpenApp }) {
+function BrandShowcase() {
   return (
-    <div className="live-preview" aria-label="معاينة حية لمساحة العمل">
-      <div className="preview-top">
-        <div><span className="status-dot" /> مهمتك الآن</div>
-        <span>الثلاثاء</span>
-      </div>
-      <div className="preview-focus">
-        <span>سيد مندي</span>
-        <h3>راجع البروفة الثانية</h3>
-        <p>وصلت ملاحظات العميل مجمعة في نقطة واحدة.</p>
-        <button onClick={onOpenApp}>فتح البروفة <ArrowLeft size={17} /></button>
-      </div>
-      <div className="preview-line">
-        <div><CheckCircle size={18} weight="fill" /> عرض السعر معتمد</div>
-        <time>09:40</time>
-      </div>
-      <div className="preview-line">
-        <div><Clock size={18} /> دفعة عقد بخاري أختر</div>
-        <time>غداً</time>
-      </div>
-      <div className="preview-footer"><Command size={17} /> التقط أي فكرة دون مغادرة ما تعمل عليه</div>
+    <div className="brand-showcase" aria-label="مجموعة من أعمال U89">
+      <img className="showcase-main" src="/work-mandi.jpg" alt="تطبيقات علامة سيد مندي" />
+      <img className="showcase-top" src="/work-bukhary.jpg" alt="تطبيقات علامة بخاري أختر" />
+      <img className="showcase-bottom" src="/work-mamola.jpg" alt="تطبيقات علامة مامولا" />
+      <div className="showcase-signature"><span>15+</span><small>سنة من التصميم<br />والبحث والتطوير</small></div>
     </div>
   );
 }
 
-function LandingPage({ theme, onTheme, onOpenApp, onRequest }) {
+function LandingPage({ theme, onTheme, onAccess, onRequest, content }) {
+  const visible = content.sectionVisibility;
+  if (content.maintenance) {
+    return <div className="site-page maintenance-page"><header className="site-header"><Logo /><div /><div className="header-actions"><ThemeButton theme={theme} onToggle={onTheme} /><button className="button ghost header-login" onClick={onAccess}>دخول المنصة</button></div></header><main><Sparkle size={34} weight="fill" /><span>U89 Brand Studio</span><h1>نعيد ترتيب المساحة.</h1><p>الموقع التعريفي تحت تحديث قصير. مساحة العملاء والإدارة تعمل كالمعتاد.</p><button className="button ghost" onClick={onAccess}>دخول المنصة <ArrowLeft size={18} /></button></main></div>;
+  }
   return (
     <div className="site-page">
-      <SiteHeader theme={theme} onTheme={onTheme} onOpenApp={onOpenApp} onRequest={onRequest} />
+      <SiteHeader theme={theme} onTheme={onTheme} onAccess={onAccess} onRequest={onRequest} acceptingRequests={content.acceptingRequests} />
       <main>
-        <section className="hero-section">
+        <section className="hero-section marketing-hero">
           <div className="hero-copy rise-in">
-            <span className="hero-kicker">U89 Studio OS</span>
-            <h1>أصنع العلامة.<br /><em>والنظام يمسك المشروع.</em></h1>
-            <p>من الطلب حتى التحصيل والمتابعة، كل خطوة في مكان واحد واضح للعميل والفريق.</p>
+            <span className="hero-kicker">U89 Brand Studio</span>
+            <h1>{content.heroTitle}</h1>
+            <p>{content.heroBody}</p>
             <div className="hero-actions">
-              <button className="button primary large" onClick={onRequest}>ابدأ مشروعك <ArrowLeft size={20} /></button>
-              <button className="text-link" onClick={onOpenApp}>شاهد مساحة العمل <ArrowUpLeft size={18} /></button>
+              <button className="button primary large" onClick={onRequest} disabled={!content.acceptingRequests}>{content.acceptingRequests ? content.heroCta : "جدول المشاريع ممتلئ حالياً"} <ArrowLeft size={20} /></button>
+              <a className="text-link" href="#work">شاهد أعمالنا <ArrowUpLeft size={18} /></a>
             </div>
           </div>
-          <div className="hero-visual rise-in delay-1">
-            <div className="lime-orbit" />
-            <LivePreview onOpenApp={onOpenApp} />
-          </div>
+          <div className="hero-visual rise-in delay-1"><BrandShowcase /></div>
         </section>
 
-        <section className="statement-section">
+        {visible.statement && <section className="statement-section">
           <p>خبرة تتجاوز 15 سنة في تحويل السؤال الإبداعي إلى علامة قابلة للحياة.</p>
           <div className="statement-rule" />
-          <p>هذه المرة، تتحول التجربة نفسها إلى طريقة عمل تحمي التركيز.</p>
-        </section>
+          <p>نبحث عن المعنى أولاً، ثم نصنع له اسماً وصوتاً وشكلاً يصعب تقليده.</p>
+        </section>}
 
-        <section className="services-section" id="services">
+        {visible.services && <section className="services-section" id="services">
           <div className="section-heading">
-            <h2>العلامة ليست ملفاً.<br />إنها منظومة قرارات.</h2>
-            <p>الخدمات مأخوذة من ممارسة U89 الفعلية، وتدخل كلها في مسار واحد يمكن متابعته.</p>
+            <h2>{content.servicesTitle}</h2>
+            <p>نبدأ من جوهر العلامة، ثم نبني كل ما يجعلها مفهومة ومتماسكة وقابلة للنمو.</p>
           </div>
           <div className="services-mosaic">
-            {serviceList.map(([title, text], index) => (
+            {serviceList.map(([title, text], index) => content.serviceVisibility[index] && (
               <article className={`service-item item-${index + 1}`} key={title}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <h3>{title}</h3>
@@ -294,72 +331,43 @@ function LandingPage({ theme, onTheme, onOpenApp, onRequest }) {
               </article>
             ))}
           </div>
-        </section>
+        </section>}
 
-        <section className="system-section" id="system">
-          <div className="system-copy">
-            <h2>طريق واضح من أول رسالة إلى آخر دفعة.</h2>
-            <p>العميل يرى ما يعنيه، والفريق يرى ما عليه، وأنت ترى القرار التالي فقط.</p>
-            <button className="button inverted" onClick={onOpenApp}>افتح النموذج التفاعلي <ArrowLeft size={18} /></button>
+        {visible.method && <section className="method-section">
+          <div className="method-intro"><Sparkle size={30} weight="fill" /><h2>لا نبدأ بالشعار.</h2><p>نبدأ بالسؤال الذي يغيّر طريقة رؤية الناس للعلامة.</p></div>
+          <div className="method-points">
+            <article><span>نفهم</span><h3>الشخصية والسوق والفرصة.</h3><p>نبحث عما يجب أن تمثله العلامة، ولمن، ولماذا ستهمهم.</p></article>
+            <article><span>نصوغ</span><h3>الفكرة والاسم والتموضع.</h3><p>نحوّل البحث إلى قرار واضح يمكن أن يبنى عليه كل شيء.</p></article>
+            <article><span>نعبّر</span><h3>بهوية لها صوت وحضور.</h3><p>نصمم نظاماً بصرياً يعيش بثبات عبر المنتج والمكان والتواصل.</p></article>
           </div>
-          <div className="system-path">
-            {stages.map((stage, index) => (
-              <div className="path-step" key={stage}>
-                <span>{index + 1}</span>
-                <strong>{stage}</strong>
-                <small>{["ملخص ذكي", "نطاق وتسعير", "توقيع ودفعة", "مهام ومسؤول", "ملاحظات مجمعة", "ملفات وفاتورة", "رضا وفرصة جديدة"][index]}</small>
-              </div>
-            ))}
-          </div>
-        </section>
+        </section>}
 
-        <section className="work-section" id="work">
+        {visible.work && <section className="work-section" id="work">
           <div className="work-intro">
-            <h2>عمل حقيقي، داخل نظام حقيقي.</h2>
-            <p>تتحول هذه المشاريع من صور جميلة إلى ملفات حية بعقود وبروفات ومدفوعات وقرارات موثقة.</p>
+            <h2>{content.workTitle}</h2>
+            <p>نماذج مختارة لعلامات صنعت من الطعام والثقافة والمكان تجربة متماسكة يمكن تذكرها.</p>
           </div>
           <div className="work-grid">
-            <figure className="work-main">
-              <img src="/work-mandi.jpg" alt="تطبيقات علامة سيد مندي" />
-              <figcaption><span>سيد مندي</span><small>صناعة علامة وتغليف</small></figcaption>
-            </figure>
-            <figure>
-              <img src="/work-bukhary.jpg" alt="تطبيقات علامة بخاري أختر" />
-              <figcaption><span>بخاري أختر</span><small>تطوير علامة</small></figcaption>
-            </figure>
-            <figure>
-              <img src="/work-mamola.jpg" alt="تطبيقات علامة مامولا" />
-              <figcaption><span>مامولا</span><small>هوية ومحتوى</small></figcaption>
-            </figure>
+            {content.workVisibility[0] && <figure className="work-main"><img src="/work-mandi.jpg" alt="تطبيقات علامة سيد مندي" /><figcaption><span>سيد مندي</span><small>صناعة علامة وتغليف</small></figcaption></figure>}
+            {content.workVisibility[1] && <figure><img src="/work-bukhary.jpg" alt="تطبيقات علامة بخاري أختر" /><figcaption><span>بخاري أختر</span><small>تطوير علامة</small></figcaption></figure>}
+            {content.workVisibility[2] && <figure><img src="/work-mamola.jpg" alt="تطبيقات علامة مامولا" /><figcaption><span>مامولا</span><small>هوية ومحتوى</small></figcaption></figure>}
           </div>
-        </section>
+        </section>}
 
-        <section className="focus-section">
-          <div className="focus-quote">
-            <Sparkle size={34} weight="fill" />
-            <h2>النظام لا يطلب منك أن تتذكر.</h2>
-            <p>يجمع المتابعة، يذكّر العميل، ويرتب الأعمال حسب أثرها. يبقى ذهنك للفكرة التي تستحقه.</p>
-          </div>
-          <div className="focus-features">
-            <div><Target size={24} /><strong>مهمة واحدة الآن</strong><span>واجهة يومية تقلل تبديل السياق.</span></div>
-            <div><Bell size={24} /><strong>متابعة تلقائية</strong><span>تذكير بالموافقات والدفعات بلا مطاردة.</span></div>
-            <div><Tray size={24} /><strong>صندوق طلبات موحد</strong><span>كل طلب يدخل بصيغة قابلة للتنفيذ.</span></div>
-            <div><Coins size={24} /><strong>صورة مالية واحدة</strong><span>مستحقات العملاء والمتعاونين في نفس المشروع.</span></div>
-          </div>
-        </section>
+        {visible.about && <section className="studio-about" id="about">
+          <div className="about-mark">U89<span /></div>
+          <div><h2>فضول قديم، وخبرة تعرف أين تبحث.</h2><p>بدأت الحكاية من مراقبة لوحات المحلات وفهم أثرها على الناس. اليوم نضع هذه الخبرة بين يدي كل علامة تريد أن تقول شيئاً واضحاً ومختلفاً.</p><a className="text-link" href="mailto:W@U89DES.COM">تحدث معنا <ArrowLeft size={18} /></a></div>
+        </section>}
 
         <section className="final-cta">
-          <div>
-            <span>جاهز لترتيب المشروع من بدايته؟</span>
-            <h2>دع العمل الإبداعي يأخذ المساحة الأكبر.</h2>
-          </div>
-          <button className="button primary large" onClick={onRequest}>ابدأ مشروعك <ArrowLeft size={20} /></button>
+          <div><span>لديك فكرة أو علامة تحتاج اتجاهاً أوضح؟</span><h2>{content.finalTitle}</h2></div>
+          <button className="button primary large" onClick={onRequest} disabled={!content.acceptingRequests}>{content.acceptingRequests ? content.heroCta : "جدول المشاريع ممتلئ حالياً"} <ArrowLeft size={20} /></button>
         </section>
       </main>
       <footer className="site-footer">
         <Logo />
-        <div><a href="mailto:W@U89DES.COM">W@U89DES.COM</a><a href="tel:+966555877733">+966 555 8 777 33</a></div>
-        <p>صناعة العلامات وإدارة رحلتها.</p>
+        <div><a href={`mailto:${content.email}`}>{content.email}</a><a href={`tel:${content.phone.replace(/\s/g, "")}`}>{content.phone}</a></div>
+        <button className="footer-access" onClick={onAccess}>دخول المنصة</button>
       </footer>
     </div>
   );
@@ -602,6 +610,106 @@ function ProjectDrawer({ project, onClose, onToast }) {
   );
 }
 
+function SiteAdminView({ content, onPublish, onPreview, onToast }) {
+  const [tab, setTab] = useState("content");
+  const [draft, setDraft] = useState(content);
+  const tabs = [
+    ["content", "المحتوى", FileText],
+    ["services", "الخدمات", SquaresFour],
+    ["work", "الأعمال", Briefcase],
+    ["forms", "نموذج الطلب", Tray],
+    ["seo", "SEO والمشاركة", ChartLineUp],
+    ["settings", "الإعدادات", SlidersHorizontal],
+  ];
+  const update = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
+  const updateVisibility = (group, index, value) => setDraft((current) => ({
+    ...current,
+    [group]: current[group].map((item, itemIndex) => itemIndex === index ? value : item),
+  }));
+  const updateSection = (key, value) => setDraft((current) => ({
+    ...current,
+    sectionVisibility: { ...current.sectionVisibility, [key]: value },
+  }));
+  const publish = () => {
+    onPublish(draft);
+    onToast("تم نشر التغييرات على الموقع التعريفي");
+  };
+
+  return (
+    <div className="dashboard-content page-stack site-admin-page">
+      <div className="page-title site-admin-title">
+        <div><span className="eyebrow">CMS</span><h1>إدارة الموقع</h1><p>غيّر المحتوى والأقسام ونموذج الطلب ومحركات البحث من مكان واحد.</p></div>
+        <div className="site-admin-actions"><button className="button ghost" onClick={onPreview}><Globe size={18} /> معاينة الموقع</button><button className="button primary" onClick={publish}><FloppyDisk size={18} /> نشر التغييرات</button></div>
+      </div>
+
+      <div className="cms-status"><span><CheckCircle size={18} weight="fill" /> الموقع منشور</span><small>{draft.domain} · آخر تحديث الآن في النموذج</small></div>
+
+      <section className="site-admin-layout">
+        <nav className="cms-nav" aria-label="أقسام إدارة الموقع">
+          {tabs.map(([id, label, Icon]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}><Icon size={19} /><span>{label}</span><ArrowLeft size={15} /></button>)}
+        </nav>
+
+        <div className="cms-editor">
+          {tab === "content" && <>
+            <div className="cms-editor-heading"><div><h2>محتوى الصفحة الرئيسية</h2><p>النصوص الأساسية التي يراها الزائر قبل إرسال الطلب.</p></div><span>الصفحة الرئيسية</span></div>
+            <div className="cms-fields">
+              <label className="cms-field full">العنوان الرئيسي<input value={draft.heroTitle} onChange={(event) => update("heroTitle", event.target.value)} /></label>
+              <label className="cms-field full">وصف المقدمة<textarea rows="4" value={draft.heroBody} onChange={(event) => update("heroBody", event.target.value)} /></label>
+              <label className="cms-field">نص زر الطلب<input value={draft.heroCta} onChange={(event) => update("heroCta", event.target.value)} /></label>
+              <label className="cms-field">عنوان الخدمات<input value={draft.servicesTitle} onChange={(event) => update("servicesTitle", event.target.value)} /></label>
+              <label className="cms-field">عنوان الأعمال<input value={draft.workTitle} onChange={(event) => update("workTitle", event.target.value)} /></label>
+              <label className="cms-field">عنوان الدعوة الختامية<input value={draft.finalTitle} onChange={(event) => update("finalTitle", event.target.value)} /></label>
+            </div>
+            <div className="cms-section"><h3>إظهار أقسام الصفحة</h3><div className="cms-toggle-grid">
+              {[["statement", "العبارة التعريفية"], ["services", "الخدمات"], ["method", "منهجية العمل"], ["work", "الأعمال المختارة"], ["about", "عن الاستوديو"]].map(([id, label]) => <label className="cms-toggle" key={id}><span><strong>{label}</strong><small>{draft.sectionVisibility[id] ? "ظاهر في الموقع" : "مخفي مؤقتاً"}</small></span><input type="checkbox" checked={draft.sectionVisibility[id]} onChange={(event) => updateSection(id, event.target.checked)} /></label>)}
+            </div></div>
+          </>}
+
+          {tab === "services" && <>
+            <div className="cms-editor-heading"><div><h2>الخدمات المعروضة</h2><p>اختر ما يظهر حالياً في الموقع. يمكن ربط كل خدمة بنموذج طلب مخصص لاحقاً.</p></div><span>{draft.serviceVisibility.filter(Boolean).length} ظاهرة</span></div>
+            <div className="cms-list">{serviceList.map(([title, text], index) => <label className="cms-list-item" key={title}><span className="cms-list-index">{String(index + 1).padStart(2, "0")}</span><span><strong>{title}</strong><small>{text}</small></span><input type="checkbox" checked={draft.serviceVisibility[index]} onChange={(event) => updateVisibility("serviceVisibility", index, event.target.checked)} /></label>)}</div>
+          </>}
+
+          {tab === "work" && <>
+            <div className="cms-editor-heading"><div><h2>الأعمال المختارة</h2><p>تحكم بما يظهر في واجهة الموقع التعريفية.</p></div><button className="button ghost small" onClick={() => onToast("رفع مشروع جديد سيكون مربوطاً بمكتبة الملفات في النسخة الإنتاجية")}><Plus size={17} /> إضافة مشروع</button></div>
+            <div className="cms-work-list">{initialProjects.map((project, index) => <label className="cms-work-item" key={project.id}><img src={project.image} alt="" /><span><strong>{project.name}</strong><small>{project.type}</small></span><input type="checkbox" checked={draft.workVisibility[index]} onChange={(event) => updateVisibility("workVisibility", index, event.target.checked)} /></label>)}</div>
+          </>}
+
+          {tab === "forms" && <>
+            <div className="cms-editor-heading"><div><h2>نموذج طلب الخدمة</h2><p>حدد متى يستقبل الموقع الطلبات وما البيانات المطلوبة من العميل.</p></div><span>النموذج الرئيسي</span></div>
+            <div className="cms-toggle-stack">
+              <label className="cms-toggle"><span><strong>استقبال طلبات جديدة</strong><small>عند إيقافه يظهر للزائر أن جدول المشاريع ممتلئ.</small></span><input type="checkbox" checked={draft.acceptingRequests} onChange={(event) => update("acceptingRequests", event.target.checked)} /></label>
+              <label className="cms-toggle"><span><strong>إلزام العميل بالميزانية المتوقعة</strong><small>يساعد في فرز الطلبات قبل المراجعة.</small></span><input type="checkbox" checked={draft.requireBudget} onChange={(event) => update("requireBudget", event.target.checked)} /></label>
+              <label className="cms-toggle"><span><strong>إلزام العميل بموعد مستهدف</strong><small>يظهر حقل التاريخ كجزء مطلوب من الطلب.</small></span><input type="checkbox" checked={draft.requireDeadline} onChange={(event) => update("requireDeadline", event.target.checked)} /></label>
+            </div>
+            <div className="cms-note"><LockKey size={22} /><div><strong>من الطلب إلى مساحة العمل</strong><p>بعد قبول الطلب تنشئ الإدارة المشروع وترسل دعوة خاصة للعميل. تفاصيل المشروع لا تظهر أبداً في الموقع العام.</p></div></div>
+          </>}
+
+          {tab === "seo" && <>
+            <div className="cms-editor-heading"><div><h2>الظهور في البحث والمشاركة</h2><p>تحكم بالعنوان والوصف الذي يظهر في Google وعند مشاركة الرابط.</p></div><span>SEO</span></div>
+            <div className="cms-fields">
+              <label className="cms-field full">عنوان الموقع<input value={draft.seoTitle} onChange={(event) => update("seoTitle", event.target.value)} /></label>
+              <label className="cms-field full">وصف الموقع<textarea rows="4" value={draft.seoDescription} onChange={(event) => update("seoDescription", event.target.value)} /></label>
+            </div>
+            <label className="cms-toggle"><span><strong>السماح لمحركات البحث بالفهرسة</strong><small>أوقفه فقط أثناء تجهيز نسخة غير منشورة.</small></span><input type="checkbox" checked={draft.indexable} onChange={(event) => update("indexable", event.target.checked)} /></label>
+            <div className="seo-preview"><small>{draft.domain}</small><strong>{draft.seoTitle}</strong><p>{draft.seoDescription}</p></div>
+          </>}
+
+          {tab === "settings" && <>
+            <div className="cms-editor-heading"><div><h2>الإعدادات العامة</h2><p>بيانات التواصل والدومين وحالة الموقع.</p></div><span>عام</span></div>
+            <div className="cms-fields">
+              <label className="cms-field full">الدومين<input dir="ltr" value={draft.domain} onChange={(event) => update("domain", event.target.value)} /></label>
+              <label className="cms-field">البريد الإلكتروني<input dir="ltr" value={draft.email} onChange={(event) => update("email", event.target.value)} /></label>
+              <label className="cms-field">رقم التواصل<input dir="ltr" value={draft.phone} onChange={(event) => update("phone", event.target.value)} /></label>
+            </div>
+            <label className="cms-toggle danger"><span><strong>وضع الصيانة</strong><small>يوقف الواجهة العامة مؤقتاً ويُبقي مساحة الإدارة متاحة.</small></span><input type="checkbox" checked={draft.maintenance} onChange={(event) => update("maintenance", event.target.checked)} /></label>
+          </>}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function CaptureModal({ onClose, onAdd }) {
   const [text, setText] = useState("");
   const submit = (event) => {
@@ -637,30 +745,34 @@ function Sidebar({ section, setSection, onSite }) {
   );
 }
 
-function AppTopbar({ theme, onTheme, role, setRole, onCapture }) {
+function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExit }) {
   return (
     <header className="app-topbar">
-      <div className="mobile-brand"><Logo compact /></div>
-      <div className="role-switch" aria-label="تبديل واجهة المستخدم">
-        <button className={role === "owner" ? "active" : ""} onClick={() => setRole("owner")}>الإدارة</button>
-        <button className={role === "client" ? "active" : ""} onClick={() => setRole("client")}>واجهة العميل</button>
-        <button className={role === "collaborator" ? "active" : ""} onClick={() => setRole("collaborator")}>واجهة المتعاون</button>
-      </div>
+      {canPreview ? <>
+        <div className="mobile-brand"><Logo compact /></div>
+        <div className="role-switch" aria-label="معاينة صلاحيات المستخدمين">
+          <button className={role === "owner" ? "active" : ""} onClick={() => setRole("owner")}>الإدارة</button>
+          <button className={role === "client" ? "active" : ""} onClick={() => setRole("client")}>معاينة العميل</button>
+          <button className={role === "collaborator" ? "active" : ""} onClick={() => setRole("collaborator")}>معاينة المتعاون</button>
+        </div>
+      </> : <div className="portal-identity"><Logo compact /><span><strong>{role === "client" ? "بوابة العميل" : "مساحة المتعاون"}</strong><small>دخول خاص وآمن</small></span></div>}
       <div className="topbar-actions">
-        <button className="quick-capture" onClick={onCapture}><Plus size={18} /> التقاط سريع <kbd>⌘ K</kbd></button>
+        {canPreview && role === "owner" && <button className="quick-capture" onClick={onCapture}><Plus size={18} /> التقاط سريع <kbd>⌘ K</kbd></button>}
         <ThemeButton theme={theme} onToggle={onTheme} />
         <IconButton label="الإشعارات"><Bell size={19} /><span className="notification-count">3</span></IconButton>
+        {!canPreview && <button className="button ghost portal-exit" onClick={onExit}><SignOut size={18} /> تسجيل الخروج</button>}
       </div>
     </header>
   );
 }
 
-function OwnerApp({ section, setSection, onProject, onCapture, onToast }) {
+function OwnerApp({ section, setSection, onProject, onCapture, onToast, siteContent, onPublishSite, onSite }) {
   if (section === "projects") return <ProjectsView onProject={onProject} />;
   if (section === "requests") return <RequestsView onToast={onToast} />;
   if (section === "clients") return <ClientsView />;
   if (section === "finance") return <FinanceView onToast={onToast} />;
   if (section === "team") return <TeamView />;
+  if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} />;
   return <OwnerOverview onProject={onProject} onCapture={onCapture} setSection={setSection} />;
 }
 
@@ -728,15 +840,29 @@ function CollaboratorPortal({ onToast }) {
 }
 
 function MobileNav({ section, setSection }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const primaryItems = navItems.slice(0, 4);
+  const moreItems = navItems.slice(4);
+  const select = (id) => {
+    setSection(id);
+    setMoreOpen(false);
+  };
   return (
-    <nav className="mobile-nav" aria-label="تنقل الجوال">
-      {navItems.slice(0, 5).map((item) => { const Icon = item.icon; return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label.replace("نظرة اليوم", "اليوم").replace("طلبات العملاء", "الطلبات")}</span></button>; })}
-    </nav>
+    <>
+      {moreOpen && <div className="mobile-more-menu">
+        {moreItems.map((item) => { const Icon = item.icon; return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => select(item.id)}><Icon size={19} /><span>{item.label}</span><ArrowLeft size={15} /></button>; })}
+      </div>}
+      <nav className="mobile-nav" aria-label="تنقل الجوال">
+        {primaryItems.map((item) => { const Icon = item.icon; return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => select(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label.replace("نظرة اليوم", "اليوم").replace("طلبات العملاء", "الطلبات")}</span></button>; })}
+        <button className={moreOpen || moreItems.some((item) => item.id === section) ? "active" : ""} onClick={() => setMoreOpen((value) => !value)}><List size={20} /><span>المزيد</span></button>
+      </nav>
+    </>
   );
 }
 
-function Workspace({ theme, onTheme, onSite }) {
-  const [role, setRole] = useState("owner");
+function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublishSite }) {
+  const [role, setRole] = useState(initialRole);
+  const canPreview = initialRole === "owner";
   const [section, setSection] = useState("overview");
   const [captureOpen, setCaptureOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -750,15 +876,15 @@ function Workspace({ theme, onTheme, onSite }) {
   }, [role, section]);
   return (
     <div className="workspace">
-      {role === "owner" && <Sidebar section={section} setSection={setSection} onSite={onSite} />}
-      <div className={`workspace-main ${role !== "owner" ? "portal-main" : ""}`}>
-        <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} />
-        {role === "owner" && <OwnerApp section={section} setSection={setSection} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} />}
+      {canPreview && role === "owner" && <Sidebar section={section} setSection={setSection} onSite={onSite} />}
+      <div className={`workspace-main ${role !== "owner" || !canPreview ? "portal-main" : ""}`}>
+        <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} canPreview={canPreview} onExit={onSite} />
+        {canPreview && role === "owner" && <OwnerApp section={section} setSection={setSection} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} />}
         {role === "client" && <ClientPortal onToast={showToast} />}
         {role === "collaborator" && <CollaboratorPortal onToast={showToast} />}
       </div>
-      {role === "owner" && <MobileNav section={section} setSection={setSection} />}
-      {captureOpen && <CaptureModal onClose={() => setCaptureOpen(false)} onAdd={(text) => showToast(`تم حفظ: ${text}`)} />}
+      {canPreview && role === "owner" && <MobileNav section={section} setSection={setSection} />}
+      {canPreview && captureOpen && <CaptureModal onClose={() => setCaptureOpen(false)} onAdd={(text) => showToast(`تم حفظ: ${text}`)} />}
       {selectedProject && <ProjectDrawer project={selectedProject} onClose={() => setSelectedProject(null)} onToast={showToast} />}
       <Toast message={toast} />
     </div>
@@ -773,7 +899,18 @@ export default function App() {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }, []);
   const [theme, setTheme] = useState(initialTheme);
+  const [siteContent, setSiteContent] = useState(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("u89-site-content"));
+      if (!saved) return defaultSiteContent;
+      return { ...defaultSiteContent, ...saved, sectionVisibility: { ...defaultSiteContent.sectionVisibility, ...saved.sectionVisibility } };
+    } catch {
+      return defaultSiteContent;
+    }
+  });
+  const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
@@ -785,15 +922,40 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+  useEffect(() => {
+    document.title = siteContent.seoTitle;
+    const description = document.querySelector('meta[name="description"]');
+    if (description) description.setAttribute("content", siteContent.seoDescription);
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute("content", siteContent.indexable ? "index, follow" : "noindex, nofollow");
+  }, [siteContent]);
+  const enterWorkspace = (role) => {
+    setWorkspaceRole(role);
+    setAccessOpen(false);
+    setView("workspace");
+  };
+  const openRequest = () => {
+    if (siteContent.acceptingRequests) setRequestOpen(true);
+  };
+  const publishSite = (nextContent) => {
+    setSiteContent(nextContent);
+    window.localStorage.setItem("u89-site-content", JSON.stringify(nextContent));
+  };
 
   return (
     <>
       {view === "site" ? (
-        <LandingPage theme={theme} onTheme={toggleTheme} onOpenApp={() => setView("workspace")} onRequest={() => setRequestOpen(true)} />
+        <LandingPage theme={theme} onTheme={toggleTheme} onAccess={() => setAccessOpen(true)} onRequest={openRequest} content={siteContent} />
       ) : (
-        <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} />
+        <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} />
       )}
-      {requestOpen && <ServiceRequestModal onClose={() => setRequestOpen(false)} onSubmit={() => {}} />}
+      {requestOpen && <ServiceRequestModal onClose={() => setRequestOpen(false)} onSubmit={() => {}} settings={siteContent} />}
+      {accessOpen && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} />}
     </>
   );
 }
