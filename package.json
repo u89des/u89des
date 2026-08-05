@@ -6,16 +6,21 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "check": "npm run build && npm run check:sql && npm run check:copy",
+    "check:sql": "node scripts/check-sql.mjs",
+    "check:copy": "! rg '[—–]' src README.md DEPLOYMENT.md PRODUCT_BLUEPRINT.md U89_OPERATIONS_SPEC.md CONTRACT_DRAFT.md"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-arabic": "^5.3.0",
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.112.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
+    "libpg-query": "^17.7.4",
     "vite": "^7.1.2"
   }
 }

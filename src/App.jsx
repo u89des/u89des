@@ -1,5 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  checkPlatformConnection,
+  getCurrentAccess,
+  loadPublishedSiteContent,
+  loadStudioSettings,
+  platformConfig,
+  publishSiteContent,
+  sendMagicLink,
+  saveStudioSettings,
+  signInWithPassword,
+  signOutPlatform,
+  submitPublicServiceRequest,
+  subscribeToAuth,
+  workflow,
+} from "./lib/studio-platform";
+import {
+  LiveClientPortal,
+  LiveCollaboratorPortal,
+  LiveOwnerSection,
+  useWorkspaceData,
+} from "./LiveOperations";
+import {
   ArrowLeft,
   ArrowUpLeft,
   Bell,
@@ -121,6 +142,21 @@ const scenarioToProjectStage = (step) => {
   return 7;
 };
 
+function usePersistentState(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+  useEffect(() => {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+  return [value, setValue];
+}
+
 const navItems = [
   { id: "overview", label: "نظرة اليوم", icon: SquaresFour },
   { id: "scenario", label: "التجربة الكاملة", icon: Target },
@@ -133,6 +169,7 @@ const navItems = [
   { id: "team", label: "فريق العمل", icon: UserFocus },
   { id: "studio-settings", label: "إعدادات العمل", icon: SlidersHorizontal },
   { id: "site-admin", label: "إدارة الموقع", icon: Globe },
+  { id: "system", label: "الربط والإطلاق", icon: ShieldCheck },
 ];
 
 const serviceList = [
@@ -392,8 +429,8 @@ const defaultSiteContent = {
   ownerNameAr: "عبد الوهاب بن سليمان السويد",
   ownerNameEn: "Abdulwahab Suliman Alsaweed",
   bankName: "مصرف الراجحي",
-  bankAccount: "418608010094429",
-  bankIban: "SA1480000418608010094429",
+  bankAccount: "",
+  bankIban: "",
   vatRegistered: false,
   defaultCurrency: "SAR",
   collaboratorCurrencies: ["SAR", "USD", "EUR"],
@@ -573,6 +610,10 @@ function Toast({ message }) {
   );
 }
 
+function NotificationCenter({ items, onClose, onRead }) {
+  return <aside className="notification-center" aria-label="مركز الإشعارات"><header><div><small>القرارات والتحديثات</small><h2>الإشعارات</h2></div><IconButton label="إغلاق الإشعارات" onClick={onClose}><X size={18} /></IconButton></header>{items.length ? <div className="notification-list">{items.map((item) => <button key={item.id} className={item.read_at ? "read" : ""} onClick={() => onRead(item)}><span className="notification-dot" /><span><strong>{item.subject}</strong><p>{item.message}</p><small>{item.created_at ? new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at)) : "الآن"}</small></span></button>)}</div> : <div className="notification-empty"><Bell size={28} /><strong>لا توجد إشعارات جديدة</strong><p>سيظهر هنا فقط ما يحتاج معرفة أو قراراً.</p></div>}</aside>;
+}
+
 function Modal({ title, children, onClose, size = "normal" }) {
   return (
     <div className="modal-layer" role="presentation" onMouseDown={onClose}>
@@ -588,17 +629,26 @@ function Modal({ title, children, onClose, size = "normal" }) {
 }
 
 function ServiceRequestModal({ onClose, onSubmit, settings }) {
-  const [sent, setSent] = useState(false);
-  const submit = (event) => {
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+  const submit = async (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget));
-    setSent(true);
-    onSubmit(data);
+    if (data.website) return;
+    setStatus("sending");
+    setError("");
+    try {
+      await onSubmit(data);
+      setStatus("sent");
+    } catch (submitError) {
+      setStatus("error");
+      setError(submitError.message || "تعذر إرسال الطلب الآن. حاول مرة أخرى.");
+    }
   };
 
   return (
     <Modal title="ابدأ مشروعك" onClose={onClose}>
-      {sent ? (
+      {status === "sent" ? (
         <div className="success-state">
           <CheckCircle size={46} weight="fill" />
           <h3>وصل الطلب بوضوح</h3>
@@ -607,6 +657,7 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
         </div>
       ) : (
         <form className="request-form" onSubmit={submit}>
+          <label className="request-honeypot" aria-hidden="true">الموقع<input name="website" tabIndex="-1" autoComplete="off" /></label>
           <div className="field-row">
             <label>الاسم<input name="name" required placeholder="اسمك الكامل" /></label>
             <label>اسم المنشأة<input name="organization" required placeholder="اسم العلامة أو المنشأة" /></label>
@@ -631,22 +682,52 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
           </label>)}
           <label className="consent-field"><input type="checkbox" required /><span>أوافق على التواصل وإرسال إشعارات الطلب عبر القناة التي اخترتها.</span></label>
           <div className="form-note"><ShieldCheck size={19} /> تحفظ معلوماتك داخل مساحة خاصة بالمشروع.</div>
-          <button className="button primary full" type="submit">إرسال الطلب <ArrowLeft size={18} /></button>
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <button className="button primary full" type="submit" disabled={status === "sending"}>{status === "sending" ? <><CircleNotch size={18} className="spin" /> جارٍ إرسال الطلب</> : <>إرسال الطلب <ArrowLeft size={18} /></>}</button>
         </form>
       )}
     </Modal>
   );
 }
 
-function AccessModal({ onClose, onEnter }) {
+function AccessModal({ onClose, onEnter, connected, onAuthenticate }) {
+  const [method, setMethod] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState("idle");
+  const [message, setMessage] = useState("");
+  const authenticate = async (event) => {
+    event.preventDefault();
+    setStatus("loading");
+    setMessage("");
+    try {
+      const result = await onAuthenticate({ email, password, method });
+      if (result?.magic) {
+        setStatus("sent");
+        setMessage("أرسلنا رابط الدخول إلى بريدك. افتحه من الجهاز نفسه لإكمال الدخول.");
+      }
+    } catch (error) {
+      setStatus("error");
+      setMessage(error.message || "تعذر تسجيل الدخول. راجع البيانات وحاول مرة أخرى.");
+    }
+  };
+
   return (
     <Modal title="دخول المنصة" onClose={onClose} size="compact">
-      <div className="access-panel">
-        <p>كل مستخدم يدخل إلى مساحته الخاصة فقط. الخيارات هنا لعرض النموذج التجريبي.</p>
+      {connected ? <form className="platform-login" onSubmit={authenticate}>
+        <div className="connection-chip connected"><ShieldCheck size={18} weight="fill" /><span><strong>دخول آمن</strong><small>تحدد صلاحيتك تلقائياً بعد التحقق من الحساب</small></span></div>
+        <div className="login-methods"><button type="button" className={method === "password" ? "active" : ""} onClick={() => setMethod("password")}>كلمة المرور</button><button type="button" className={method === "magic" ? "active" : ""} onClick={() => setMethod("magic")}>رابط على البريد</button></div>
+        <label>البريد الإلكتروني<input type="email" dir="ltr" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
+        {method === "password" && <label>كلمة المرور<input type="password" dir="ltr" required value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></label>}
+        {message && <div className={`login-message ${status}`} role="status">{message}</div>}
+        <button className="button primary full" type="submit" disabled={status === "loading" || status === "sent"}>{status === "loading" ? <><CircleNotch size={18} className="spin" /> جارٍ التحقق</> : method === "magic" ? "إرسال رابط الدخول" : "دخول"}</button>
+        <p className="login-privacy"><LockKey size={16} /> لا يختار المستخدم دوره. الصلاحية تأتي من حسابه في قاعدة البيانات.</p>
+      </form> : <div className="access-panel">
+        <div className="connection-chip local"><ShieldCheck size={18} /><span><strong>وضع التجربة المحلية</strong><small>اختر دوراً لمعاينة الرحلة قبل ربط قاعدة البيانات</small></span></div>
         <button onClick={() => onEnter("client")}><UserCircle size={24} /><span><strong>بوابة العميل</strong><small>المشاريع والبروفات والطلبات والفواتير</small></span><ArrowLeft size={18} /></button>
         <button onClick={() => onEnter("collaborator")}><UserFocus size={24} /><span><strong>مساحة المتعاون</strong><small>المهام والملفات والتسليمات المسندة</small></span><ArrowLeft size={18} /></button>
         <button onClick={() => onEnter("owner")}><LockKey size={24} /><span><strong>إدارة الاستوديو</strong><small>التشغيل والماليات والموقع والصلاحيات</small></span><ArrowLeft size={18} /></button>
-      </div>
+      </div>}
     </Modal>
   );
 }
@@ -975,8 +1056,8 @@ function ProjectsView({ onProject, scenario, onAdvance, onToast }) {
 }
 
 function RequestsView({ onToast, setSection, setRole, scenario, onAdvance }) {
-  const [requests, setRequests] = useState(retainerRequests);
-  const [projectRequests, setProjectRequests] = useState(incomingProjectRequests);
+  const [requests, setRequests] = usePersistentState("u89-retainer-requests", retainerRequests);
+  const [projectRequests, setProjectRequests] = usePersistentState("u89-project-requests", incomingProjectRequests);
   const assign = (id, assignee) => {
     setRequests((items) => items.map((item) => item.id === id ? { ...item, assignee, status: "تم الإسناد" } : item));
     onToast(`تم إسناد الطلب إلى ${assignee}`);
@@ -1097,7 +1178,7 @@ function BriefEditorModal({ brief, template, onClose, onUpdate, onToast, onOpenQ
 
 function BriefsView({ settings, onToast, setSection, setRole, scenario, onAdvance }) {
   const templates = (settings.briefTemplates || [...defaultBriefTemplates, ...reusableBriefTemplates]).filter((template) => template.enabled);
-  const [briefs, setBriefs] = useState(initialBriefs);
+  const [briefs, setBriefs] = usePersistentState("u89-briefs", initialBriefs);
   const [selected, setSelected] = useState(null);
   const [creating, setCreating] = useState(false);
   const [scenarioReviewOpen, setScenarioReviewOpen] = useState(false);
@@ -1191,7 +1272,7 @@ function DocumentEditorModal({ document, settings, onClose, onSave, onToast }) {
 }
 
 function DocumentsView({ settings, onToast, scenario, onAdvance, onPatch }) {
-  const [documents, setDocuments] = useState(initialDocuments);
+  const [documents, setDocuments] = usePersistentState("u89-documents", initialDocuments);
   const [selected, setSelected] = useState(null);
   const save = (document) => setDocuments((items) => items.map((item) => item.id === document.id ? { ...document, updated: "الآن" } : item));
   const createFromBrief = () => setSelected({ id: `Q-${String(483 + documents.length)}`, type: "quote", title: "عرض سعر", client: "بريف معتمد", contact: "", project: settings.services.find((service) => service.active)?.title || "خدمة إبداعية", amount: "0", currency: settings.defaultCurrency, paymentPlan: settings.paymentPlans[0].id, status: "مسودة من بريف", updated: "الآن" });
@@ -1243,12 +1324,12 @@ function ClientsView() {
 
 function FinanceEntryModal({ kind, settings, onClose, onSave }) {
   return <Modal title={kind === "client" ? "فاتورة عميل غير ضريبية" : "مطالبة خدمات متعاون"} onClose={onClose}>
-    <form className="request-form" onSubmit={(event) => { event.preventDefault(); onSave(); onClose(); }}>
-      {kind === "client" ? <div className="field-row"><label>العميل<input required placeholder="اسم العميل أو المنشأة" /></label><label>المشروع<input required placeholder="المشروع المرتبط" /></label></div> : <div className="field-row"><label>المتعاون<input required placeholder="اسم المتعاون" /></label><label>المشروع<input required placeholder="المشروع المرتبط" /></label></div>}
-      {kind === "collaborator" && <label>القطعة أو الخدمة<input required placeholder="مثال: تصميم 3 منشورات" /></label>}
-      <div className="field-row"><label>{kind === "collaborator" ? "سعر القطعة" : "المبلغ"}<input type="number" min="0" required /></label><label>العملة<select defaultValue={settings.defaultCurrency}>{settings.collaboratorCurrencies.map((currency) => <option key={currency}>{currency}</option>)}</select></label></div>
-      {kind === "collaborator" && <div className="field-row"><label>عدد القطع<input type="number" min="1" defaultValue="1" required /></label><label>تاريخ الاستحقاق<input type="date" required /></label></div>}
-      {kind === "client" && <label>تاريخ الاستحقاق<input type="date" required /></label>}
+    <form className="request-form" onSubmit={(event) => { event.preventDefault(); onSave(Object.fromEntries(new FormData(event.currentTarget))); onClose(); }}>
+      {kind === "client" ? <div className="field-row"><label>العميل<input name="client" required placeholder="اسم العميل أو المنشأة" /></label><label>المشروع<input name="project" required placeholder="المشروع المرتبط" /></label></div> : <div className="field-row"><label>المتعاون<input name="collaborator" required placeholder="اسم المتعاون" /></label><label>المشروع<input name="project" required placeholder="المشروع المرتبط" /></label></div>}
+      {kind === "collaborator" && <label>القطعة أو الخدمة<input name="item" required placeholder="مثال: تصميم 3 منشورات" /></label>}
+      <div className="field-row"><label>{kind === "collaborator" ? "سعر القطعة" : "المبلغ"}<input name="amount" type="number" min="0" step="0.01" required /></label><label>العملة<select name="currency" defaultValue={settings.defaultCurrency}>{settings.collaboratorCurrencies.map((currency) => <option key={currency}>{currency}</option>)}</select></label></div>
+      {kind === "collaborator" && <div className="field-row"><label>عدد القطع<input name="quantity" type="number" min="1" defaultValue="1" required /></label><label>تاريخ الاستحقاق<input name="due" type="date" required /></label></div>}
+      {kind === "client" && <label>تاريخ الاستحقاق<input name="due" type="date" required /></label>}
       <div className="form-note"><ShieldCheck size={19} /> {kind === "client" ? "سيظهر المستند بوضوح على أنه غير ضريبي." : "تُسجل المطالبة كمبلغ مستحق على المشروع ولا تختلط بفواتير العملاء."}</div>
       <button className="button primary full" type="submit">حفظ المسودة <ArrowLeft size={18} /></button>
     </form>
@@ -1258,6 +1339,38 @@ function FinanceEntryModal({ kind, settings, onClose, onSave }) {
 function FinanceView({ onToast, settings, scenario, setRole }) {
   const [tab, setTab] = useState("clients");
   const [entryKind, setEntryKind] = useState(null);
+  const [clientInvoices, setClientInvoices] = usePersistentState("u89-invoices", invoices);
+  const [teamClaims, setTeamClaims] = usePersistentState("u89-collaborator-claims", collaboratorBills);
+  const saveEntry = (kind, data) => {
+    if (kind === "client") {
+      const next = {
+        id: `INV-${String(Date.now()).slice(-6)}`,
+        client: data.client,
+        project: data.project,
+        amount: Number(data.amount).toLocaleString("en-US"),
+        currency: data.currency,
+        due: data.due,
+        status: "مسودة",
+        type: "فاتورة غير ضريبية",
+      };
+      setClientInvoices((items) => [next, ...items]);
+      onToast("تم حفظ فاتورة العميل كمسودة");
+      return;
+    }
+    const total = Number(data.amount) * Number(data.quantity || 1);
+    const next = {
+      id: `COL-${String(Date.now()).slice(-6)}`,
+      collaborator: data.collaborator,
+      project: data.project,
+      item: `${data.item}، ${data.quantity || 1} قطعة`,
+      amount: total.toLocaleString("en-US"),
+      currency: data.currency,
+      due: data.due,
+      status: "مسودة",
+    };
+    setTeamClaims((items) => [next, ...items]);
+    onToast("تم حفظ مطالبة المتعاون وربطها بالمشروع");
+  };
   return (
     <div className="dashboard-content page-stack">
       <div className="page-title"><div><h1>الحسابات</h1><p>ما لك، وما عليك، وربحية كل مشروع دون ملف منفصل.</p></div><button className="button primary" onClick={() => setEntryKind(tab === "clients" ? "client" : "collaborator")}><Plus size={18} /> {tab === "clients" ? "فاتورة عميل" : "مطالبة متعاون"}</button></div>
@@ -1269,7 +1382,7 @@ function FinanceView({ onToast, settings, scenario, setRole }) {
       <section className="panel">
         <div className="panel-heading finance-heading"><div><h2>{tab === "clients" ? "فواتير العملاء" : "مستحقات المتعاونين"}</h2><p>{tab === "clients" ? "فواتير عادية غير ضريبية مرتبطة بالدفعات والمشاريع." : "تكلفة كل قطعة بالعملة التي يعمل بها المتعاون."}</p></div><div className="finance-tabs"><button className={tab === "clients" ? "active" : ""} onClick={() => setTab("clients")}>العملاء</button><button className={tab === "collaborators" ? "active" : ""} onClick={() => setTab("collaborators")}>المتعاونون</button></div></div>
         {tab === "clients" ? <div className="invoice-list">
-          {invoices.map((invoice) => (
+          {clientInvoices.map((invoice) => (
             <article key={invoice.id}>
               <span className="invoice-icon"><Invoice size={20} /></span>
               <span><strong>{invoice.id}</strong><small>{invoice.type} · {invoice.project}</small></span>
@@ -1280,10 +1393,10 @@ function FinanceView({ onToast, settings, scenario, setRole }) {
               {invoice.status !== "مدفوعة" && <button className="icon-button" aria-label="إرسال تذكير" onClick={() => onToast(`تم إرسال تذكير فاتورة ${invoice.id}`)}><PaperPlaneTilt size={18} /></button>}
             </article>
           ))}
-        </div> : <div className="collaborator-bills">{collaboratorBills.map((bill) => <article key={bill.id}><span className="invoice-icon"><Coins size={20} /></span><span><strong>{bill.collaborator}</strong><small>{bill.id} · {bill.item}</small></span><span><small>المشروع</small><strong>{bill.project}</strong></span><strong>{bill.amount} {bill.currency}</strong><span className={`payment-status ${bill.status === "مدفوعة" ? "paid" : ""}`}>{bill.status}</span><button className="text-link" onClick={() => onToast(`تم فتح مطالبة ${bill.id}`)}>التفاصيل <ArrowLeft size={15} /></button></article>)}</div>}
+        </div> : <div className="collaborator-bills">{teamClaims.map((bill) => <article key={bill.id}><span className="invoice-icon"><Coins size={20} /></span><span><strong>{bill.collaborator}</strong><small>{bill.id} · {bill.item}</small></span><span><small>المشروع</small><strong>{bill.project}</strong></span><strong>{bill.amount} {bill.currency}</strong><span className={`payment-status ${bill.status === "مدفوعة" ? "paid" : ""}`}>{bill.status}</span><button className="text-link" onClick={() => onToast(`تم فتح مطالبة ${bill.id}`)}>التفاصيل <ArrowLeft size={15} /></button></article>)}</div>}
       </section>
       <div className="currency-note"><Coins size={22} /><div><strong>العملات لا تُجمع مباشرة.</strong><p>يبقى كل رصيد بعملته الأصلية، وتظهر قيمته المرجعية بالريال فقط عند إعداد تقرير الربحية وسعر الصرف المسجل.</p></div></div>
-      {entryKind && <FinanceEntryModal kind={entryKind} settings={settings} onClose={() => setEntryKind(null)} onSave={() => onToast(entryKind === "client" ? "تم حفظ فاتورة العميل كمسودة" : "تم حفظ مطالبة المتعاون")} />}
+      {entryKind && <FinanceEntryModal kind={entryKind} settings={settings} onClose={() => setEntryKind(null)} onSave={(data) => saveEntry(entryKind, data)} />}
     </div>
   );
 }
@@ -1309,6 +1422,60 @@ function TeamView({ scenario, setRole }) {
       </section>
     </div>
   );
+}
+
+function SystemCenterView({ access }) {
+  const [checking, setChecking] = useState(true);
+  const [connection, setConnection] = useState(null);
+  const [serverHealth, setServerHealth] = useState(null);
+  const runChecks = async () => {
+    setChecking(true);
+    try {
+      const result = await checkPlatformConnection();
+      setConnection(result);
+      try {
+        const response = await fetch("/api/health", { headers: { Accept: "application/json" } });
+        const contentType = response.headers.get("content-type") || "";
+        setServerHealth(contentType.includes("application/json") ? await response.json() : null);
+      } catch {
+        setServerHealth(null);
+      }
+    } finally {
+      setChecking(false);
+    }
+  };
+  useEffect(() => {
+    runChecks();
+  }, []);
+
+  const databaseReady = Boolean(connection?.database);
+  const authReady = Boolean(access?.session);
+  const serverChecks = serverHealth?.checks || {};
+  const readiness = [
+    { label: "قاعدة البيانات", description: "السجلات والعملاء والمشاريع محفوظة مركزياً", ready: databaseReady },
+    { label: "تسجيل الدخول", description: "الدور والصلاحية مرتبطان بالحساب", ready: authReady },
+    { label: "تخزين الملفات", description: "حاوية خاصة للمصادر والبروفات والتسليم", ready: databaseReady },
+    { label: "البريد", description: "إرسال الإشعارات من الخادم عبر Resend", ready: Boolean(serverChecks.email) },
+    { label: "واتساب", description: "قالب Meta معتمد لتحديثات المشروع", ready: Boolean(serverChecks.whatsapp) },
+    { label: "طابور الإشعارات", description: "معالجة دورية مع إعادة المحاولة وسجل الأخطاء", ready: Boolean(serverChecks.notifications) },
+  ];
+  const readyCount = readiness.filter((item) => item.ready).length;
+
+  return <div className="dashboard-content page-stack system-center-page">
+    <div className="page-title"><div><h1>الربط والإطلاق</h1><p>مكان واحد يوضح ما يعمل فعلياً وما يحتاج مفتاح خدمة قبل استقبال بيانات حقيقية.</p></div><button className="button primary" onClick={runChecks} disabled={checking}>{checking ? <CircleNotch size={18} className="spin" /> : <ShieldCheck size={18} />} فحص الربط</button></div>
+    <section className={`system-status-hero ${platformConfig.configured ? "connected" : "local"}`}>
+      <div><span>{platformConfig.configured ? "وضع التشغيل المتصل" : "وضع التجربة المحلية"}</span><h2>{platformConfig.configured ? connection?.message || "جارٍ فحص المنصة" : "الموقع يعمل الآن دون نقل بيانات خارج الجهاز"}</h2><p>{platformConfig.configured ? `المساحة: ${access?.workspace?.name || platformConfig.workspaceSlug}` : "أضف مفاتيح Supabase إلى Vercel، ثم طبق ملف قاعدة البيانات للانتقال إلى التشغيل المشترك."}</p></div>
+      <strong>{readyCount}<small>من {readiness.length}</small></strong>
+    </section>
+    <section className="system-readiness-grid">
+      {readiness.map((item) => <article key={item.label} className={item.ready ? "ready" : "pending"}><span>{item.ready ? <Check size={18} weight="bold" /> : <Clock size={18} />}</span><div><strong>{item.label}</strong><p>{item.description}</p></div><small>{item.ready ? "جاهز" : "بانتظار الربط"}</small></article>)}
+    </section>
+    <section className="system-columns">
+      <div className="panel system-security"><div className="panel-heading"><div><h2>الحماية المطبقة</h2><p>القواعد موجودة داخل قاعدة البيانات وليست مجرد إخفاء عناصر الواجهة.</p></div><LockKey size={24} /></div><div className="security-points"><span><ShieldCheck size={19} /><strong>المالك والمدير</strong><small>إدارة التشغيل والمستندات والفريق</small></span><span><ShieldCheck size={19} /><strong>العميل</strong><small>مشاريعه وفواتيره والملفات المنشورة له فقط</small></span><span><ShieldCheck size={19} /><strong>المتعاون</strong><small>المهام المسندة وملفات العمل دون مالية العميل</small></span><span><ShieldCheck size={19} /><strong>المحاسب</strong><small>الفواتير والمطالبات دون صلاحيات الموقع</small></span></div></div>
+      <aside className="panel launch-next"><Target size={27} /><h2>الخطوة التشغيلية التالية</h2>{platformConfig.configured ? <><strong>{authReady ? "اختبار حسابات حقيقية" : "إنشاء أول حساب مالك"}</strong><p>{authReady ? "أنشئ حساب عميل ومتعاون، ثم نفذ مشروع قبول قبل فتح الطلبات العامة." : "سجل المستخدم في Supabase، ثم اربطه بعضوية owner داخل مساحة U89."}</p></> : <><strong>إنشاء مشروع Supabase</strong><p>طبق ملف الترحيل، أضف مفاتيح المتصفح والخادم إلى Vercel، ثم أعد النشر.</p></>}<div className="launch-file-list"><span><FileText size={18} /> supabase/migrations</span><span><FileText size={18} /> .env.example</span><span><FileText size={18} /> vercel.json</span></div></aside>
+    </section>
+    {connection?.error && <div className="system-error"><ShieldCheck size={20} /><div><strong>تفصيل الفحص</strong><p>{connection.error}</p></div></div>}
+  </div>;
 }
 
 function ProjectDrawer({ project, onClose, onToast }) {
@@ -1337,9 +1504,13 @@ function StudioSettingsView({ content, onSave, onToast }) {
   const addPlan = () => setDraft((current) => ({ ...current, paymentPlans: [...current.paymentPlans, { id: `plan-${Date.now()}`, label: "خطة دفعات جديدة", percentages: [40, 30, 30] }] }));
   const removePlan = (index) => setDraft((current) => ({ ...current, paymentPlans: current.paymentPlans.filter((_, planIndex) => planIndex !== index) }));
   const toggleCurrency = (currency) => setDraft((current) => ({ ...current, collaboratorCurrencies: current.collaboratorCurrencies.includes(currency) ? current.collaboratorCurrencies.filter((item) => item !== currency) : [...current.collaboratorCurrencies, currency] }));
-  const save = () => {
-    onSave(draft);
-    onToast("تم حفظ إعدادات العمل والمستندات");
+  const save = async () => {
+    try {
+      await onSave(draft);
+      onToast("تم حفظ إعدادات العمل والمستندات");
+    } catch (error) {
+      onToast(error.message || "تعذر حفظ الإعدادات في قاعدة البيانات");
+    }
   };
 
   return <div className="dashboard-content page-stack studio-settings-page">
@@ -1399,9 +1570,13 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
   const addBriefField = (templateIndex, sectionIndex) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.map((section, itemIndex) => itemIndex === sectionIndex ? { ...section, fields: [...section.fields, { id: `field-${Date.now()}`, label: "سؤال جديد", type: "textarea", required: false }] } : section) } : template) }));
   const updateBriefField = (templateIndex, sectionIndex, fieldIndex, key, value) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.map((section, itemIndex) => itemIndex === sectionIndex ? { ...section, fields: section.fields.map((field, questionIndex) => questionIndex === fieldIndex ? { ...field, [key]: value } : field) } : section) } : template) }));
   const removeBriefField = (templateIndex, sectionIndex, fieldIndex) => setDraft((current) => ({ ...current, briefTemplates: current.briefTemplates.map((template, index) => index === templateIndex ? { ...template, sections: template.sections.map((section, itemIndex) => itemIndex === sectionIndex ? { ...section, fields: section.fields.filter((_, questionIndex) => questionIndex !== fieldIndex) } : section) } : template) }));
-  const publish = () => {
-    onPublish(draft);
-    onToast("تم نشر التغييرات على الموقع التعريفي");
+  const publish = async () => {
+    try {
+      await onPublish(draft);
+      onToast("تم نشر التغييرات على الموقع التعريفي");
+    } catch (error) {
+      onToast(error.message || "تعذر نشر التغييرات");
+    }
   };
 
   return (
@@ -1529,28 +1704,30 @@ function Sidebar({ section, setSection, onSite }) {
   );
 }
 
-function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExit }) {
+function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExit, connected, onLogout, notificationCount, notificationsOpen, onNotifications }) {
   return (
     <header className="app-topbar">
       {canPreview ? <>
-        <div className="mobile-brand"><Logo compact /></div>
-        <div className="role-switch" aria-label="معاينة صلاحيات المستخدمين">
+        <button className="mobile-brand" onClick={onExit} aria-label="العودة للموقع التعريفي"><Logo compact /></button>
+        {!connected && <div className="role-switch" aria-label="معاينة صلاحيات المستخدمين">
           <button className={role === "owner" ? "active" : ""} onClick={() => setRole("owner")}>الإدارة</button>
           <button className={role === "client" ? "active" : ""} onClick={() => setRole("client")}>معاينة العميل</button>
           <button className={role === "collaborator" ? "active" : ""} onClick={() => setRole("collaborator")}>معاينة المتعاون</button>
-        </div>
+        </div>}
       </> : <div className="portal-identity"><Logo compact /><span><strong>{role === "client" ? "بوابة العميل" : "مساحة المتعاون"}</strong><small>دخول خاص وآمن</small></span></div>}
       <div className="topbar-actions">
         {canPreview && role === "owner" && <button className="quick-capture" onClick={onCapture}><Plus size={18} /> التقاط سريع <kbd>⌘ K</kbd></button>}
         <ThemeButton theme={theme} onToggle={onTheme} />
-        <IconButton label="الإشعارات"><Bell size={19} /><span className="notification-count">3</span></IconButton>
-        {!canPreview && <button className="button ghost portal-exit" onClick={onExit}><SignOut size={18} /> تسجيل الخروج</button>}
+        <button type="button" className={`icon-button ${notificationsOpen ? "active" : ""}`} aria-label="الإشعارات" title="الإشعارات" onClick={onNotifications}><Bell size={19} />{notificationCount > 0 && <span className="notification-count">{notificationCount > 9 ? "9+" : notificationCount}</span>}</button>
+        {connected && <button className="button ghost portal-exit" onClick={onLogout}><SignOut size={18} /> خروج</button>}
+        {!canPreview && !connected && <button className="button ghost portal-exit" onClick={onExit}><SignOut size={18} /> تسجيل الخروج</button>}
       </div>
     </header>
   );
 }
 
-function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast, siteContent, onPublishSite, onSite, scenario, onScenarioAdvance, onScenarioPatch, onScenarioReset }) {
+function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast, siteContent, onPublishSite, onSite, scenario, onScenarioAdvance, onScenarioPatch, onScenarioReset, platformAccess, liveData, onRefreshLiveData }) {
+  if (liveData && !["studio-settings", "site-admin", "system"].includes(section)) return <LiveOwnerSection section={section} data={liveData} access={platformAccess} refresh={onRefreshLiveData} onToast={onToast} setSection={setSection} ownerName={siteContent.ownerNameAr} />;
   if (section === "scenario") return <ScenarioCenter scenario={scenario} onReset={onScenarioReset} setSection={setSection} setRole={setRole} />;
   if (section === "projects") return <ProjectsView onProject={onProject} scenario={scenario} onAdvance={onScenarioAdvance} onToast={onToast} />;
   if (section === "requests") return <RequestsView onToast={onToast} setSection={setSection} setRole={setRole} scenario={scenario} onAdvance={onScenarioAdvance} />;
@@ -1561,6 +1738,7 @@ function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast,
   if (section === "team") return <TeamView scenario={scenario} setRole={setRole} />;
   if (section === "studio-settings") return <StudioSettingsView content={siteContent} onSave={onPublishSite} onToast={onToast} />;
   if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} />;
+  if (section === "system") return <SystemCenterView access={platformAccess} />;
   return <OwnerOverview onProject={onProject} onCapture={onCapture} setSection={setSection} />;
 }
 
@@ -1661,13 +1839,23 @@ function MobileNav({ section, setSection }) {
   );
 }
 
-function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublishSite, scenario, onUpdateScenario, onResetScenario }) {
+function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublishSite, scenario, onUpdateScenario, onResetScenario, platformAccess, onLogout }) {
   const [role, setRole] = useState(initialRole);
   const canPreview = initialRole === "owner";
   const [section, setSection] = useState("overview");
   const [captureOpen, setCaptureOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [toast, setToast] = useState("");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [localReadNotifications, setLocalReadNotifications] = useState([]);
+  const liveWorkspace = useWorkspaceData(platformAccess);
+  const localNotifications = [
+    { id: "local-proof", subject: "بروفة تحتاج مراجعتك", message: "البروفة الثانية لمشروع سيد مندي جاهزة للقرار.", created_at: new Date().toISOString() },
+    { id: "local-quote", subject: "عرض سعر بانتظار الاعتماد", message: "راجع نطاق عرض بخاري أختر قبل الإرسال.", created_at: new Date().toISOString() },
+    { id: "local-invoice", subject: "دفعة تحتاج تحققاً", message: "وصل إيصال تحويل ويحتاج مطابقة قبل تسجيل التحصيل.", created_at: new Date().toISOString() },
+  ].map((item) => localReadNotifications.includes(item.id) ? { ...item, read_at: new Date().toISOString() } : item);
+  const personalNotifications = platformAccess ? (liveWorkspace.data?.notifications || []).filter((item) => item.recipient_user_id === platformAccess.user.id) : localNotifications;
+  const unreadNotificationCount = personalNotifications.filter((item) => !item.read_at).length;
   const showToast = (message) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
@@ -1685,6 +1873,15 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
     setSection("scenario");
     showToast("بدأ سيناريو جديد من طلب الخدمة");
   };
+  const readNotification = async (item) => {
+    if (!item.read_at) {
+      if (platformAccess) {
+        try { await workflow.markNotificationRead(item.id); await liveWorkspace.refresh(); } catch (error) { showToast(error.message); }
+      } else {
+        setLocalReadNotifications((current) => [...new Set([...current, item.id])]);
+      }
+    }
+  };
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
   }, [role, section]);
@@ -1692,10 +1889,13 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
     <div className="workspace">
       {canPreview && role === "owner" && <Sidebar section={section} setSection={setSection} onSite={onSite} />}
       <div className={`workspace-main ${role !== "owner" || !canPreview ? "portal-main" : ""}`}>
-        <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} canPreview={canPreview} onExit={onSite} />
-        {canPreview && role === "owner" && <OwnerApp section={section} setSection={setSection} setRole={setRole} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} scenario={scenario} onScenarioAdvance={advanceScenario} onScenarioPatch={patchScenario} onScenarioReset={resetScenario} />}
-        {role === "client" && <ClientPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} onPatch={patchScenario} />}
-        {role === "collaborator" && <CollaboratorPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} />}
+        <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} canPreview={canPreview} onExit={onSite} connected={Boolean(platformAccess?.session)} onLogout={onLogout} notificationCount={unreadNotificationCount} notificationsOpen={notificationsOpen} onNotifications={() => setNotificationsOpen(true)} />
+        {notificationsOpen && <NotificationCenter items={personalNotifications} onClose={() => setNotificationsOpen(false)} onRead={readNotification} />}
+        {platformAccess && liveWorkspace.loading && <div className="workspace-loading"><div /><div /><div /><span>جارٍ تحميل مساحة العمل</span></div>}
+        {platformAccess && liveWorkspace.error && <div className="workspace-error-state"><ShieldCheck size={32} /><h2>تعذر تحميل مساحة العمل</h2><p>{liveWorkspace.error}</p><button className="button primary" onClick={liveWorkspace.refresh}>إعادة المحاولة</button></div>}
+        {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && canPreview && role === "owner" && <OwnerApp section={section} setSection={setSection} setRole={setRole} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} scenario={scenario} onScenarioAdvance={advanceScenario} onScenarioPatch={patchScenario} onScenarioReset={resetScenario} platformAccess={platformAccess} liveData={platformAccess ? liveWorkspace.data : null} onRefreshLiveData={liveWorkspace.refresh} />}
+        {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && role === "client" && (platformAccess ? <LiveClientPortal data={liveWorkspace.data || {}} access={platformAccess} refresh={liveWorkspace.refresh} onToast={showToast} /> : <ClientPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} onPatch={patchScenario} />)}
+        {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && role === "collaborator" && (platformAccess ? <LiveCollaboratorPortal data={liveWorkspace.data || {}} access={platformAccess} refresh={liveWorkspace.refresh} onToast={showToast} /> : <CollaboratorPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} />)}
       </div>
       {canPreview && role === "owner" && <MobileNav section={section} setSection={setSection} />}
       {canPreview && captureOpen && <CaptureModal onClose={() => setCaptureOpen(false)} onAdd={(text) => showToast(`تم حفظ: ${text}`)} />}
@@ -1707,6 +1907,7 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
 
 export default function App() {
   const [view, setView] = useState("site");
+  const [platformAccess, setPlatformAccess] = useState(null);
   const initialTheme = useMemo(() => {
     const saved = window.localStorage.getItem("u89-theme");
     if (saved) return saved;
@@ -1750,6 +1951,7 @@ export default function App() {
   const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
+  const roleForWorkspace = (role) => ["owner", "manager", "accountant"].includes(role) ? "owner" : role;
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
@@ -1764,6 +1966,56 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem("u89-demo-scenario", JSON.stringify(scenario));
   }, [scenario]);
+  useEffect(() => {
+    if (!platformConfig.configured) return undefined;
+    let active = true;
+    const applyAccess = async (session) => {
+      if (!session) {
+        if (active) setPlatformAccess(null);
+        return;
+      }
+      try {
+        const access = await getCurrentAccess();
+        if (!active || !access) return;
+        if (["owner", "manager", "accountant"].includes(access.role)) {
+          const privateSettings = await loadStudioSettings(access.workspaceId);
+          if (privateSettings && active) setSiteContent((current) => ({ ...current, ...privateSettings }));
+        }
+        setPlatformAccess(access);
+        setWorkspaceRole(roleForWorkspace(access.role));
+        setAccessOpen(false);
+        setView("workspace");
+      } catch {
+        if (active) setPlatformAccess(null);
+      }
+    };
+    getCurrentAccess().then((access) => {
+      if (!active || !access) return;
+      setPlatformAccess(access);
+      setWorkspaceRole(roleForWorkspace(access.role));
+      if (["owner", "manager", "accountant"].includes(access.role)) {
+        loadStudioSettings(access.workspaceId).then((privateSettings) => {
+          if (privateSettings && active) setSiteContent((current) => ({ ...current, ...privateSettings }));
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+    const unsubscribe = subscribeToAuth(applyAccess);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+  useEffect(() => {
+    if (!platformConfig.configured) return;
+    loadPublishedSiteContent().then((published) => {
+      if (!published) return;
+      setSiteContent((current) => ({
+        ...current,
+        ...published,
+        sectionVisibility: { ...current.sectionVisibility, ...published.sectionVisibility },
+      }));
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
     document.title = siteContent.seoTitle;
     const description = document.querySelector('meta[name="description"]');
@@ -1781,23 +2033,70 @@ export default function App() {
     setAccessOpen(false);
     setView("workspace");
   };
+  const authenticate = async ({ email, password, method }) => {
+    if (method === "magic") {
+      await sendMagicLink(email);
+      return { magic: true };
+    }
+    await signInWithPassword(email, password);
+    const access = await getCurrentAccess();
+    let effectiveSettings = siteContent;
+    if (["owner", "manager", "accountant"].includes(access.role)) {
+      const privateSettings = await loadStudioSettings(access.workspaceId);
+      if (privateSettings) {
+        effectiveSettings = { ...siteContent, ...privateSettings };
+        setSiteContent(effectiveSettings);
+      }
+    }
+    if (access.role === "owner") {
+      await saveStudioSettings(access.workspaceId, effectiveSettings);
+    }
+    setPlatformAccess(access);
+    enterWorkspace(roleForWorkspace(access.role));
+    return { access };
+  };
+  const logout = async () => {
+    await signOutPlatform();
+    setPlatformAccess(null);
+    setWorkspaceRole("owner");
+    setView("site");
+  };
   const openRequest = () => {
     if (siteContent.acceptingRequests) setRequestOpen(true);
   };
-  const publishSite = (nextContent) => {
+  const openAccess = () => {
+    if (platformAccess) {
+      enterWorkspace(roleForWorkspace(platformAccess.role));
+      return;
+    }
+    setAccessOpen(true);
+  };
+  const publishSite = async (nextContent) => {
     setSiteContent(nextContent);
     window.localStorage.setItem("u89-site-content", JSON.stringify(nextContent));
+    if (platformAccess?.workspaceId) {
+      await Promise.all([
+        publishSiteContent(platformAccess.workspaceId, nextContent),
+        saveStudioSettings(platformAccess.workspaceId, nextContent),
+      ]);
+    }
+  };
+  const submitRequest = async (data) => {
+    const service = siteContent.services.find((item) => item.id === data.serviceId);
+    const payload = { ...data, serviceName: service?.title || "خدمة إبداعية" };
+    if (platformConfig.configured) await submitPublicServiceRequest(payload);
+    setScenario(scenarioFromRequest(payload, siteContent));
   };
 
   return (
     <>
       {view === "site" ? (
-        <LandingPage theme={theme} onTheme={toggleTheme} onAccess={() => setAccessOpen(true)} onRequest={openRequest} content={siteContent} />
+        <LandingPage theme={theme} onTheme={toggleTheme} onAccess={openAccess} onRequest={openRequest} content={siteContent} />
       ) : (
-        <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} />
+        <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
-      {requestOpen && <ServiceRequestModal onClose={() => setRequestOpen(false)} onSubmit={(data) => setScenario(scenarioFromRequest(data, siteContent))} settings={siteContent} />}
-      {accessOpen && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} />}
+      {requestOpen && <ServiceRequestModal onClose={() => setRequestOpen(false)} onSubmit={submitRequest} settings={siteContent} />}
+      {accessOpen && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
     </>
   );
 }
