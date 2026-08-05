@@ -233,6 +233,10 @@ create table if not exists public.work_order_assignees (
   unique (work_order_id, user_id)
 );
 
+alter table public.work_order_assignees add column if not exists agreed_amount numeric(14, 2) check (agreed_amount >= 0);
+alter table public.work_order_assignees add column if not exists currency text not null default 'SAR';
+alter table public.work_order_assignees add column if not exists compensation_status text not null default 'pending' check (compensation_status in ('pending', 'due', 'paid', 'cancelled'));
+
 create table if not exists public.work_order_messages (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -267,6 +271,10 @@ create table if not exists public.collaborator_claims (
   updated_at timestamptz not null default now(),
   unique (workspace_id, reference)
 );
+
+create unique index if not exists collaborator_claims_work_order_user_unique
+  on public.collaborator_claims(work_order_id, collaborator_user_id)
+  where work_order_id is not null and collaborator_user_id is not null;
 
 create table if not exists public.collaborator_rates (
   id uuid primary key default gen_random_uuid(),
@@ -322,6 +330,10 @@ create table if not exists public.retainers (
   check (end_date >= start_date),
   unique (project_id)
 );
+
+alter table public.retainers add column if not exists billing_cycle text not null default 'monthly' check (billing_cycle in ('monthly', 'annual'));
+alter table public.retainers add column if not exists contract_fee numeric(14, 2) not null default 0 check (contract_fee >= 0);
+alter table public.retainers add column if not exists request_access text not null default 'open' check (request_access in ('open', 'limited'));
 
 create table if not exists public.retainer_requests (
   id uuid primary key default gen_random_uuid(),
@@ -1400,6 +1412,9 @@ begin
     case when claim_row.currency = 'SAR' then 1 else p_exchange_rate_to_sar end,
     sar_amount, 'cleared', current_date, p_payment_reference, (select auth.uid())
   );
+  update public.work_order_assignees
+  set compensation_status = 'paid'
+  where work_order_id = claim_row.work_order_id and user_id = claim_row.collaborator_user_id;
   return claim_row;
 end;
 $$;
@@ -1502,6 +1517,78 @@ begin
 end;
 $$;
 
+create or replace function public.save_work_order_assignments(p_work_order_id uuid, p_assignments jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+  requested_assignments integer;
+  inserted_assignments integer;
+begin
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  if work_order_row.status not in ('draft', 'creative_development', 'direction_ready', 'owner_production') then raise exception 'Assignments can only change before delegation'; end if;
+  if p_assignments is null then p_assignments := '[]'::jsonb; end if;
+  if jsonb_typeof(p_assignments) <> 'array' then raise exception 'Assignments must be an array'; end if;
+
+  with requested as (
+    select distinct on ((item->>'userId')::uuid)
+      (item->>'userId')::uuid as user_id,
+      (item->>'amount')::numeric as agreed_amount,
+      upper(coalesce(nullif(trim(item->>'currency'), ''), 'SAR')) as currency
+    from jsonb_array_elements(p_assignments) as items(item)
+  )
+  select count(*) into requested_assignments from requested;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_assignments) as items(item)
+    where coalesce((item->>'amount')::numeric, 0) <= 0
+      or upper(coalesce(nullif(trim(item->>'currency'), ''), 'SAR')) !~ '^[A-Z]{3}$'
+  ) then raise exception 'Every collaborator needs a positive agreed amount and a valid currency'; end if;
+
+  if exists (
+    select 1
+    from (
+      select distinct (item->>'userId')::uuid as user_id
+      from jsonb_array_elements(p_assignments) as items(item)
+    ) requested
+    left join public.memberships m on m.workspace_id = work_order_row.workspace_id
+      and m.user_id = requested.user_id
+      and m.status = 'active'
+      and m.role in ('manager', 'collaborator')
+    where m.id is null
+  ) then raise exception 'One or more assignees are not active collaborators'; end if;
+
+  delete from public.work_order_assignees where work_order_id = work_order_row.id;
+  insert into public.work_order_assignees (
+    workspace_id, work_order_id, user_id, role_label, assigned_by,
+    agreed_amount, currency, compensation_status
+  )
+  select
+    work_order_row.workspace_id, work_order_row.id, requested.user_id, m.display_name, (select auth.uid()),
+    requested.agreed_amount, requested.currency, 'pending'
+  from (
+    select distinct on ((item->>'userId')::uuid)
+      (item->>'userId')::uuid as user_id,
+      (item->>'amount')::numeric as agreed_amount,
+      upper(coalesce(nullif(trim(item->>'currency'), ''), 'SAR')) as currency
+    from jsonb_array_elements(p_assignments) as items(item)
+  ) requested
+  join public.memberships m on m.workspace_id = work_order_row.workspace_id
+    and m.user_id = requested.user_id
+    and m.status = 'active'
+    and m.role in ('manager', 'collaborator');
+  get diagnostics inserted_assignments = row_count;
+  if inserted_assignments <> requested_assignments then raise exception 'Could not save all collaborator assignments'; end if;
+  return inserted_assignments;
+end;
+$$;
+
 create or replace function public.advance_owner_work_order(p_work_order_id uuid, p_status text)
 returns public.work_orders
 language plpgsql
@@ -1554,6 +1641,7 @@ begin
   if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
   if work_order_row.status not in ('draft', 'creative_development', 'direction_ready', 'owner_production') then raise exception 'Work order cannot be dispatched from its current status'; end if;
   if not exists (select 1 from public.work_order_assignees where work_order_id = work_order_row.id) then raise exception 'Assign at least one collaborator before dispatch'; end if;
+  if exists (select 1 from public.work_order_assignees where work_order_id = work_order_row.id and coalesce(agreed_amount, 0) <= 0) then raise exception 'Set the agreed amount for every collaborator before dispatch'; end if;
   update public.work_orders set status = 'dispatched', creative_stage = 'production', execution_mode = 'delegated', delegation_scope = coalesce(nullif(trim(delegation_scope), ''), description), dispatched_at = now()
   where id = work_order_row.id returning * into work_order_row;
   update public.projects set next_action = 'متابعة الجزء الإنتاجي تحت قيادة عبد الوهاب' where id = work_order_row.project_id;
@@ -1727,6 +1815,24 @@ begin
       update public.proofs set status = 'approved', reviewed_at = now() where id = proof_row.id returning * into proof_row;
       update public.work_orders set status = 'completed', owner_approved_by = (select auth.uid()), owner_approved_at = now(), completed_at = now() where id = work_order_row.id;
     end if;
+    insert into public.collaborator_claims (
+      workspace_id, project_id, work_order_id, collaborator_user_id,
+      collaborator_name, item_name, unit_price, quantity, currency,
+      due_date, status, notes
+    )
+    select
+      assignment.workspace_id, work_order_row.project_id, work_order_row.id, assignment.user_id,
+      coalesce(nullif(assignment.role_label, ''), membership.display_name, 'متعاون'),
+      work_order_row.title, assignment.agreed_amount, 1, assignment.currency,
+      current_date, 'due', 'أُنشئت تلقائياً بعد اعتماد عبد الوهاب للمنجز.'
+    from public.work_order_assignees assignment
+    left join public.memberships membership on membership.workspace_id = assignment.workspace_id and membership.user_id = assignment.user_id
+    where assignment.work_order_id = work_order_row.id
+      and coalesce(assignment.agreed_amount, 0) > 0
+    on conflict do nothing;
+    update public.work_order_assignees
+    set compensation_status = 'due'
+    where work_order_id = work_order_row.id and coalesce(agreed_amount, 0) > 0;
     insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
     values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'عبد الوهاب', coalesce(nullif(trim(p_note), ''), case when p_send_to_client then 'اعتمدت البروفة داخلياً وأرسلتها إلى العميل.' else 'اعتمدت البروفة وأغلقت طلب العمل.' end), 'decision', jsonb_build_object('decision', 'approved', 'proof_id', proof_row.id, 'sent_to_client', p_send_to_client));
     perform private.notify_work_order_assignees(work_order_row.id, 'work_order.approved', 'اعتمد عبد الوهاب البروفة', case when p_send_to_client then 'اعتمدت البروفة داخلياً وانتقلت إلى مراجعة العميل.' else 'اكتمل طلب العمل واعتمدت البروفة.' end);
@@ -2425,6 +2531,7 @@ revoke all on function public.approve_collaborator_claim(uuid) from public, anon
 revoke all on function public.record_claim_payment(uuid, text, numeric) from public, anon;
 revoke all on function public.create_work_order(uuid, text, text, text, text, text, text, text, text, text, date, boolean, uuid[], uuid) from public, anon;
 revoke all on function public.save_work_order_assignees(uuid, uuid[]) from public, anon;
+revoke all on function public.save_work_order_assignments(uuid, jsonb) from public, anon;
 revoke all on function public.advance_owner_work_order(uuid, text) from public, anon;
 revoke all on function public.dispatch_work_order(uuid) from public, anon;
 revoke all on function public.start_work_order(uuid) from public, anon;
@@ -2455,6 +2562,7 @@ grant execute on function public.approve_collaborator_claim(uuid) to authenticat
 grant execute on function public.record_claim_payment(uuid, text, numeric) to authenticated;
 grant execute on function public.create_work_order(uuid, text, text, text, text, text, text, text, text, text, date, boolean, uuid[], uuid) to authenticated;
 grant execute on function public.save_work_order_assignees(uuid, uuid[]) to authenticated;
+grant execute on function public.save_work_order_assignments(uuid, jsonb) to authenticated;
 grant execute on function public.advance_owner_work_order(uuid, text) to authenticated;
 grant execute on function public.dispatch_work_order(uuid) to authenticated;
 grant execute on function public.start_work_order(uuid) to authenticated;

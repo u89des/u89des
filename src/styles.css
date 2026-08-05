@@ -10140,6 +10140,246 @@ kbd {
   }
 }
 
+.service-item.item-7,
+.service-item.item-9 {
+  background: var(--surface-2);
+}
+
+.service-item.item-8 {
+  color: var(--on-dark);
+  background: var(--dark-panel-2);
+}
+
+.service-item.item-8 p {
+  color: #bbc1b7;
+}
+
+.request-service-scope {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.request-service-scope > header,
+.assignment-compensation > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.request-service-scope > header small,
+.assignment-compensation > header small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.request-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.request-choice-grid label {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.request-choice-grid label.selected {
+  border-color: color-mix(in srgb, var(--accent-strong) 55%, var(--line));
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.request-choice-grid input,
+.request-billing-cycle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.request-choice-grid label > span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: transparent;
+}
+
+.request-choice-grid label.selected > span {
+  border-color: var(--accent-strong);
+  color: var(--on-dark);
+  background: var(--accent-strong);
+}
+
+.request-conditional-scope,
+.request-billing-cycle {
+  display: grid;
+  gap: 0.7rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.request-choice-grid.applications {
+  max-height: 245px;
+  overflow-y: auto;
+  padding-inline-end: 0.25rem;
+}
+
+.request-billing-cycle > div,
+.retainer-cycle-choice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.request-billing-cycle label,
+.retainer-cycle-choice button {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.request-billing-cycle label.selected,
+.retainer-cycle-choice button.active {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.request-billing-cycle p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+
+.request-scope-summary {
+  padding: 0.8rem 0.9rem;
+  border-inline-start: 3px solid var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.request-scope-summary small,
+.request-scope-summary span {
+  color: var(--muted);
+}
+
+.request-scope-summary p {
+  margin: 0.25rem 0;
+  font-weight: 700;
+}
+
+.service-editor-expanded > div:nth-child(2) {
+  min-width: 0;
+}
+
+.assignment-compensation {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0;
+  padding: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--accent-strong) 35%, var(--line));
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.assignment-compensation > header > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.assignment-compensation-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(110px, 0.55fr) minmax(88px, 0.35fr);
+  align-items: end;
+  gap: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.assignment-compensation-row > span {
+  display: grid;
+  gap: 0.15rem;
+  align-self: center;
+}
+
+.assignment-compensation-row > span small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.assignment-compensation-row label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.assignment-compensation-row input,
+.assignment-compensation-row select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.retainer-open-note {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border-radius: 11px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.retainer-open-note span {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.retainer-open-note small {
+  color: var(--ink-soft);
+}
+
+@media (max-width: 700px) {
+  .request-choice-grid,
+  .request-billing-cycle > div,
+  .retainer-cycle-choice,
+  .assignment-compensation-row {
+    grid-template-columns: 1fr;
+  }
+
+  .assignment-compensation-row {
+    align-items: stretch;
+  }
+}
+
 @media print {
   @page {
     size: A4;

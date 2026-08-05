@@ -58,7 +58,7 @@ export async function publishSiteContent(workspaceId, content) {
   assertConnected();
   const publicKeys = [
     "heroTitle", "heroBody", "heroCta", "servicesTitle", "workTitle", "finalTitle",
-    "email", "phone", "domain", "seoTitle", "seoDescription", "indexable",
+    "email", "phone", "domain", "seoTitle", "seoDescription", "indexable", "catalogVersion",
     "acceptingRequests", "maintenance", "sectionVisibility", "serviceVisibility",
     "workVisibility", "services", "requestQuestions",
   ];
@@ -363,6 +363,10 @@ export const workflow = Object.freeze({
   saveWorkOrderAssignees: (workOrderId, userIds) => callWorkflow("save_work_order_assignees", {
     p_work_order_id: workOrderId,
     p_user_ids: userIds,
+  }),
+  saveWorkOrderAssignments: (workOrderId, assignments) => callWorkflow("save_work_order_assignments", {
+    p_work_order_id: workOrderId,
+    p_assignments: assignments,
   }),
   dispatchWorkOrder: (workOrderId) => callWorkflow("dispatch_work_order", { p_work_order_id: workOrderId }),
   startWorkOrder: (workOrderId) => callWorkflow("start_work_order", { p_work_order_id: workOrderId }),
