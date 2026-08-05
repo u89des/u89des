@@ -9354,6 +9354,126 @@ kbd {
   background: color-mix(in srgb, var(--accent) 10%, var(--surface));
 }
 
+.creative-execution-planner {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 1.25rem 0.4rem 1.25rem 1.25rem;
+  background: color-mix(in srgb, var(--surface) 96%, var(--accent));
+}
+
+.creative-execution-planner > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.creative-execution-planner > header small {
+  color: var(--accent-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.creative-execution-planner h3 {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+  text-wrap: balance;
+}
+
+.creative-execution-planner > header > span {
+  padding: 0.38rem 0.55rem;
+  border-radius: 0.35rem;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.execution-mode-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.execution-mode-options button {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 5.8rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem 0.25rem 0.8rem 0.8rem;
+  color: var(--text);
+  background: var(--surface);
+  text-align: start;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.execution-mode-options button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  transform: translateY(-2px);
+}
+
+.execution-mode-options button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.execution-mode-options button:disabled:hover {
+  border-color: var(--line);
+  transform: none;
+}
+
+.execution-mode-options button.active:disabled {
+  border-color: var(--accent);
+}
+
+.execution-mode-options button:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.execution-mode-options button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 13%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.execution-mode-options strong {
+  align-self: end;
+  font-size: 0.86rem;
+}
+
+.execution-mode-options small {
+  color: var(--text-muted);
+  font-size: 0.69rem;
+  line-height: 1.55;
+}
+
+.delegation-locked-note,
+.delegation-ready-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.7rem;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  font-size: 0.76rem;
+  line-height: 1.65;
+}
+
+.delegation-locked-note svg,
+.delegation-ready-note svg {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+}
+
+.delegation-ready-note {
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+}
+
 .creative-direction-canvas {
   padding: clamp(1.25rem, 2vw, 2rem);
   border: 1px solid var(--line);
@@ -9451,7 +9571,7 @@ kbd {
 
 .creative-settings-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(8rem, 0.65fr));
+  grid-template-columns: repeat(2, minmax(8rem, 1fr));
   gap: 0.8rem;
   padding: 1rem;
   border-radius: 1rem;
@@ -9596,7 +9716,8 @@ kbd {
 
 @media (max-width: 620px) {
   .creative-lead-banner > div:last-child,
-  .creative-canvas-grid {
+  .creative-canvas-grid,
+  .execution-mode-options {
     grid-template-columns: 1fr;
   }
 
