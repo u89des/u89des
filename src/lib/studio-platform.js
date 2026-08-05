@@ -408,6 +408,11 @@ export const workflow = Object.freeze({
     p_decision: decision,
     p_note: note,
   }),
+  routeClientRevision: (workOrderId, route, note = null) => callWorkflow("route_client_revision", {
+    p_work_order_id: workOrderId,
+    p_route: route,
+    p_note: note,
+  }),
   releaseDelivery: (projectId) => callWorkflow("release_project_delivery", { p_project_id: projectId }),
   confirmDelivery: (projectId) => callWorkflow("confirm_project_delivery", { p_project_id: projectId }),
   submitProjectFeedback: (projectId, rating, note = null) => callWorkflow("submit_project_feedback", { p_project_id: projectId, p_rating: rating, p_note: note }),

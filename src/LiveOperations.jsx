@@ -74,6 +74,7 @@ const statusLabels = {
   todo: "لم تبدأ",
   review: "للمراجعة",
   changes_requested: "تعديل مطلوب",
+  client_revision: "طلب تعديل من العميل",
   done: "مكتملة",
 };
 
@@ -280,6 +281,7 @@ function LegacyWorkOrderRoom({ order, data, access, refresh, onToast }) {
   const [message, setMessage] = useState("");
   const [messageFile, setMessageFile] = useState(null);
   const [reviewNote, setReviewNote] = useState("");
+  const [revisionRouteNote, setRevisionRouteNote] = useState("");
   const [ownerProofFile, setOwnerProofFile] = useState(null);
   const [ownerProofNote, setOwnerProofNote] = useState("");
   const [busy, setBusy] = useState("");
@@ -484,6 +486,7 @@ function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }
   const childOrders = (data.work_orders || []).filter((item) => item.parent_work_order_id === order.id);
   const parentOrder = order.parent_work_order_id ? (data.work_orders || []).find((item) => item.id === order.parent_work_order_id) : null;
   const [mode, setMode] = useState(childOrders.length ? "split" : order.execution_mode || "owner_led");
+  useEffect(() => { setMode(childOrders.length ? "split" : order.execution_mode || "owner_led"); }, [childOrders.length, order.execution_mode]);
   const [priority, setPriority] = useState(order.priority || "normal");
   const [dueDate, setDueDate] = useState(order.due_date || "");
   const [requiresClientApproval, setRequiresClientApproval] = useState(Boolean(order.requires_client_approval));
@@ -505,6 +508,8 @@ function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }
   const proofFiles = proof ? files.filter((item) => item.proof_id === proof.id) : [];
   const editable = ["draft", "creative_development", "direction_ready", "owner_production"].includes(order.status) && !order.dispatched_at;
   const ownerRevision = order.status === "changes_requested" && !order.dispatched_at;
+  const clientRevision = order.status === "client_revision";
+  const clientRevisionNote = proof?.client_note || "طلب العميل تعديلاً على البروفة دون ملاحظة إضافية.";
   const patch = { description, owner_recommendations: recommendations || null, creative_notes: privateNotes || null, priority, due_date: dueDate || null, requires_client_approval: requiresClientApproval };
   const assignmentPayload = assignees.map((userId) => ({ userId, amount: Number(assignmentTerms[userId]?.amount || 0), currency: assignmentTerms[userId]?.currency || collaboratorCurrencies[0] || "SAR" }));
   const assignmentsComplete = assignmentPayload.length > 0 && assignmentPayload.every((item) => item.amount > 0 && item.currency);
@@ -601,6 +606,15 @@ function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }
       await refresh();
     } catch (error) { onToast(error.message); } finally { setBusy(""); }
   };
+  const routeClientRevision = async (route) => {
+    setBusy(`revision-${route}`);
+    try {
+      await workflow.routeClientRevision(order.id, route, revisionRouteNote || null);
+      setRevisionRouteNote("");
+      onToast(route === "owner" ? "انتقل التعديل إلى قائمة تنفيذك" : "وصلت ملاحظتك إلى المتعاون وفتح له رفع بروفة جديدة");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
 
   return <section className="panel work-order-room simple-work-room"><header className="work-order-room-head"><div>{parentOrder && <button className="text-link" onClick={() => onSelect(parentOrder.id)}>العودة إلى {parentOrder.title}</button>}<span>{order.reference}، {project?.name || "مشروع"}</span><h2>{order.title}</h2></div><LiveStatus value={order.status} /></header>
     {editable && <section className="simple-execution-decision"><header><small>قرار واحد فقط</small><h3>كيف تريد تنفيذ هذا العمل؟</h3><p>لا توجد مرحلة يجب إنهاؤها قبل التفويض.</p></header><div className="execution-mode-options"><button className={mode === "owner_led" ? "active" : ""} onClick={() => chooseMode("owner_led")}><strong>أنفذه بنفسي</strong><small>يبقى في قائمتي</small></button><button className={mode === "delegated" ? "active" : ""} onClick={() => chooseMode("delegated")}><strong>أرسله كاملاً</strong><small>لمتعاون أختاره</small></button><button className={mode === "split" ? "active" : ""} onClick={() => chooseMode("split")}><strong>أقسمه إلى أجزاء</strong><small>كل جزء لمتعاون</small></button></div></section>}
@@ -609,6 +623,7 @@ function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }
     {editable && <div className="creative-settings-row"><label>الأولوية<select value={priority} onChange={(event) => setPriority(event.target.value)}><option value="low">منخفضة</option><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label><label>الموعد<input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label><label className="work-order-client-toggle"><input type="checkbox" checked={requiresClientApproval} onChange={(event) => setRequiresClientApproval(event.target.checked)} /><span><strong>يحتاج اعتماد العميل</strong></span></label></div>}
     {editable && mode === "owner_led" && <div className="simple-owner-action"><button className="button primary" disabled={Boolean(busy)} onClick={startOwner}><UserFocus size={18} /> وضعه في قائمة تنفيذي</button></div>}
     {ownerRevision && <div className="simple-owner-action"><button className="button primary" disabled={Boolean(busy)} onClick={startOwner}><UserFocus size={18} /> العودة إلى تنفيذي</button></div>}
+    {clientRevision && <section className="work-order-proof-gate client-revision-gate"><div><span>وصلت ملاحظة من العميل</span><h3>القرار عندك قبل بدء التعديل</h3><p>{clientRevisionNote}</p></div><label>ملاحظتك للمتعاون، اختيارية<textarea rows="3" value={revisionRouteNote} onChange={(event) => setRevisionRouteNote(event.target.value)} placeholder="أضف تفسيرك أو توجيهك، أو أرسل ملاحظة العميل كما هي" /></label><div className="live-actions"><button className="button ghost" disabled={Boolean(busy)} onClick={() => routeClientRevision("owner")}><UserFocus size={17} /> سأتولى التعديل بنفسي</button>{existingAssignments.length > 0 && <button className="button primary" disabled={Boolean(busy)} onClick={() => routeClientRevision("collaborator")}><PaperPlaneTilt size={17} /> إرسال التعديل للمتعاون</button>}</div><small className="revision-control-note">لن يصل طلب التعديل إلى المتعاون قبل اختيارك الصريح.</small></section>}
     {editable && mode === "delegated" && <section className="simple-delegation-box"><div><small>تفويض مباشر</small><h3>اختر المتعاون وحدد أجره ثم أرسل</h3><p>الفكرة ليست إلزامية. المطلوب المكتوب أعلاه يكفي.</p></div><AssigneeChecks people={people} selected={assignees} onChange={setAssignees} /><AssignmentCompensation people={people} selected={assignees} terms={assignmentTerms} onChange={updateAssignmentTerm} currencies={collaboratorCurrencies} /><button className="button primary" disabled={Boolean(busy) || !assignmentsComplete || !description.trim()} onClick={dispatch}><PaperPlaneTilt size={18} /> تثبيت الأجر وإرسال الطلب</button></section>}
     {editable && mode === "split" && <section className="simple-split-box"><header><div><small>تجزئة العمل</small><h3>أضف جزءاً واربطه بمن سينفذه</h3><p>كل جزء له أجر مستقل، ويصل للمتعاون فور الإضافة.</p></div><span>{childOrders.length} أجزاء</span></header><form onSubmit={addPart}><div className="field-row"><label>اسم الجزء<input name="title" required placeholder="مثال: تجهيز المقاسات" /></label><label>المتعاون<select name="assignee" required defaultValue=""><option value="" disabled>اختر المتعاون</option>{people.map((person) => <option value={person.user_id} key={person.user_id}>{person.display_name}</option>)}</select></label></div><label>المطلوب في هذا الجزء<textarea name="description" rows="3" required /></label><label>توجيه لهذا الجزء، اختياري<textarea name="idea" rows="2" /></label><div className="field-row"><label>أجر هذا الجزء<input name="collaboratorAmount" type="number" min="0.01" step="0.01" required /></label><label>العملة<select name="collaboratorCurrency" defaultValue={collaboratorCurrencies[0] || "SAR"}>{collaboratorCurrencies.map((currency) => <option key={currency}>{currency}</option>)}</select></label></div><div className="field-row"><label>الأولوية<select name="priority" defaultValue="normal"><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label><label>الموعد<input name="due" type="date" /></label></div><button className="button primary" type="submit" disabled={busy === "part"}><Plus size={18} /> تثبيت الأجر وإرسال الجزء</button></form></section>}
     {childOrders.length > 0 && <section className="linked-work-parts"><header><div><h3>أجزاء هذا العمل</h3><p>كل جزء له متعاون وغرفة مستقلة.</p></div></header>{childOrders.map((part) => <button key={part.id} onClick={() => onSelect(part.id)}><span><small>{part.reference}</small><strong>{part.title}</strong></span><LiveStatus value={part.status} /><ArrowLeft size={17} /></button>)}</section>}
@@ -626,8 +641,8 @@ function LiveWorkOrders({ data, access, refresh, onToast }) {
   const projects = useMemo(() => Object.fromEntries((data.projects || []).map((item) => [item.id, item])), [data.projects]);
   useEffect(() => { if (!orders.some((item) => item.id === selectedId) && orders[0]) setSelectedId(orders[0].id); }, [orders, selectedId]);
   const selected = orders.find((item) => item.id === selectedId);
-  const waiting = orders.filter((item) => item.status === "internal_review").length;
-  const ownerActive = rootOrders.filter((item) => !item.dispatched_at && !["completed", "cancelled"].includes(item.status)).length;
+  const waiting = orders.filter((item) => ["internal_review", "client_revision"].includes(item.status)).length;
+  const ownerActive = rootOrders.filter((item) => (!item.dispatched_at || item.status === "client_revision" || item.execution_mode === "owner_led") && !["completed", "cancelled", "client_review"].includes(item.status)).length;
   const delegated = orders.filter((item) => item.dispatched_at && !["completed", "cancelled"].includes(item.status)).length;
   return <div className="dashboard-content page-stack work-orders-page simple-execution-page"><div className="page-title"><div><span className="creative-director-kicker">قرار التنفيذ بيدك</span><h1>التنفيذ والتفويض</h1><p>لا توجد مراحل إلزامية. نفذ العمل، أرسله كاملاً، أو قسّمه إلى أجزاء.</p></div><button className="button primary" onClick={() => setCreating((value) => !value)}><Plus size={18} /> إضافة عمل</button></div><section className="simple-flow-banner"><span><b>1</b><small>وصل الطلب</small></span><span><b>2</b><small>اختر طريقة التنفيذ</small></span><span><b>3</b><small>أرسل فقط إذا قررت</small></span></section><section className="work-order-kpis"><span><small>لدى عبد الوهاب</small><strong>{ownerActive}</strong></span><span><small>مفوضة</small><strong>{delegated}</strong></span><span><small>أجزاء مرتبطة</small><strong>{orders.length - rootOrders.length}</strong></span><span className={waiting ? "attention" : ""}><small>تحتاج مراجعته</small><strong>{waiting}</strong></span></section>{creating && <CreateWorkOrderForm data={data} refresh={refresh} onToast={onToast} onCreated={(id) => { setSelectedId(id); setCreating(false); }} />}{orders.length ? <section className="work-order-command simple-work-command"><aside className="work-order-index"><header><strong>الأعمال</strong><small>{rootOrders.length} طلبات رئيسية</small></header>{rootOrders.map((item) => { const assigned = (data.work_order_assignees || []).filter((row) => row.work_order_id === item.id); const partCount = orders.filter((part) => part.parent_work_order_id === item.id).length; return <button className={selectedId === item.id || selected?.parent_work_order_id === item.id ? "active" : ""} key={item.id} onClick={() => setSelectedId(item.id)}><span><small>{item.reference}</small><strong>{item.title}</strong><em>{projects[item.project_id]?.name || "مشروع"}{partCount ? ` · ${partCount} أجزاء` : ""}</em></span><LiveStatus value={item.status} /><div>{!item.dispatched_at && <i className="owner-avatar">ع</i>}{assigned.slice(0, 3).map((row) => <i key={row.id}>{(row.role_label || "م").slice(0, 1)}</i>)}</div></button>; })}</aside>{selected && <SimpleWorkOrderRoom key={selected.id} order={selected} data={data} access={access} refresh={refresh} onToast={onToast} onSelect={setSelectedId} />}</section> : !creating && <EmptyState icon={Target} title="أضف أول عمل" body="يكفي عنوان ومطلوب واضح، ثم اختر طريقة التنفيذ." />}</div>;
 }
@@ -1041,7 +1056,7 @@ function LiveCollaboratorWorkRoom({ data, access, refresh, onToast }) {
 export function LiveCollaboratorPortal({ data, access, refresh, onToast }) {
   const [tab, setTab] = useState("active");
   const tasks = data.work_orders || [];
-  const activeTasks = tasks.filter((item) => !["completed", "cancelled"].includes(item.status));
+  const activeTasks = tasks.filter((item) => !["completed", "cancelled", "client_revision", "owner_production"].includes(item.status));
   const completedTasks = tasks.filter((item) => item.status === "completed");
   const claims = (data.collaborator_claims || []).filter((item) => item.collaborator_user_id === access.user.id);
   const unpaidClaims = claims.filter((item) => ["submitted", "approved", "due"].includes(item.status));

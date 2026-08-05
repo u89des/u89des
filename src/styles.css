@@ -8602,6 +8602,25 @@ kbd {
   line-height: 1.7;
 }
 
+.client-revision-gate {
+  border-color: color-mix(in srgb, var(--warning) 46%, var(--line));
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+}
+
+.client-revision-gate > div:first-child p {
+  padding: 12px 14px;
+  border-inline-start: 3px solid var(--warning);
+  border-radius: 8px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface));
+}
+
+.revision-control-note {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
 .secondary-action {
   color: var(--on-dark) !important;
   background: var(--dark-panel) !important;

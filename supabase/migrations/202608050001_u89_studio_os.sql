@@ -207,7 +207,7 @@ create table if not exists public.work_orders (
   priority text not null default 'normal' check (priority in ('low', 'normal', 'high', 'urgent')),
   due_date date,
   requires_client_approval boolean not null default false,
-  status text not null default 'draft' check (status in ('draft', 'creative_development', 'direction_ready', 'owner_production', 'dispatched', 'in_progress', 'internal_review', 'changes_requested', 'owner_approved', 'client_review', 'completed', 'cancelled')),
+  status text not null default 'draft' check (status in ('draft', 'creative_development', 'direction_ready', 'owner_production', 'dispatched', 'in_progress', 'internal_review', 'changes_requested', 'client_revision', 'owner_approved', 'client_review', 'completed', 'cancelled')),
   created_by uuid references auth.users(id) on delete set null,
   dispatched_at timestamptz,
   owner_approved_by uuid references auth.users(id) on delete set null,
@@ -220,6 +220,10 @@ create table if not exists public.work_orders (
 
 alter table public.work_orders add column if not exists parent_work_order_id uuid references public.work_orders(id) on delete cascade;
 alter table public.work_orders add column if not exists work_kind text not null default 'whole' check (work_kind in ('whole', 'part'));
+alter table public.work_orders drop constraint if exists work_orders_status_check;
+alter table public.work_orders add constraint work_orders_status_check check (
+  status in ('draft', 'creative_development', 'direction_ready', 'owner_production', 'dispatched', 'in_progress', 'internal_review', 'changes_requested', 'client_revision', 'owner_approved', 'client_review', 'completed', 'cancelled')
+);
 
 create table if not exists public.work_order_assignees (
   id uuid primary key default gen_random_uuid(),
@@ -644,7 +648,7 @@ as $$
     where a.work_order_id = target_work_order_id
       and a.user_id = (select auth.uid())
       and (not require_dispatched or w.dispatched_at is not null)
-      and w.status <> 'cancelled'
+      and w.status not in ('cancelled', 'client_revision')
   );
 $$;
 
@@ -1970,18 +1974,21 @@ begin
   if proof_row.id is null then raise exception 'Proof not found'; end if;
   if not private.is_project_client(proof_row.project_id) then raise exception 'Forbidden'; end if;
   if proof_row.status <> 'sent' then raise exception 'Proof is not open for review'; end if;
+  if p_decision = 'changes_requested' and coalesce(trim(p_note), '') = '' then raise exception 'Revision note is required'; end if;
   update public.proofs set status = p_decision, client_note = p_note, reviewed_at = now()
   where id = p_proof_id returning * into proof_row;
   if proof_row.task_id is not null then
-    update public.project_tasks set status = case when p_decision = 'approved' then 'done' else 'changes_requested' end where id = proof_row.task_id;
+    update public.project_tasks set status = case when p_decision = 'approved' then 'done' else 'review' end where id = proof_row.task_id;
   end if;
   if proof_row.work_order_id is not null then
     update public.work_orders
-    set status = case when p_decision = 'approved' then 'completed' else 'changes_requested' end,
+    set status = case when p_decision = 'approved' then 'completed' else 'client_revision' end,
         completed_at = case when p_decision = 'approved' then now() else null end
     where id = proof_row.work_order_id;
-    insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
-    values (proof_row.workspace_id, proof_row.work_order_id, (select auth.uid()), 'العميل', coalesce(nullif(trim(p_note), ''), case when p_decision = 'approved' then 'اعتمد العميل البروفة.' else 'طلب العميل تعديلاً على البروفة.' end), 'decision', jsonb_build_object('decision', p_decision, 'proof_id', proof_row.id));
+    if p_decision = 'approved' then
+      insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
+      values (proof_row.workspace_id, proof_row.work_order_id, (select auth.uid()), 'العميل', 'اعتمد العميل البروفة.', 'decision', jsonb_build_object('decision', p_decision, 'proof_id', proof_row.id));
+    end if;
   end if;
   if p_decision = 'approved' then
     update public.invoices
@@ -1993,7 +2000,7 @@ begin
       limit 1
     );
   end if;
-  update public.projects set next_action = case when p_decision = 'approved' then 'تحصيل الدفعة التالية أو تجهيز التسليم' else 'تنفيذ ملاحظات العميل' end where id = proof_row.project_id;
+  update public.projects set next_action = case when p_decision = 'approved' then 'تحصيل الدفعة التالية أو تجهيز التسليم' else 'عبد الوهاب يراجع طلب التعديل ويقرر من ينفذه' end where id = proof_row.project_id;
   insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
   values (proof_row.workspace_id, proof_row.project_id, (select auth.uid()), 'العميل', 'proof.reviewed', case when p_decision = 'approved' then 'اعتمد العميل البروفة' else 'طلب العميل تعديلاً على البروفة' end, jsonb_build_object('proof_id', proof_row.id, 'decision', p_decision));
   perform private.notify_workspace_owner(
@@ -2003,6 +2010,63 @@ begin
     '/workspace/projects/' || proof_row.project_id::text || '/proof'
   );
   return proof_row;
+end;
+$$;
+
+create or replace function public.route_client_revision(p_work_order_id uuid, p_route text, p_note text default null)
+returns public.work_orders
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+  proof_row public.proofs%rowtype;
+  route_note text;
+begin
+  if p_route not in ('owner', 'collaborator') then raise exception 'Invalid revision route'; end if;
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  if work_order_row.status <> 'client_revision' then raise exception 'This work order is not waiting for a client revision decision'; end if;
+
+  select * into proof_row
+  from public.proofs
+  where work_order_id = work_order_row.id and status = 'changes_requested'
+  order by reviewed_at desc nulls last, created_at desc
+  limit 1;
+  if proof_row.id is null then raise exception 'Client revision proof not found'; end if;
+
+  route_note := coalesce(nullif(trim(p_note), ''), nullif(trim(proof_row.client_note), ''), 'طلب العميل تعديلاً على البروفة.');
+  if p_route = 'collaborator' then
+    if not exists (select 1 from public.work_order_assignees where work_order_id = work_order_row.id) then
+      raise exception 'No collaborator is assigned to this work order';
+    end if;
+    update public.work_orders
+    set status = 'changes_requested', execution_mode = 'delegated'
+    where id = work_order_row.id
+    returning * into work_order_row;
+    insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
+    values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'عبد الوهاب', route_note, 'decision', jsonb_build_object('decision', 'client_revision_to_collaborator', 'proof_id', proof_row.id));
+    perform private.notify_work_order_assignees(work_order_row.id, 'work_order.client_revision', 'تعديل جديد من عبد الوهاب', route_note);
+  else
+    update public.work_orders
+    set status = 'owner_production', execution_mode = 'owner_led', creative_stage = 'production'
+    where id = work_order_row.id
+    returning * into work_order_row;
+  end if;
+
+  update public.projects
+  set next_action = case when p_route = 'owner' then 'عبد الوهاب ينفذ تعديل العميل' else 'المتعاون ينفذ التعديل تحت مراجعة عبد الوهاب' end
+  where id = work_order_row.project_id;
+  insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
+  values (
+    work_order_row.workspace_id, work_order_row.project_id, (select auth.uid()), 'عبد الوهاب',
+    'proof.revision_routed',
+    case when p_route = 'owner' then 'اختار عبد الوهاب تنفيذ تعديل العميل بنفسه' else 'وجّه عبد الوهاب تعديل العميل إلى المتعاون' end,
+    jsonb_build_object('work_order_id', work_order_row.id, 'proof_id', proof_row.id, 'route', p_route)
+  );
+  return work_order_row;
 end;
 $$;
 
@@ -2543,6 +2607,7 @@ revoke all on function public.update_assigned_task_status(uuid, text) from publi
 revoke all on function public.submit_proof(uuid, uuid, text, text, boolean) from public, anon;
 revoke all on function public.send_proof_to_client(uuid) from public, anon;
 revoke all on function public.review_proof(uuid, text, text) from public, anon;
+revoke all on function public.route_client_revision(uuid, text, text) from public, anon;
 revoke all on function public.release_project_delivery(uuid) from public, anon;
 revoke all on function public.confirm_project_delivery(uuid) from public, anon;
 revoke all on function public.submit_project_feedback(uuid, integer, text) from public, anon;
@@ -2574,6 +2639,7 @@ grant execute on function public.update_assigned_task_status(uuid, text) to auth
 grant execute on function public.submit_proof(uuid, uuid, text, text, boolean) to authenticated;
 grant execute on function public.send_proof_to_client(uuid) to authenticated;
 grant execute on function public.review_proof(uuid, text, text) to authenticated;
+grant execute on function public.route_client_revision(uuid, text, text) to authenticated;
 grant execute on function public.release_project_delivery(uuid) to authenticated;
 grant execute on function public.confirm_project_delivery(uuid) to authenticated;
 grant execute on function public.submit_project_feedback(uuid, integer, text) to authenticated;
