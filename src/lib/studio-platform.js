@@ -250,6 +250,9 @@ export async function loadWorkspaceSnapshot(workspaceId) {
     "retainers",
     "retainer_requests",
     "project_tasks",
+    "work_orders",
+    "work_order_assignees",
+    "work_order_messages",
     "proofs",
     "project_files",
     "notifications",
@@ -330,6 +333,53 @@ export const workflow = Object.freeze({
     p_payment_reference: reference,
     p_exchange_rate_to_sar: exchangeRate,
   }),
+  createWorkOrder: ({ projectId, title, description, recommendations = null, creativeCore = null, creativeRationale = null, creativeNotes = null, delegationScope = null, executionMode = "owner_led", priority = "normal", dueDate = null, requiresClientApproval = false, assigneeUserIds = [], sourceRetainerRequestId = null }) => callWorkflow("create_work_order", {
+    p_project_id: projectId,
+    p_title: title,
+    p_description: description,
+    p_owner_recommendations: recommendations,
+    p_creative_core: creativeCore,
+    p_creative_rationale: creativeRationale,
+    p_creative_notes: creativeNotes,
+    p_delegation_scope: delegationScope,
+    p_execution_mode: executionMode,
+    p_priority: priority,
+    p_due_date: dueDate,
+    p_requires_client_approval: requiresClientApproval,
+    p_assignee_user_ids: assigneeUserIds,
+    p_source_retainer_request_id: sourceRetainerRequestId,
+  }),
+  advanceOwnerWorkOrder: (workOrderId, status) => callWorkflow("advance_owner_work_order", {
+    p_work_order_id: workOrderId,
+    p_status: status,
+  }),
+  saveWorkOrderAssignees: (workOrderId, userIds) => callWorkflow("save_work_order_assignees", {
+    p_work_order_id: workOrderId,
+    p_user_ids: userIds,
+  }),
+  dispatchWorkOrder: (workOrderId) => callWorkflow("dispatch_work_order", { p_work_order_id: workOrderId }),
+  startWorkOrder: (workOrderId) => callWorkflow("start_work_order", { p_work_order_id: workOrderId }),
+  postWorkOrderMessage: (workOrderId, body, messageType = "message") => callWorkflow("post_work_order_message", {
+    p_work_order_id: workOrderId,
+    p_body: body,
+    p_message_type: messageType,
+  }),
+  submitWorkOrderProof: (workOrderId, title, note = null) => callWorkflow("submit_work_order_proof", {
+    p_work_order_id: workOrderId,
+    p_title: title,
+    p_note: note,
+  }),
+  submitOwnerWorkOrderProof: (workOrderId, title, note = null) => callWorkflow("submit_owner_work_order_proof", {
+    p_work_order_id: workOrderId,
+    p_title: title,
+    p_note: note,
+  }),
+  reviewWorkOrderProof: (proofId, decision, note = null, sendToClient = false) => callWorkflow("review_work_order_proof", {
+    p_proof_id: proofId,
+    p_decision: decision,
+    p_note: note,
+    p_send_to_client: sendToClient,
+  }),
   updateTaskStatus: (taskId, status) => callWorkflow("update_assigned_task_status", {
     p_task_id: taskId,
     p_status: status,
@@ -354,7 +404,7 @@ export const workflow = Object.freeze({
   markNotificationRead: (notificationId) => callWorkflow("mark_notification_read", { p_notification_id: notificationId }),
 });
 
-export async function uploadProjectFile({ workspaceId, projectId, file, category = "general", invoiceId = null }) {
+export async function uploadProjectFile({ workspaceId, projectId, file, category = "general", invoiceId = null, workOrderId = null, messageId = null }) {
   assertConnected();
   const { data: authData, error: authError } = await supabase.auth.getUser();
   throwIfError(authError);
@@ -371,6 +421,8 @@ export async function uploadProjectFile({ workspaceId, projectId, file, category
     id: fileId,
     workspace_id: workspaceId,
     project_id: projectId,
+    work_order_id: workOrderId,
+    message_id: messageId,
     category,
     invoice_id: invoiceId,
     file_name: file.name,

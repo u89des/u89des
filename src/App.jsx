@@ -48,6 +48,7 @@ import {
   Moon,
   PaperPlaneTilt,
   Plus,
+  Printer,
   Receipt,
   ShieldCheck,
   SignOut,
@@ -116,8 +117,8 @@ const scenarioMilestones = [
   { label: "اعتماد العرض", role: "client", section: "documents", description: "راجع العرض من بوابة العميل ووافق عليه." },
   { label: "توقيع العقد", role: "client", section: "documents", description: "راجع البنود ووقّع العقد التجريبي." },
   { label: "سداد الدفعة الأولى", role: "client", section: "finance", description: "سدد الدفعة الأولى لفتح التنفيذ." },
-  { label: "رفع البروفة", role: "collaborator", section: "team", description: "ادخل مساحة المتعاون وارفع البروفة المسندة." },
-  { label: "قرار البروفة", role: "client", section: "projects", description: "راجع البروفة واعتمدها أو اطلب تعديلاً." },
+  { label: "بناء الاتجاه الإبداعي", role: "owner", section: "work-orders", description: "ابن الفكرة والاتجاه ونفذ البروفة، أو فوض جزءاً إنتاجياً فقط إذا احتجت." },
+  { label: "قرار العميل", role: "client", section: "projects", description: "بعد اعتمادك الداخلي، تصل البروفة للعميل ليعتمدها أو يطلب تعديلاً." },
   { label: "سداد الدفعة الأخيرة", role: "client", section: "finance", description: "أكمل الدفعة الأخيرة قبل تسليم الملفات." },
   { label: "إطلاق التسليم", role: "owner", section: "projects", description: "أكد اكتمال الحزمة وافتحها للعميل." },
   { label: "تأكيد الاستلام", role: "client", section: "projects", description: "نزّل الحزمة النهائية وأكد استلامها." },
@@ -126,7 +127,7 @@ const scenarioMilestones = [
 ];
 
 const scenarioRoleLabels = {
-  owner: "الإدارة",
+  owner: "عبد الوهاب",
   client: "العميل",
   collaborator: "المتعاون",
 };
@@ -161,12 +162,13 @@ const navItems = [
   { id: "overview", label: "نظرة اليوم", icon: SquaresFour },
   { id: "scenario", label: "التجربة الكاملة", icon: Target },
   { id: "projects", label: "المشاريع", icon: FolderOpen },
+  { id: "work-orders", label: "المعمل الإبداعي", icon: UserFocus },
   { id: "requests", label: "طلبات العملاء", icon: Tray },
   { id: "briefs", label: "البريفات", icon: List },
   { id: "documents", label: "العروض والعقود", icon: FileText },
   { id: "clients", label: "العملاء", icon: UsersThree },
   { id: "finance", label: "الحسابات", icon: Wallet },
-  { id: "team", label: "فريق العمل", icon: UserFocus },
+  { id: "team", label: "المتعاونون", icon: UserFocus },
   { id: "studio-settings", label: "إعدادات العمل", icon: SlidersHorizontal },
   { id: "site-admin", label: "إدارة الموقع", icon: Globe },
   { id: "system", label: "الربط والإطلاق", icon: ShieldCheck },
@@ -465,10 +467,10 @@ const defaultSiteContent = {
 };
 
 const retainerRequests = [
-  { id: 1, title: "حملة افتتاح فرع العليا", client: "قصر التوابل", assignee: "ريم", due: "7 أغسطس", status: "جديد" },
-  { id: 2, title: "منشورات العودة للمدارس", client: "أصناف", assignee: "مازن", due: "9 أغسطس", status: "يعمل عليه" },
-  { id: 3, title: "تحديث قائمة المنتجات", client: "مامولا", assignee: "غير مسند", due: "11 أغسطس", status: "بانتظار الإسناد" },
-  { id: 4, title: "إعلان منتج موسمي", client: "قصر التوابل", assignee: "ريم", due: "14 أغسطس", status: "مراجعة" },
+  { id: 1, title: "حملة افتتاح فرع العليا", client: "قصر التوابل", assignee: "عبد الوهاب", due: "7 أغسطس", status: "جديد" },
+  { id: 2, title: "منشورات العودة للمدارس", client: "أصناف", assignee: "عبد الوهاب", due: "9 أغسطس", status: "في المعمل الإبداعي" },
+  { id: 3, title: "تحديث قائمة المنتجات", client: "مامولا", assignee: "عبد الوهاب", due: "11 أغسطس", status: "بانتظار الفكرة" },
+  { id: 4, title: "إعلان منتج موسمي", client: "قصر التوابل", assignee: "عبد الوهاب", due: "14 أغسطس", status: "مراجعة إبداعية" },
 ];
 
 const incomingProjectRequests = [
@@ -509,6 +511,11 @@ const defaultScenario = {
   },
   contract: { id: "C-0124", signedAt: null },
   payments: { first: false, final: false },
+  creative: {
+    executionMode: "owner_led",
+    core: "السفر المحلي يبدأ من طمأنينة العائلة، لا من كثرة الخيارات.",
+    rationale: "يبني عبد الوهاب الاتجاه حول فكرة تنظيم الرحلة بثقة، ثم يحولها بنفسه إلى نظام بصري وبروفة أولى.",
+  },
   collaborator: { name: "ريم السالم", task: "تطوير الاتجاه البصري وتجهيز بروفة الهوية", due: "12 أغسطس 2026" },
   proof: { version: 1, status: "لم ترفع", revisionNote: "" },
   delivery: { released: false, received: false },
@@ -559,9 +566,9 @@ const invoices = [
 ];
 
 const collaboratorBills = [
-  { id: "COL-014", collaborator: "ريم السالم", project: "سيد مندي", item: "3 تطبيقات هوية", amount: "1,050", currency: "SAR", status: "بانتظار الاعتماد" },
-  { id: "COL-015", collaborator: "Lina Moretti", project: "مامولا", item: "معالجة 4 صور", amount: "220", currency: "USD", status: "مستحقة" },
-  { id: "COL-016", collaborator: "Marc Vidal", project: "بخاري أختر", item: "موك أب واجهة", amount: "180", currency: "EUR", status: "مدفوعة" },
+  { id: "COL-014", collaborator: "ريم السالم", project: "نموذج تفويض تجريبي", item: "3 مقاسات إنتاجية", amount: "1,050", currency: "SAR", status: "بانتظار الاعتماد" },
+  { id: "COL-015", collaborator: "Lina Moretti", project: "نموذج تفويض تجريبي", item: "معالجة 4 صور", amount: "220", currency: "USD", status: "مستحقة" },
+  { id: "COL-016", collaborator: "Marc Vidal", project: "نموذج تفويض تجريبي", item: "موك أب إنتاجي", amount: "180", currency: "EUR", status: "مدفوعة" },
 ];
 
 const initialDocuments = [
@@ -571,9 +578,78 @@ const initialDocuments = [
 ];
 
 const team = [
-  { name: "ريم السالم", role: "مصممة علامات", load: "3 مهام", focus: "قصر التوابل" },
-  { name: "مازن الحربي", role: "مصمم محتوى", load: "2 مهام", focus: "أصناف" },
-  { name: "سارة العتيبي", role: "كاتبة محتوى", load: "مهمة واحدة", focus: "مامولا" },
+  { name: "ريم السالم", role: "متعاونة إنتاجية افتراضية", load: "لا مهام", focus: "متاحة عند التفويض" },
+  { name: "مازن الحربي", role: "متعاون إنتاجي افتراضي", load: "لا مهام", focus: "متاح عند التفويض" },
+  { name: "سارة العتيبي", role: "متعاونة كتابة افتراضية", load: "لا مهام", focus: "متاحة عند التفويض" },
+];
+
+const initialWorkOrders = [
+  {
+    id: "WO-1027",
+    project: "سيد مندي",
+    title: "تصميم نظام التغليف الأساسي",
+    description: "تطوير واجهة العبوة الرئيسية والنسخ الخاصة بالأحجام الثلاثة، مع تثبيت الهرمية البصرية ومناطق المعلومات.",
+    recommendations: "أبدأ من اتجاه الخط العربي المعتمد، وأخفف حضور الزخرفة. المهم أن تبقى العبوة واضحة من مسافة الرف.",
+    creativeCore: "عبوة تتكلم بوضوح العلامة قبل أن تتكلم بزخرفتها.",
+    creativeRationale: "المنتج يحتاج حضوراً قوياً على الرف، لذلك يقود الاسم التكوين وتأتي العناصر التراثية كطبقة دعم لا كموضوع بصري مستقل.",
+    creativeNotes: "طورت الفكرة والهرمية والنظام والتطبيقات بنفسي. هذه الوقفة لمراجعة البروفة بعين المدير الإبداعي قبل إرسالها.",
+    delegationScope: "",
+    executionMode: "owner_led",
+    creativeStage: "production",
+    priority: "عالية",
+    due: "2026-08-10",
+    status: "internal_review",
+    dispatched: false,
+    clientApproval: true,
+    assignees: [],
+    files: ["بريف التغليف.pdf", "قالب القص.ai", "بروفة-02.pdf"],
+    messages: [],
+    proof: { title: "بروفة التغليف، النسخة 2", status: "internal_review", note: "خففت الزخرفة ورفعت وضوح اسم المنتج، وأراجع الآن توازن النظام على العبوات." },
+  },
+  {
+    id: "WO-1028",
+    project: "بخاري أختر",
+    title: "تطبيقات واجهة الفرع",
+    description: "تجهيز ثلاث تطبيقات للواجهة الخارجية واللوحة الجانبية وفق الهوية المعتمدة.",
+    recommendations: "أختبر التكوين الأفقي في الواجهة الرئيسية مع مسافة أمان أكبر حول العلامة.",
+    creativeCore: "",
+    creativeRationale: "",
+    creativeNotes: "مساحة خاصة لتطوير الفكرة والتكوين قبل تقرير إن كان التنفيذ يحتاج مساعدة.",
+    delegationScope: "",
+    executionMode: "owner_led",
+    creativeStage: "exploration",
+    priority: "عادية",
+    due: "2026-08-13",
+    status: "draft",
+    dispatched: false,
+    clientApproval: false,
+    assignees: [],
+    files: ["صور الموقع.zip"],
+    messages: [],
+    proof: null,
+  },
+  {
+    id: "WO-1029",
+    project: "مامولا",
+    title: "تطوير دليل النبرة المختصر",
+    description: "كتابة مبادئ النبرة مع أمثلة قبل وبعد لرسائل المنتج والتغليف وخدمة العملاء.",
+    recommendations: "أحافظ على نبرة دافئة وخبيرة، وأتجنب العبارات الدعائية المبالغ فيها، مع أمثلة قابلة للاستخدام مباشرة.",
+    creativeCore: "صوت يشبه رائحة المخبز: قريب، دافئ، وواثق من دون تكلّف.",
+    creativeRationale: "بنيت الاتجاه الكتابي ليحوّل شخصية مامولا إلى قواعد وأمثلة قابلة للاستخدام من دون فقدان الدفء أو الدقة.",
+    creativeNotes: "ثبتُّ المنطق والنبرة الأساسية وأعمل الآن على توسيع الأمثلة وربطها بالتطبيقات البصرية.",
+    delegationScope: "",
+    executionMode: "owner_led",
+    creativeStage: "production",
+    priority: "عادية",
+    due: "2026-08-12",
+    status: "owner_production",
+    dispatched: false,
+    clientApproval: false,
+    assignees: [],
+    files: ["دليل الشخصية.pdf", "أمثلة الرسائل.docx"],
+    messages: [],
+    proof: null,
+  },
 ];
 
 function Logo({ compact = false, onClick }) {
@@ -726,7 +802,7 @@ function AccessModal({ onClose, onEnter, connected, onAuthenticate }) {
         <div className="connection-chip local"><ShieldCheck size={18} /><span><strong>وضع التجربة المحلية</strong><small>اختر دوراً لمعاينة الرحلة قبل ربط قاعدة البيانات</small></span></div>
         <button onClick={() => onEnter("client")}><UserCircle size={24} /><span><strong>بوابة العميل</strong><small>المشاريع والبروفات والطلبات والفواتير</small></span><ArrowLeft size={18} /></button>
         <button onClick={() => onEnter("collaborator")}><UserFocus size={24} /><span><strong>مساحة المتعاون</strong><small>المهام والملفات والتسليمات المسندة</small></span><ArrowLeft size={18} /></button>
-        <button onClick={() => onEnter("owner")}><LockKey size={24} /><span><strong>إدارة الاستوديو</strong><small>التشغيل والماليات والموقع والصلاحيات</small></span><ArrowLeft size={18} /></button>
+        <button onClick={() => onEnter("owner")}><LockKey size={24} /><span><strong>مساحة عبد الوهاب</strong><small>المعمل الإبداعي والتشغيل والماليات والموقع</small></span><ArrowLeft size={18} /></button>
       </div>}
     </Modal>
   );
@@ -882,7 +958,7 @@ function ScenarioCenter({ scenario, onReset, setSection, setRole }) {
   return (
     <div className="dashboard-content page-stack scenario-page">
       <div className="page-title scenario-title">
-        <div><span className="scenario-live-label"><Sparkle size={15} weight="fill" /> تجربة مترابطة</span><h1>جرّب المشروع من الطلب إلى المتابعة.</h1><p>كل إجراء هنا ينعكس مباشرة على الإدارة والعميل والمتعاون، ويبقى محفوظاً بعد تحديث الصفحة.</p></div>
+        <div><span className="scenario-live-label"><Sparkle size={15} weight="fill" /> تجربة مترابطة</span><h1>جرّب المشروع من الطلب إلى المتابعة.</h1><p>كل قرار ينتقل بين عبد الوهاب والعميل، ولا تدخل مساحة المتعاون إلا إذا اختار عبد الوهاب تفويض جزء من التنفيذ.</p></div>
         <button className="button ghost" onClick={onReset}><CircleNotch size={18} /> إعادة السيناريو</button>
       </div>
 
@@ -917,7 +993,7 @@ function ScenarioCenter({ scenario, onReset, setSection, setRole }) {
         <aside className="scenario-side-stack">
           <section className="panel scenario-facts">
             <div className="panel-heading"><div><h2>بيانات التجربة</h2><p>يمكن تغييرها فعلياً خلال المسار.</p></div></div>
-            <dl><div><dt>العميل</dt><dd>{scenario.client.name}</dd></div><div><dt>التواصل</dt><dd>{scenario.client.communication}</dd></div><div><dt>الخدمة</dt><dd>{scenario.project.service}</dd></div><div><dt>القيمة</dt><dd>{Number(scenario.quote.amount).toLocaleString("en-US")} {scenario.quote.currency}</dd></div><div><dt>المتعاون</dt><dd>{scenario.collaborator.name}</dd></div></dl>
+            <dl><div><dt>العميل</dt><dd>{scenario.client.name}</dd></div><div><dt>التواصل</dt><dd>{scenario.client.communication}</dd></div><div><dt>الخدمة</dt><dd>{scenario.project.service}</dd></div><div><dt>القيمة</dt><dd>{Number(scenario.quote.amount).toLocaleString("en-US")} {scenario.quote.currency}</dd></div><div><dt>القيادة والتنفيذ</dt><dd>{scenario.creative?.executionMode === "owner_led" ? "عبد الوهاب" : "عبد الوهاب مع تنفيذ مفوض"}</dd></div></dl>
           </section>
           <section className="panel scenario-activity">
             <div className="panel-heading"><div><h2>آخر الحركة</h2><p>سجل واحد يراه مدير المشروع.</p></div></div>
@@ -966,30 +1042,30 @@ function OwnerOverview({ onProject, onCapture, setSection }) {
     <div className="dashboard-content">
       <section className="today-grid">
         <article className="focus-card">
-          <div className="focus-card-top"><span>مهمتك الآن</span><time>تحتاج 18 دقيقة</time></div>
+          <div className="focus-card-top"><span>مساحتك الآن</span><time>جلسة تركيز 45 دقيقة</time></div>
           <div className="focus-card-body">
             <div>
               <p>سيد مندي</p>
-              <h2>راجع البروفة الثانية قبل إرسالها.</h2>
-              <span>جمعت ريم ملاحظات الهوية والتغليف في نسخة واحدة.</span>
+              <h2>راجع اتجاه التغليف بعين المدير الإبداعي.</h2>
+              <span>صممت النظام والبروفة بنفسك. القرار الآن: تطويرها أكثر أو تجهيزها للعميل.</span>
             </div>
-            <button className="button inverted" onClick={() => onProject(initialProjects[0])}>فتح البروفة <ArrowLeft size={18} /></button>
+            <button className="button inverted" onClick={() => setSection("work-orders")}>فتح المعمل الإبداعي <ArrowLeft size={18} /></button>
           </div>
-          <div className="focus-card-next"><span>بعدها</span><strong>اعتماد عرض بخاري أختر</strong><time>11:30 ص</time></div>
+          <div className="focus-card-next"><span>بعدها</span><strong>تطوير فكرة واجهة بخاري أختر</strong><time>جلسة مستقلة</time></div>
         </article>
         <article className="money-card" onClick={() => setSection("finance")} role="button" tabIndex="0">
           <div className="money-head"><Wallet size={23} /><span>التحصيل هذا الشهر</span></div>
           <strong>24,850 <small>ر.س</small></strong>
           <p>لديك فاتورتان تحتاجان متابعة هذا الأسبوع.</p>
-          <div className="money-split"><span>مستحق لك <b>16,350</b></span><span>للفريق <b>4,800</b></span></div>
+          <div className="money-split"><span>مستحق لك <b>16,350</b></span><span>تكلفة إنتاجية تجريبية <b>4,800</b></span></div>
         </article>
       </section>
 
       <section className="metrics-row">
-        <Metric icon={Briefcase} label="مشاريع تتحرك" value="6" note="3 تحتاج قراراً منك" />
-        <Metric icon={CheckCircle} label="اعتمادات معلقة" value="3" note="الأقدم منذ يومين" />
-        <Metric icon={Tray} label="طلبات العقود" value="8" note="2 غير مسندة" />
-        <Metric icon={ChartLineUp} label="توقع الشهر" value="41.2k" note="قبل مصروفات الفريق" />
+        <Metric icon={Sparkle} label="أعمال إبداعية" value="3" note="كلها بقيادتك وتنفيذك" />
+        <Metric icon={CheckCircle} label="اتجاهات تحتاج قرارك" value="2" note="لا تنتقل لأحد تلقائياً" />
+        <Metric icon={Tray} label="طلبات بانتظار البداية" value="2" note="تدخل معملك بعد قرارك" />
+        <Metric icon={ChartLineUp} label="توقع الشهر" value="41.2k" note="قبل أي مساعدة إنتاجية" />
       </section>
 
       <section className="dashboard-split">
@@ -1012,11 +1088,11 @@ function OwnerOverview({ onProject, onCapture, setSection }) {
         </div>
 
         <aside className="panel activity-panel">
-          <div className="panel-heading"><div><h2>ما تحرك وحده</h2><p>أتمه النظام أو الفريق دون مقاطعتك.</p></div></div>
+          <div className="panel-heading"><div><h2>ما حفظه النظام عنك</h2><p>أتمه النظام إداريًا من دون أن يقاطع وقتك الإبداعي.</p></div></div>
           <div className="activity-list">
             <div><CheckCircle size={19} weight="fill" /><span><strong>توقيع العقد</strong><small>وقّع عميل بخاري أختر قبل 32 دقيقة.</small></span></div>
             <div><PaperPlaneTilt size={19} /><span><strong>متابعة تلقائية</strong><small>أرسل النظام تذكيراً لفاتورة سيد مندي.</small></span></div>
-            <div><FileArrowUp size={19} /><span><strong>ملف جديد</strong><small>رفعت ريم تطبيقات قصر التوابل.</small></span></div>
+            <div><FloppyDisk size={19} /><span><strong>دفتر الفكرة محفوظ</strong><small>حفظ النظام آخر ملاحظاتك على اتجاه مامولا.</small></span></div>
           </div>
           <button className="capture-button" onClick={onCapture}><Plus size={18} /> التقط مهمة أو فكرة <kbd>⌘ K</kbd></button>
         </aside>
@@ -1058,9 +1134,16 @@ function ProjectsView({ onProject, scenario, onAdvance, onToast }) {
 function RequestsView({ onToast, setSection, setRole, scenario, onAdvance }) {
   const [requests, setRequests] = usePersistentState("u89-retainer-requests", retainerRequests);
   const [projectRequests, setProjectRequests] = usePersistentState("u89-project-requests", incomingProjectRequests);
-  const assign = (id, assignee) => {
-    setRequests((items) => items.map((item) => item.id === id ? { ...item, assignee, status: "تم الإسناد" } : item));
-    onToast(`تم إسناد الطلب إلى ${assignee}`);
+  useEffect(() => {
+    const migrationKey = "u89-retainer-creative-lead-v2";
+    if (localStorage.getItem(migrationKey) === "done") return;
+    setRequests((items) => items.map((item) => retainerRequests.find((seed) => seed.id === item.id) || item));
+    localStorage.setItem(migrationKey, "done");
+  }, [setRequests]);
+  const startCreative = (id) => {
+    setRequests((items) => items.map((item) => item.id === id ? { ...item, assignee: "عبد الوهاب", status: "في المعمل الإبداعي" } : item));
+    onToast("فتح الطلب في معملك الإبداعي، ولم يصل إلى أي متعاون");
+    setSection("work-orders");
   };
   const acceptProject = (id) => {
     setProjectRequests((items) => items.map((item) => item.id === id ? { ...item, status: "تم إنشاء البريف" } : item));
@@ -1093,14 +1176,14 @@ function RequestsView({ onToast, setSection, setRole, scenario, onAdvance }) {
         <div className="retainer-note"><Handshake size={28} /><strong>لا طلب يضيع في المحادثات.</strong><p>كل عميل يطلب من بوابته، ويحدد الأولوية والموعد والملفات.</p></div>
       </section>
       <section className="panel request-board">
-        <div className="panel-heading"><div><h2>طابور التنفيذ</h2><p>ابدأ بالأقرب للموعد أو غير المسند.</p></div><button className="filter-button">هذا الشهر <CaretDown size={16} /></button></div>
+        <div className="panel-heading"><div><h2>طلبات العقود قبل العمل</h2><p>ابدأ أنت بالأقرب للموعد، وافتح له مساحة للفكرة قبل أي قرار إنتاجي.</p></div><button className="filter-button">هذا الشهر <CaretDown size={16} /></button></div>
         <div className="request-table">
           {requests.map((request) => (
             <article className="request-row" key={request.id}>
               <div className="request-main"><span className={`request-state ${request.status === "جديد" || request.status === "بانتظار الإسناد" ? "attention" : ""}`}>{request.status}</span><strong>{request.title}</strong><small>{request.client}</small></div>
               <div><small>الموعد</small><strong>{request.due}</strong></div>
-              <label><small>المسؤول</small><select value={request.assignee} onChange={(event) => assign(request.id, event.target.value)}><option>غير مسند</option><option>ريم</option><option>مازن</option><option>سارة</option></select></label>
-              <button className="icon-button" aria-label="فتح الطلب"><ArrowLeft size={18} /></button>
+              <div><small>القيادة الإبداعية</small><strong>عبد الوهاب</strong></div>
+              <button className="button ghost small" onClick={() => startCreative(request.id)}>فتح في المعمل <ArrowLeft size={16} /></button>
             </article>
           ))}
         </div>
@@ -1221,11 +1304,40 @@ function BriefsView({ settings, onToast, setSection, setRole, scenario, onAdvanc
   </div>;
 }
 
+const documentLines = (value) => String(value || "").split("\n").map((item) => item.trim()).filter(Boolean);
+
+function LocalProjectDocument({ document, settings, onClose, onEdit }) {
+  const isContract = document.type === "contract";
+  const payments = document.payments || settings.paymentPlans.find((plan) => plan.id === document.paymentPlan)?.percentages || [50, 50];
+  const deliverables = documentLines(document.deliverables || "المخرجات المحددة في البريف المعتمد\nملفات التسليم النهائية المتفق عليها\nنسخة مهيأة للاستخدام من كل مخرج نهائي");
+  const exclusions = documentLines(document.exclusions || "الطباعة والإنتاج والتراخيص الخارجية\nأي مخرج غير مثبت في نطاق هذا المستند");
+  const terms = [
+    `يبدأ التنفيذ بعد توقيع الطرفين وتسجيل الدفعة الأولى واستلام تفاصيل العمل والملفات اللازمة.`,
+    `تقدم البروفة الأولى خلال ${document.firstProofDays || settings.firstProofDays} يوم عمل، وتنفذ التعديلات خلال ${document.revisionDays || settings.revisionDays} أيام عمل.`,
+    `عدد جولات التعديل: ${document.revisionRounds || settings.revisionRounds || 2}، ويستغرق التأسيس من جديد ${document.restartDays || settings.restartDays} أيام عمل.`,
+    `تبقى الأفكار والمقترحات غير المعتمدة ملكاً لمقدم الخدمة، وتنتقل حقوق استخدام المخرجات النهائية بعد سداد كامل المستحقات.`,
+    `تعتمد المخرجات والمواعيد والقيمة وخطة الدفعات الواردة في هذا المستند، وأي إضافة لاحقة تحتاج اتفاقاً مكتوباً مستقلاً.`,
+  ];
+  const amount = Number(document.amount || 0).toLocaleString("en-US");
+  const bankTail = settings.bankAccount?.slice(-4) || "";
+
+  return <div className="modal-layer print-layer" onMouseDown={onClose}><section className="modal-panel wide print-modal" onMouseDown={(event) => event.stopPropagation()}><div className="print-actions"><div><small>معاينة المستند الكامل</small><strong>{document.title}، {document.id}</strong></div><span>{onEdit && <button className="button ghost" onClick={onEdit}><FileText size={18} /> تعديل الصياغة</button>}<button className="button ghost" onClick={onClose}>إغلاق</button><button className="button primary" onClick={() => window.print()}><Printer size={18} /> طباعة أو حفظ PDF</button></span></div><article className="print-document local-project-document"><header><div className="print-brand">U89<span>استوديو العلامة</span></div><div><small>{document.title}</small><strong>{document.id}</strong><time>5 أغسطس 2026</time></div></header><section className="print-parties"><div><small>مقدم الخدمة</small><strong>{settings.ownerNameAr}</strong><span>{settings.ownerNameEn}</span><span>{settings.email}</span><span>{settings.phone}</span></div><div><small>العميل</small><strong>{document.client}</strong><span>{document.contact || "يحدد من ملف العميل"}</span></div></section><section className="print-subject"><small>موضوع المستند</small><h1>{document.project}</h1><p>{document.scope || "تقديم الخدمة الإبداعية وفق نطاق البريف المعتمد والمخرجات الموضحة في هذا المستند."}</p></section><section className="print-columns"><div><small>المخرجات المشمولة</small>{deliverables.map((item) => <p key={item}>{item}</p>)}</div><div><small>غير المشمول</small>{exclusions.map((item) => <p key={item}>{item}</p>)}</div></section>{isContract ? <section className="print-terms"><h2>بنود العقد</h2>{terms.map((term, index) => <p key={term}><b>{index + 1}.</b> {term}</p>)}{document.notes && <p><b>{terms.length + 1}.</b> {document.notes}</p>}<div className="print-signatures"><span><small>مقدم الخدمة</small><strong>عبد الوهاب بن سليمان السويد</strong><time>التوقيع: __________________</time></span><span><small>العميل</small><strong>{document.contact || document.client}</strong><time>التوقيع: __________________</time></span></div></section> : <section className="print-terms"><h2>المدة والتعديلات</h2><p>البروفة الأولى خلال {document.firstProofDays || settings.firstProofDays} يوم عمل.</p><p>تنفذ التعديلات خلال {document.revisionDays || settings.revisionDays} أيام عمل. عدد جولات التعديل: {document.revisionRounds || settings.revisionRounds || 2}.</p><p>التنفيذ النهائي خلال {document.finalizationDays || settings.finalizationDays} يوم عمل بعد اعتماد البروفات.</p><p>صلاحية العرض {document.validityDays || settings.quoteValidityDays} أيام من تاريخ الإصدار.</p><p>قبول العرض ينشئ عقداً مستقلاً، ولا يبدأ التنفيذ قبل توقيع العقد وتسجيل الدفعة الأولى.</p>{document.notes && <p>ملاحظة خاصة: {document.notes}</p>}</section>}<section className="print-total"><span>الإجمالي</span><strong>{amount} {document.currency}</strong><div>{payments.map((payment, index) => <span key={index}>الدفعة {index + 1}: {payment}%</span>)}</div></section><footer><span>{isContract ? "عقد خدمات إبداعية، يراجع قبل التوقيع النهائي" : "عرض سعر غير ضريبي، وليس فاتورة"}</span><span>{settings.bankName}{bankTail ? `، الحساب المنتهي بـ ${bankTail}` : "، بيانات التحويل تضبط من لوحة الإدارة"}</span></footer></article></section></div>;
+}
+
 function DocumentEditorModal({ document, settings, onClose, onSave, onToast }) {
+  const [previewing, setPreviewing] = useState(false);
   const [draft, setDraft] = useState({
     scope: "تقديم الخدمة الإبداعية وفق نطاق البريف المعتمد والمخرجات الموضحة في هذا العرض.",
+    deliverables: "المخرجات المحددة في البريف المعتمد\nملفات التسليم النهائية المتفق عليها\nنسخة مهيأة للاستخدام من كل مخرج نهائي",
+    exclusions: "الطباعة والإنتاج والتراخيص الخارجية\nأي مخرج غير مثبت في نطاق هذا المستند",
     payments: (settings.paymentPlans.find((plan) => plan.id === document.paymentPlan)?.percentages || [50, 50]),
     notes: "",
+    firstProofDays: settings.firstProofDays,
+    revisionDays: settings.revisionDays,
+    restartDays: settings.restartDays,
+    finalizationDays: settings.finalizationDays,
+    validityDays: settings.quoteValidityDays,
+    revisionRounds: settings.revisionRounds || 2,
     ...document,
   });
   const update = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
@@ -1243,18 +1355,21 @@ function DocumentEditorModal({ document, settings, onClose, onSave, onToast }) {
     onClose();
   };
 
-  return (
+  return <>
     <Modal title={`تحرير ${draft.title}`} onClose={onClose} size="wide">
       <div className="document-builder">
         <form className="document-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
           <div className="field-row"><label>العميل<input value={draft.client} onChange={(event) => update("client", event.target.value)} /></label><label>المسؤول لدى العميل<input value={draft.contact} onChange={(event) => update("contact", event.target.value)} /></label></div>
           <label>الخدمة أو المشروع<input value={draft.project} onChange={(event) => update("project", event.target.value)} /></label>
           <label>وصف النطاق<textarea rows="4" value={draft.scope} onChange={(event) => update("scope", event.target.value)} /></label>
+          <div className="field-row"><label>المخرجات المشمولة، كل مخرج في سطر<textarea rows="4" value={draft.deliverables} onChange={(event) => update("deliverables", event.target.value)} /></label><label>غير المشمول، كل بند في سطر<textarea rows="4" value={draft.exclusions} onChange={(event) => update("exclusions", event.target.value)} /></label></div>
           <div className="field-row"><label>القيمة<input type="number" value={draft.amount} onChange={(event) => update("amount", event.target.value)} /></label><label>العملة<select value={draft.currency} onChange={(event) => update("currency", event.target.value)}>{settings.collaboratorCurrencies.map((currency) => <option key={currency}>{currency}</option>)}</select></label></div>
           <label>خطة الدفعات<select value={draft.paymentPlan} onChange={(event) => selectPlan(event.target.value)}>{settings.paymentPlans.map((plan) => <option value={plan.id} key={plan.id}>{plan.label}</option>)}</select></label>
           <div className="payment-editor">{draft.payments.map((payment, index) => <label key={index}>الدفعة {index + 1}<span><input type="number" min="0" max="100" value={payment} onChange={(event) => updatePayment(index, event.target.value)} />%</span></label>)}</div>
+          <div className="field-row"><label>البروفة الأولى، يوم عمل<input type="number" min="1" value={draft.firstProofDays} onChange={(event) => update("firstProofDays", event.target.value)} /></label><label>مدة التعديل، يوم عمل<input type="number" min="1" value={draft.revisionDays} onChange={(event) => update("revisionDays", event.target.value)} /></label></div>
+          <div className="field-row"><label>جولات التعديل<input type="number" min="0" value={draft.revisionRounds} onChange={(event) => update("revisionRounds", event.target.value)} /></label><label>{isContract ? "إعادة التأسيس، يوم عمل" : "صلاحية العرض، يوم"}<input type="number" min="1" value={isContract ? draft.restartDays : draft.validityDays} onChange={(event) => update(isContract ? "restartDays" : "validityDays", event.target.value)} /></label></div>
           <label>ملاحظات خاصة بالمستند<textarea rows="3" value={draft.notes} onChange={(event) => update("notes", event.target.value)} placeholder="أي استثناء أو اتفاق خاص بهذا المشروع" /></label>
-          <div className="document-form-actions"><button type="button" className="button ghost" onClick={() => onToast("تم تجهيز معاينة PDF داخل النموذج")}>معاينة PDF</button><button className="button primary" type="submit"><FloppyDisk size={18} /> حفظ المسودة</button></div>
+          <div className="document-form-actions"><button type="button" className="button ghost" onClick={() => setPreviewing(true)}><Printer size={18} /> فتح المعاينة الكاملة</button><button className="button primary" type="submit"><FloppyDisk size={18} /> حفظ المسودة</button></div>
         </form>
 
         <aside className="document-preview-sheet">
@@ -1268,30 +1383,33 @@ function DocumentEditorModal({ document, settings, onClose, onSave, onToast }) {
         </aside>
       </div>
     </Modal>
-  );
+    {previewing && <LocalProjectDocument document={draft} settings={settings} onClose={() => setPreviewing(false)} />}
+  </>;
 }
 
 function DocumentsView({ settings, onToast, scenario, onAdvance, onPatch }) {
   const [documents, setDocuments] = usePersistentState("u89-documents", initialDocuments);
   const [selected, setSelected] = useState(null);
+  const [preview, setPreview] = useState(null);
   const save = (document) => setDocuments((items) => items.map((item) => item.id === document.id ? { ...document, updated: "الآن" } : item));
   const createFromBrief = () => setSelected({ id: `Q-${String(483 + documents.length)}`, type: "quote", title: "عرض سعر", client: "بريف معتمد", contact: "", project: settings.services.find((service) => service.active)?.title || "خدمة إبداعية", amount: "0", currency: settings.defaultCurrency, paymentPlan: settings.paymentPlans[0].id, status: "مسودة من بريف", updated: "الآن" });
-  const open = (document) => setSelected(document);
+  const open = (document) => setPreview(document);
 
   return (
     <div className="dashboard-content page-stack documents-page">
-      <div className="page-title"><div><h1>العروض والعقود</h1><p>ينشأ عرض السعر من بريف معتمد، ثم لا يخرج إلا بعد مراجعتك.</p></div><button className="button primary" onClick={createFromBrief}><Plus size={18} /> إنشاء من بريف معتمد</button></div>
+      <div className="page-title"><div><h1>مركز المستندات</h1><p>افتح العرض أو العقد كاملاً، راجع صيغته، ثم احفظه أو أرسله بقرارك.</p></div><button className="button primary" onClick={createFromBrief}><Plus size={18} /> إنشاء من بريف معتمد</button></div>
       <section className="document-flow">
         <div><Tray size={22} /><span><small>الطلب</small><strong>مقبول</strong></span></div><ArrowLeft size={18} /><div><List size={22} /><span><small>البريف</small><strong>معتمد</strong></span></div><ArrowLeft size={18} /><div><FileText size={22} /><span><small>العرض</small><strong>تصاغ مسودته</strong></span></div><ArrowLeft size={18} /><div><Handshake size={22} /><span><small>العقد</small><strong>بعد قبول العرض</strong></span></div>
       </section>
       {scenario.step >= 3 && <ScenarioQuotePanel scenario={scenario} onPatch={onPatch} onAdvance={onAdvance} onToast={onToast} />}
-      {scenario.step >= 5 && <section className="panel scenario-contract-row"><span className="document-type contract"><Handshake size={22} /></span><div><small>{scenario.contract.id}</small><strong>عقد تقديم خدمات إبداعية، {scenario.project.name}</strong><p>نشأ من العرض المعتمد ويحمل النطاق والدفعات نفسها.</p></div><span className="status-badge">{scenario.step === 5 ? "بانتظار توقيع العميل" : "موقع من الطرفين"}</span></section>}
+      {scenario.step >= 5 && <section className="panel scenario-contract-row"><span className="document-type contract"><Handshake size={22} /></span><div><small>{scenario.contract.id}</small><strong>عقد تقديم خدمات إبداعية، {scenario.project.name}</strong><p>نشأ من العرض المعتمد ويحمل النطاق والدفعات نفسها.</p></div><span className="status-badge">{scenario.step === 5 ? "بانتظار توقيع العميل" : "موقع من الطرفين"}</span><button className="text-link" onClick={() => setPreview({ id: scenario.contract.id, type: "contract", title: "عقد تقديم خدمات إبداعية", client: scenario.client.company, contact: scenario.client.name, project: scenario.project.name, amount: scenario.quote.amount, currency: scenario.quote.currency, paymentPlan: scenario.quote.paymentPlan || "two-50", status: scenario.step === 5 ? "بانتظار التوقيع" : "موقع", scope: scenario.quote.scope })}>فتح العقد كاملاً <ArrowLeft size={16} /></button></section>}
       <section className="panel document-list-panel">
         <div className="panel-heading"><div><h2>المستندات الحالية</h2><p>النطاق والمخرجات والموعد تأتي من البريف، مع فصل العرض عن العقد.</p></div><span className="sample-label">بيانات تجريبية</span></div>
-        <div className="document-list">{documents.map((document) => <button key={document.id} onClick={() => open(document)}><span className={`document-type ${document.type}`}><FileText size={21} /></span><span><strong>{document.title}</strong><small>{document.id} · {document.client}</small></span><span><small>المشروع</small><strong>{document.project}</strong></span><span><small>القيمة</small><strong>{Number(document.amount).toLocaleString("en-US")} {document.currency}</strong></span><span className="status-badge">{document.status}</span><ArrowLeft size={17} /></button>)}</div>
+        <div className="document-list">{documents.map((document) => <button key={document.id} onClick={() => open(document)}><span className={`document-type ${document.type}`}><FileText size={21} /></span><span><strong>{document.title}</strong><small>{document.id} · {document.client}</small></span><span><small>المشروع</small><strong>{document.project}</strong></span><span><small>القيمة</small><strong>{Number(document.amount).toLocaleString("en-US")} {document.currency}</strong></span><span className="status-badge">{document.status}</span><span className="document-open-label">فتح المستند كاملاً <ArrowLeft size={16} /></span></button>)}</div>
       </section>
       <div className="document-safety"><ShieldCheck size={24} /><div><strong>المسودة الذكية لا تعني الإرسال التلقائي.</strong><p>السعر والبنود والدفعات والتوقيع تبقى بقرارك. الصيغة القانونية النهائية تحتاج مراجعة مختص قبل اعتماد القالب الإنتاجي.</p></div></div>
       {selected && <DocumentEditorModal document={selected} settings={settings} onClose={() => setSelected(null)} onSave={(document) => { if (!documents.some((item) => item.id === document.id)) setDocuments((items) => [document, ...items]); else save(document); }} onToast={onToast} />}
+      {preview && <LocalProjectDocument document={preview} settings={settings} onClose={() => setPreview(null)} onEdit={() => { setSelected(preview); setPreview(null); }} />}
     </div>
   );
 }
@@ -1336,9 +1454,15 @@ function FinanceEntryModal({ kind, settings, onClose, onSave }) {
   </Modal>;
 }
 
+function LocalFinancialDocument({ kind, record, settings, onClose }) {
+  const isClaim = kind === "claim";
+  return <Modal title={isClaim ? "فاتورة تقديم خدمة" : "فاتورة عميل غير ضريبية"} onClose={onClose} size="wide"><div className="local-document-viewer"><div className="print-actions"><div><small>معاينة المستند الكامل</small><strong>{record.id}</strong></div><span><button className="button primary" onClick={() => window.print()}><Printer size={18} /> طباعة أو حفظ PDF</button></span></div><article className="print-document local-finance-document"><header><div className="print-brand">U89<span>استوديو العلامة</span></div><div><small>{isClaim ? "فاتورة تقديم خدمة" : "فاتورة عادية غير ضريبية"}</small><strong>{record.id}</strong><time>5 أغسطس 2026</time></div></header><section className="print-parties"><div><small>{isClaim ? "الجهة المستفيدة" : "مقدم الخدمة"}</small><strong>{isClaim ? settings.ownerNameAr : settings.ownerNameAr}</strong><span>{settings.email}</span><span>{settings.phone}</span></div><div><small>{isClaim ? "المتعاون" : "العميل"}</small><strong>{isClaim ? record.collaborator : record.client}</strong><span>{record.project}</span></div></section><section className="print-subject"><small>البيان</small><h1>{isClaim ? record.item : record.project}</h1><p>{isClaim ? "خدمات إبداعية منفذة ضمن طلب العمل المرتبط بالمشروع." : `${record.type} مرتبطة بالمشروع والدفعة المتفق عليها.`}</p></section><section className="print-columns"><div><small>تاريخ الاستحقاق</small><p>{record.due || "غير محدد"}</p></div><div><small>الحالة</small><p>{record.status}</p></div></section><section className="print-total"><span>الإجمالي</span><strong>{record.amount} {record.currency}</strong></section><footer><span>{isClaim ? "مستند لضبط مستحقات المتعاون" : "فاتورة عادية غير ضريبية، وليست فاتورة ضريبية"}</span><span>{settings.bankName || "بيانات التحويل تضبط من لوحة الإدارة"}</span></footer></article></div></Modal>;
+}
+
 function FinanceView({ onToast, settings, scenario, setRole }) {
   const [tab, setTab] = useState("clients");
   const [entryKind, setEntryKind] = useState(null);
+  const [selectedFinancial, setSelectedFinancial] = useState(null);
   const [clientInvoices, setClientInvoices] = usePersistentState("u89-invoices", invoices);
   const [teamClaims, setTeamClaims] = usePersistentState("u89-collaborator-claims", collaboratorBills);
   const saveEntry = (kind, data) => {
@@ -1390,22 +1514,226 @@ function FinanceView({ onToast, settings, scenario, setRole }) {
               <span><small>الاستحقاق</small><strong>{invoice.due}</strong></span>
               <strong>{invoice.amount} {invoice.currency}</strong>
               <span className={`payment-status ${invoice.status === "مدفوعة" ? "paid" : ""}`}>{invoice.status}</span>
+              <button className="text-link finance-open-doc" onClick={() => setSelectedFinancial({ kind: "invoice", record: invoice })}>فتح الفاتورة <ArrowLeft size={15} /></button>
               {invoice.status !== "مدفوعة" && <button className="icon-button" aria-label="إرسال تذكير" onClick={() => onToast(`تم إرسال تذكير فاتورة ${invoice.id}`)}><PaperPlaneTilt size={18} /></button>}
             </article>
           ))}
-        </div> : <div className="collaborator-bills">{teamClaims.map((bill) => <article key={bill.id}><span className="invoice-icon"><Coins size={20} /></span><span><strong>{bill.collaborator}</strong><small>{bill.id} · {bill.item}</small></span><span><small>المشروع</small><strong>{bill.project}</strong></span><strong>{bill.amount} {bill.currency}</strong><span className={`payment-status ${bill.status === "مدفوعة" ? "paid" : ""}`}>{bill.status}</span><button className="text-link" onClick={() => onToast(`تم فتح مطالبة ${bill.id}`)}>التفاصيل <ArrowLeft size={15} /></button></article>)}</div>}
+        </div> : <div className="collaborator-bills">{teamClaims.map((bill) => <article key={bill.id}><span className="invoice-icon"><Coins size={20} /></span><span><strong>{bill.collaborator}</strong><small>{bill.id} · {bill.item}</small></span><span><small>المشروع</small><strong>{bill.project}</strong></span><strong>{bill.amount} {bill.currency}</strong><span className={`payment-status ${bill.status === "مدفوعة" ? "paid" : ""}`}>{bill.status}</span><button className="text-link" onClick={() => setSelectedFinancial({ kind: "claim", record: bill })}>فتح فاتورة الخدمة <ArrowLeft size={15} /></button></article>)}</div>}
       </section>
       <div className="currency-note"><Coins size={22} /><div><strong>العملات لا تُجمع مباشرة.</strong><p>يبقى كل رصيد بعملته الأصلية، وتظهر قيمته المرجعية بالريال فقط عند إعداد تقرير الربحية وسعر الصرف المسجل.</p></div></div>
       {entryKind && <FinanceEntryModal kind={entryKind} settings={settings} onClose={() => setEntryKind(null)} onSave={(data) => saveEntry(entryKind, data)} />}
+      {selectedFinancial && <LocalFinancialDocument kind={selectedFinancial.kind} record={selectedFinancial.record} settings={settings} onClose={() => setSelectedFinancial(null)} />}
     </div>
   );
+}
+
+function WorkOrdersView({ scenario, setRole, onToast, onAdvance }) {
+  const [orders, setOrders] = usePersistentState("u89-work-orders", initialWorkOrders);
+  const [selectedId, setSelectedId] = useState(orders[0]?.id || "");
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
+  const [ownerProofFile, setOwnerProofFile] = useState(null);
+  const [ownerProofNote, setOwnerProofNote] = useState("");
+  const selectedSource = orders.find((item) => item.id === selectedId) || orders[0];
+  const selected = selectedSource ? {
+    creativeCore: "",
+    creativeRationale: "",
+    creativeNotes: "",
+    delegationScope: "",
+    executionMode: selectedSource.assignees?.length ? "delegated" : "owner_led",
+    creativeStage: "exploration",
+    assignees: [],
+    files: [],
+    messages: [],
+    ...selectedSource,
+  } : null;
+  const updateOrder = (id, patch) => setOrders((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  const collaborators = team.map((person) => person.name);
+
+  useEffect(() => {
+    const migrationKey = "u89-creative-director-seeds-v2";
+    if (localStorage.getItem(migrationKey) === "done") return;
+    setOrders((items) => items.map((item) => initialWorkOrders.find((seed) => seed.id === item.id) || item));
+    localStorage.setItem(migrationKey, "done");
+  }, [setOrders]);
+
+  useEffect(() => {
+    if (!orders.some((item) => item.executionMode === undefined || item.creativeCore === undefined)) return;
+    setOrders((items) => items.map((item) => {
+      const seeded = initialWorkOrders.find((seed) => seed.id === item.id);
+      if (seeded) return { ...item, creativeCore: seeded.creativeCore, creativeRationale: seeded.creativeRationale, creativeNotes: seeded.creativeNotes, delegationScope: seeded.delegationScope, executionMode: seeded.executionMode, creativeStage: seeded.creativeStage, ...(item.id === "WO-1028" && item.status === "draft" ? { assignees: [] } : {}) };
+      return { creativeCore: "", creativeRationale: "", creativeNotes: "", delegationScope: "", executionMode: item.id === "WO-SCENARIO" ? "owner_led" : item.assignees?.length ? "delegated" : "owner_led", creativeStage: "exploration", ...item };
+    }));
+  }, [orders, setOrders]);
+
+  useEffect(() => {
+    if (scenario.step !== 7) return;
+    const current = orders.find((item) => item.id === "WO-SCENARIO");
+    if (current?.executionMode === "owner_led") return;
+    const scenarioOrder = {
+      id: "WO-SCENARIO",
+      project: scenario.project.name,
+      title: "تطوير الاتجاه البصري والبروفة الأولى",
+      description: scenario.quote.scope,
+      recommendations: "أبني الاتجاه والفكرة بنفسي، ثم أقرر لاحقاً إن كان أي جزء إنتاجي يحتاج تفويضاً.",
+      creativeCore: scenario.creative?.core || "",
+      creativeRationale: scenario.creative?.rationale || "",
+      creativeNotes: "مساحة عملي الإبداعي الخاصة قبل عرض أي نتيجة على العميل.",
+      delegationScope: "",
+      executionMode: "owner_led",
+      creativeStage: "production",
+      priority: "عالية",
+      due: scenario.collaborator.due,
+      status: "owner_production",
+      dispatched: false,
+      clientApproval: true,
+      assignees: [],
+      files: ["البريف المعتمد.pdf", "حزمة المصادر.zip"],
+      messages: [],
+      proof: null,
+    };
+    setOrders((items) => current ? items.map((item) => item.id === current.id ? scenarioOrder : item) : [scenarioOrder, ...items]);
+    setSelectedId("WO-SCENARIO");
+  }, [orders, scenario]);
+
+  const create = (event) => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const next = {
+      id: `WO-${1030 + orders.length}`,
+      project: values.get("project"),
+      title: values.get("title"),
+      description: values.get("description"),
+      recommendations: "",
+      creativeCore: values.get("creativeCore"),
+      creativeRationale: values.get("creativeRationale"),
+      creativeNotes: values.get("creativeNotes"),
+      delegationScope: "",
+      executionMode: values.get("executionMode"),
+      creativeStage: "exploration",
+      priority: values.get("priority"),
+      due: values.get("due"),
+      status: "draft",
+      dispatched: false,
+      clientApproval: values.get("clientApproval") === "on",
+      assignees: [],
+      files: [],
+      messages: [],
+      proof: null,
+    };
+    setOrders((items) => [next, ...items]);
+    setSelectedId(next.id);
+    setCreating(false);
+    onToast("فتحت مساحة إبداعية خاصة بك. لم يصل شيء لأي متعاون");
+  };
+  const toggleAssignee = (name) => updateOrder(selected.id, { assignees: selected.assignees.includes(name) ? selected.assignees.filter((item) => item !== name) : [...selected.assignees, name] });
+  const advanceCreative = (status, creativeStage) => {
+    if (["direction_ready", "owner_production"].includes(status) && (!selected.creativeCore.trim() || !selected.creativeRationale.trim())) {
+      onToast("ثبت الفكرة المركزية ومنطقها أولاً");
+      return;
+    }
+    updateOrder(selected.id, { status, creativeStage });
+    onToast(status === "creative_development" ? "بدأت مرحلة تطوير الفكرة داخل مساحتك" : status === "direction_ready" ? "ثبت الاتجاه الإبداعي وأصبح جاهزاً للتنفيذ" : "انتقلت إلى التنفيذ بقيادتك وتصميمك");
+  };
+  const dispatch = () => {
+    if (!selected.assignees.length) { onToast("اختر متعاوناً واحداً على الأقل للجزء الإنتاجي"); return; }
+    if (!selected.delegationScope.trim()) { onToast("حدد بدقة ما الذي ستفوضه وما الذي يبقى بيدك"); return; }
+    updateOrder(selected.id, {
+      dispatched: true,
+      status: "dispatched",
+      creativeStage: "production",
+      messages: [{ id: `m-${Date.now()}`, author: "النظام", body: "أنهى عبد الوهاب بناء الاتجاه الإبداعي ووجّه نطاقاً إنتاجياً محدداً للمتعاونين.", at: "الآن", system: true }, ...selected.messages],
+    });
+    onToast("أرسلت الجزء الإنتاجي المحدد فقط، وبقيت القيادة الإبداعية لديك");
+  };
+  const addMessage = (event) => {
+    event.preventDefault();
+    if (!message.trim()) return;
+    updateOrder(selected.id, { messages: [...selected.messages, { id: `m-${Date.now()}`, author: "عبد الوهاب", body: message.trim(), at: "الآن" }] });
+    setMessage("");
+    onToast("أضفت توجيهك إلى غرفة التنفيذ");
+  };
+  const addFile = (file) => {
+    if (!file) return;
+    updateOrder(selected.id, { files: [...selected.files, file.name] });
+    onToast("أضفت الملف إلى مساحة العمل الإبداعية");
+  };
+  const submitOwnerProof = () => {
+    if (!ownerProofFile) { onToast("اختر ملف البروفة أولاً"); return; }
+    updateOrder(selected.id, {
+      status: "internal_review",
+      files: [...selected.files, ownerProofFile.name],
+      proof: { title: ownerProofFile.name, status: "internal_review", note: ownerProofNote || "بروفة صممها عبد الوهاب وجاهزة لقرار الإرسال." },
+    });
+    setOwnerProofFile(null);
+    setOwnerProofNote("");
+    onToast("حفظت بروفتك في بوابة القرار قبل مشاركتها مع العميل");
+  };
+  const reviewProof = (decision) => {
+    if (decision === "changes_requested" && !reviewNote.trim()) { onToast("اكتب ملاحظة التعديل أولاً"); return; }
+    if (decision === "changes_requested") {
+      const ownerWork = selected.executionMode === "owner_led" && !selected.dispatched;
+      updateOrder(selected.id, {
+        status: ownerWork ? "owner_production" : "changes_requested",
+        proof: { ...selected.proof, status: "changes_requested" },
+        messages: ownerWork ? selected.messages : [...selected.messages, { id: `m-${Date.now()}`, author: "عبد الوهاب", body: reviewNote, at: "الآن", decision: true }],
+        creativeNotes: ownerWork ? `${selected.creativeNotes}\nمراجعة البروفة: ${reviewNote}`.trim() : selected.creativeNotes,
+      });
+      onToast(ownerWork ? "أعدت البروفة إلى مساحة تنفيذك مع حفظ الملاحظة" : "وصلت ملاحظتك للمتعاون داخل غرفة التنفيذ");
+      if (selected.id === "WO-SCENARIO") onAdvance(7, "راجع عبد الوهاب بروفتَه داخلياً وقرر تطويرها أكثر", { proof: { ...scenario.proof, status: "تعديل داخلي مطلوب", revisionNote: reviewNote } });
+    } else {
+      updateOrder(selected.id, {
+        status: selected.clientApproval ? "client_review" : "completed",
+        proof: { ...selected.proof, status: "approved" },
+        messages: selected.dispatched ? [...selected.messages, { id: `m-${Date.now()}`, author: "عبد الوهاب", body: selected.clientApproval ? "اعتمدت البروفة وأرسلتها للعميل." : "اعتمدت البروفة وأغلقت التنفيذ.", at: "الآن", decision: true }] : selected.messages,
+      });
+      onToast(selected.clientApproval ? "اعتمدت عملك الإبداعي وأرسلته للعميل" : "اعتمدت النتيجة واكتمل العمل");
+      if (selected.id === "WO-SCENARIO") onAdvance(8, "أنهى عبد الوهاب الفكرة والبروفة واعتمد إرسالها للعميل", { proof: { ...scenario.proof, status: "بانتظار العميل", revisionNote: "" } });
+    }
+    setReviewNote("");
+  };
+
+  const statusLabel = { draft: "مساحة خاصة", creative_development: "تطوير الفكرة", direction_ready: "اتجاه مثبت", owner_production: "ينفذه عبد الوهاب", dispatched: "تنفيذ مفوض", in_progress: "قيد الإنتاج", internal_review: "بوابة قرار", changes_requested: "تعديل مطلوب", client_review: "لدى العميل", completed: "مكتمل" };
+  const modeLabel = { owner_led: "عبد الوهاب يقود وينفذ", delegated: "عبد الوهاب يقود ويفوض الإنتاج", collaborative: "قيادة عبد الوهاب مع تنفيذ مشترك" };
+  const editableCreative = selected && ["draft", "creative_development", "direction_ready", "owner_production"].includes(selected.status);
+  const directionComplete = Boolean(selected?.creativeCore?.trim() && selected?.creativeRationale?.trim());
+  const ownerActive = orders.filter((item) => !item.dispatched && !["completed", "cancelled"].includes(item.status)).length;
+  const delegated = orders.filter((item) => item.dispatched && !["completed", "cancelled"].includes(item.status)).length;
+
+  return <div className="dashboard-content page-stack work-orders-page creative-lab-page">
+    <div className="page-title"><div><span className="creative-director-kicker">مساحة عبد الوهاب الإبداعية</span><h1>المعمل الإبداعي</h1><p>هنا تبني الفكرة والاتجاه والتصميم. التفويض خيار لاحق لجزء إنتاجي محدد، وليس بداية العمل.</p></div><button className="button primary" onClick={() => setCreating((value) => !value)}><Plus size={18} /> مساحة إبداعية جديدة</button></div>
+    <section className="creative-lead-banner"><div><small>الدور الأساسي</small><strong>عبد الوهاب، المدير الإبداعي والمصمم</strong><p>الفكرة والاتجاه والقرار البصري تبدأ منك. النظام يحمي وقتك ويوثق قراراتك، ولا يستبدلك بإدارة توزيع.</p></div><div><span><b>01</b> أفهم وأبحث</span><span><b>02</b> أبني الفكرة</span><span><b>03</b> أصمم الاتجاه</span><span><b>04</b> أنفذ أو أفوض جزءاً</span></div></section>
+    <section className="work-order-kpis"><span><small>أعمال أقودها بنفسي</small><strong>{ownerActive}</strong></span><span><small>اتجاهات قيد البناء</small><strong>{orders.filter((item) => ["draft", "creative_development"].includes(item.status)).length}</strong></span><span><small>تنفيذ إنتاجي مفوض</small><strong>{delegated}</strong></span><span className={orders.some((item) => item.status === "internal_review") ? "attention" : ""}><small>بوابات قرار</small><strong>{orders.filter((item) => item.status === "internal_review").length}</strong></span></section>
+
+    {creating && <form className="panel work-order-create creative-space-create" onSubmit={create}><div className="work-order-form-intro"><span><Plus size={20} /></span><div><h2>افتح مساحة للفكرة قبل التنفيذ</h2><p>تبدأ خاصة بك. لا يوجد متعاون افتراضي ولا إرسال تلقائي.</p></div></div><div className="field-row"><label>المشروع<select name="project" defaultValue={scenario.project.name}>{[scenario.project.name, ...initialProjects.map((item) => item.name)].filter((value, index, values) => values.indexOf(value) === index).map((name) => <option key={name}>{name}</option>)}</select></label><label>عنوان المساحة<input name="title" required placeholder="مثال: فكرة الهوية والاتجاه البصري" /></label></div><label>السؤال أو المخرج الإبداعي<textarea name="description" rows="4" required placeholder="ما المشكلة التي ستحلها؟ وما النتيجة التي تريد الوصول إليها؟" /></label><div className="field-row"><label>بذرة الفكرة، اختيارية<textarea name="creativeCore" rows="3" placeholder="الجملة أو المعنى الذي تريد اختباره" /></label><label>ملاحظاتك الأولية<textarea name="creativeNotes" rows="3" placeholder="مشاهدات، احتمالات، وما يحتاج بحثاً" /></label></div><label>نمط العمل الافتراضي<select name="executionMode" defaultValue="owner_led"><option value="owner_led">أقوده وأنفذه بنفسي</option><option value="delegated">أبني الاتجاه ثم أفوض جزءاً إنتاجياً</option><option value="collaborative">أقود الفكرة وأعمل مع متعاون عند التنفيذ</option></select></label><input type="hidden" name="creativeRationale" value="" /><div className="field-row"><label>الأولوية<select name="priority"><option>عادية</option><option>عالية</option><option>عاجلة</option><option>منخفضة</option></select></label><label>موعدك الداخلي<input type="date" name="due" /></label></div><label className="work-order-client-toggle"><input type="checkbox" name="clientApproval" /><span><strong>تصل النتيجة إلى العميل بعد قرارك</strong><small>يبقى العرض على العميل خطوة منفصلة بعد بوابة اعتمادك.</small></span></label><button className="button primary" type="submit">فتح المساحة الخاصة</button></form>}
+
+    {orders.length > 0 && selected && <section className="work-order-command creative-work-command"><aside className="work-order-index"><header><strong>الأعمال الإبداعية</strong><small>{orders.length} مساحات عبر المشاريع</small></header>{orders.map((order) => { const people = order.assignees || []; return <button key={order.id} className={selected.id === order.id ? "active" : ""} onClick={() => setSelectedId(order.id)}><span><small>{order.id}</small><strong>{order.title}</strong><em>{order.project}</em></span><span className="status-badge">{statusLabel[order.status] || order.status}</span><div>{!order.dispatched && <i className="owner-avatar">ع</i>}{people.map((name) => <i key={name}>{name.slice(0, 1)}</i>)}</div></button>; })}</aside><section className="panel work-order-room creative-work-room"><header className="work-order-room-head"><div><span>{selected.id}، {selected.project}</span><h2>{selected.title}</h2><small>{modeLabel[selected.executionMode]}</small></div><span className="status-badge">{statusLabel[selected.status] || selected.status}</span></header>
+      {!selected.dispatched && <div className="work-order-private-note creative-owner-note"><LockKey size={19} /><p><strong>هذه مساحتك الإبداعية.</strong> البحث والفكرة والملفات والملاحظات خاصة بك، ولا يرى المتعاون شيئاً حتى تثبت الاتجاه وتفوض نطاقاً محدداً.</p></div>}
+      <section className={`creative-direction-canvas ${directionComplete ? "complete" : ""}`}><header><div><small>لوحة الاتجاه الإبداعي</small><h3>الفكرة قبل التنفيذ</h3></div><span>{directionComplete ? "اتجاه واضح" : "قيد البناء"}</span></header><div className="creative-canvas-grid"><label>الفكرة المركزية<textarea rows="4" value={selected.creativeCore} readOnly={!editableCreative} onChange={(event) => updateOrder(selected.id, { creativeCore: event.target.value })} placeholder="ما الجملة أو المعنى الذي يقود العلامة؟" /></label><label>لماذا هذه الفكرة؟<textarea rows="4" value={selected.creativeRationale} readOnly={!editableCreative} onChange={(event) => updateOrder(selected.id, { creativeRationale: event.target.value })} placeholder="اربط الفكرة بالجمهور والسوق والشخصية والقرار البصري" /></label><label className="wide">دفتر عبد الوهاب<textarea rows="4" value={selected.creativeNotes} readOnly={!editableCreative} onChange={(event) => updateOrder(selected.id, { creativeNotes: event.target.value })} placeholder="مشاهداتك، الاحتمالات، ما جربته، وما تريد العودة إليه" /></label></div><div className="creative-stage-track"><span className="active">بحث وفهم</span><span className={["concept", "direction", "production"].includes(selected.creativeStage) ? "active" : ""}>فكرة</span><span className={["direction", "production"].includes(selected.creativeStage) ? "active" : ""}>اتجاه</span><span className={selected.creativeStage === "production" ? "active" : ""}>تنفيذ</span></div></section>
+      <section className="work-order-brief-block"><small>المطلوب الإبداعي</small><p>{selected.description}</p>{selected.recommendations && <blockquote><strong>توجيه التنفيذ</strong>{selected.recommendations}</blockquote>}<div className="work-order-meta"><span><small>الأولوية</small><strong>{selected.priority}</strong></span><span><small>موعدك الداخلي</small><strong>{selected.due || "غير محدد"}</strong></span><span><small>القيادة</small><strong>عبد الوهاب السويد</strong></span></div></section>
+
+      {selected.status === "draft" && <div className="creative-primary-actions"><button className="button primary" onClick={() => advanceCreative("creative_development", "concept")}><Target size={18} /> ابدأ تطوير الفكرة</button></div>}
+      {selected.status === "creative_development" && <div className="creative-primary-actions"><button className="button primary" onClick={() => advanceCreative("direction_ready", "direction")}><Check size={18} /> تثبيت الاتجاه الإبداعي</button></div>}
+      {selected.status === "direction_ready" && <section className="creative-execution-choice"><div><small>الخطوة التالية قرارك</small><h3>كيف تريد تنفيذ الاتجاه؟</h3><p>الافتراضي أن تكمل بنفسك. التفويض لا يفتح إلا بعد تحديد نطاق إنتاجي واضح.</p></div><div><button className="button primary" onClick={() => { updateOrder(selected.id, { executionMode: "owner_led" }); advanceCreative("owner_production", "production"); }}>أكمل التصميم بنفسي</button><button className="button ghost" onClick={() => updateOrder(selected.id, { executionMode: selected.executionMode === "owner_led" ? "delegated" : selected.executionMode })}>أحتاج مساعدة إنتاجية</button></div></section>}
+
+      {["direction_ready", "owner_production"].includes(selected.status) && selected.executionMode !== "owner_led" && <section className="creative-delegation-gate"><header><span>تفويض بعد الفكرة</span><h3>ما الذي سينفذه المتعاون تحت اتجاهك؟</h3></header><label>نطاق التفويض<textarea rows="4" value={selected.delegationScope} onChange={(event) => updateOrder(selected.id, { delegationScope: event.target.value })} placeholder="مثال: تطبيق الاتجاه على 8 مقاسات وتجهيز ملفات الإنتاج، من دون تعديل الفكرة أو النظام البصري" /></label><div className="work-order-form-section"><div><strong>اختر المنفذين</strong><small>يمكنك أن تبقى مشاركاً في التنفيذ مع أكثر من متعاون.</small></div><div className="work-order-assignee-checks">{collaborators.map((name, index) => <label className={selected.assignees.includes(name) ? "selected" : ""} key={name}><input type="checkbox" checked={selected.assignees.includes(name)} onChange={() => toggleAssignee(name)} /><span>{name.slice(0, 1)}</span><b>{name}</b><small>{team[index].role}</small></label>)}</div></div><button className="button primary" onClick={dispatch}><PaperPlaneTilt size={18} /> إرسال الجزء الإنتاجي المحدد</button></section>}
+
+      {selected.status === "owner_production" && <section className="owner-proof-station"><div><span>عملك الإبداعي</span><h3>احفظ البروفة ثم مررها على بوابة قرارك</h3><p>حتى عندما تنفذ بنفسك، يبقى هناك توقف مقصود قبل وصول النتيجة للعميل.</p></div><label>ملف البروفة<input type="file" onChange={(event) => setOwnerProofFile(event.target.files?.[0] || null)} /></label><label>ملاحظتك على البروفة<textarea rows="3" value={ownerProofNote} onChange={(event) => setOwnerProofNote(event.target.value)} placeholder="ما الذي حققته؟ وما الذي تريد مراجعته بعين المدير الإبداعي؟" /></label><button className="button primary" disabled={!ownerProofFile} onClick={submitOwnerProof}><FileArrowUp size={18} /> حفظ في بوابة القرار</button></section>}
+
+      {selected.status === "internal_review" && <section className="work-order-proof-gate"><div><span>توقف المدير الإبداعي</span><h3>{selected.proof?.title}</h3><p>{selected.proof?.note}</p></div><button className="button ghost" onClick={() => onToast("تم فتح بروفة التجربة")}>فتح ملف البروفة</button><label>ملاحظة القرار<textarea rows="3" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder="طور الفكرة أكثر، أو سجل سبب جاهزيتها للعميل" /></label><div className="live-actions"><button className="button ghost" onClick={() => reviewProof("changes_requested")}>{selected.executionMode === "owner_led" ? "إعادتها لمساحة تنفيذي" : "طلب تعديل من المنفذ"}</button><button className="button primary" onClick={() => reviewProof("approved")}><Check size={17} /> {selected.clientApproval ? "اعتماد وإرسال للعميل" : "اعتماد وإنهاء العمل"}</button></div></section>}
+
+      <section className="work-order-room-columns"><div><div className="work-order-section-title"><div><h3>المراجع والملفات</h3><p>بحثك ومصادرك وبروفات هذا العمل.</p></div><label className="button ghost small upload-button">إرفاق ملف <FileArrowUp size={16} /><input type="file" onChange={(event) => addFile(event.target.files?.[0])} /></label></div><div className="work-order-file-list">{selected.files.map((file) => <button key={file} onClick={() => onToast(`تم فتح ${file}`)}><FileText size={19} /><span><strong>{file}</strong><small>ملف داخل المساحة</small></span><ArrowLeft size={16} /></button>)}</div></div>{selected.dispatched ? <div><div className="work-order-section-title"><div><h3>غرفة التنفيذ</h3><p>أنت تقود النقاش، والمتعاون ينفذ النطاق المحدد.</p></div></div><div className="work-order-thread">{selected.messages.map((item) => <article className={`${item.author === "عبد الوهاب" ? "mine" : ""} ${item.system ? "system" : ""} ${item.decision ? "decision" : ""}`} key={item.id}><header><strong>{item.author}</strong><time>{item.at}</time></header><p>{item.body}</p></article>)}</div><form className="work-order-composer" onSubmit={addMessage}><textarea rows="3" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="اكتب قراراً أو توجيهاً تنفيذياً" /><div><span /><button className="button primary small" type="submit">إرسال</button></div></form></div> : <div className="creative-private-journal"><LockKey size={25} /><h3>لا توجد غرفة فريق</h3><p>هذا العمل ما زال بقيادتك وتنفيذك. دفتر عبد الوهاب أعلاه هو مكان الملاحظات الخاصة.</p></div>}</section>
+      {selected.dispatched && <button className="text-link work-order-preview-link" onClick={() => setRole("collaborator")}>معاينة نطاق التنفيذ لدى المتعاون <ArrowLeft size={16} /></button>}
+    </section></section>}
+  </div>;
 }
 
 function TeamView({ scenario, setRole }) {
   return (
     <div className="dashboard-content page-stack">
-      <div className="page-title"><div><h1>فريق العمل</h1><p>توزيع عادل يظهر المتاح قبل أن يتحول الضغط إلى تأخير.</p></div><button className="button primary"><Plus size={18} /> دعوة متعاون</button></div>
-      {scenario.step >= 7 && <section className="panel scenario-team-task"><span className="person-avatar tone-1">{scenario.collaborator.name.slice(0, 1)}</span><div><span className="scenario-live-label"><Sparkle size={13} weight="fill" /> مهمة المشروع التجريبي</span><strong>{scenario.collaborator.task}</strong><small>{scenario.project.name}، التسليم {scenario.collaborator.due}</small></div><span className="status-badge">{scenario.step === 7 ? scenario.proof.revisionNote ? "تعديل مطلوب" : "قيد التنفيذ" : "تم رفع البروفة"}</span>{scenario.step === 7 && <button className="button primary small" onClick={() => setRole("collaborator")}>معاينة المتعاون</button>}</section>}
+      <div className="page-title"><div><h1>المتعاونون الاختياريون</h1><p>دليل للمساعدة الإنتاجية عند الحاجة. لا يبدأ أي تكليف من هنا ولا يشارك أحد في بناء فكرتك تلقائياً.</p></div><button className="button primary"><Plus size={18} /> دعوة متعاون</button></div>
+      {scenario.step >= 7 && scenario.creative?.executionMode !== "owner_led" && <section className="panel scenario-team-task"><span className="person-avatar tone-1">{scenario.collaborator.name.slice(0, 1)}</span><div><span className="scenario-live-label"><Sparkle size={13} weight="fill" /> تنفيذ إنتاجي مفوض</span><strong>{scenario.collaborator.task}</strong><small>الاتجاه الإبداعي من عبد الوهاب، التسليم {scenario.collaborator.due}</small></div><span className="status-badge">{scenario.step === 7 ? "قيد التنفيذ" : "تم رفع البروفة"}</span>{scenario.step === 7 && <button className="button primary small" onClick={() => setRole("collaborator")}>معاينة المتعاون</button>}</section>}
       <section className="team-layout">
         <div className="panel team-list">
           {team.map((person, index) => (
@@ -1418,7 +1746,7 @@ function TeamView({ scenario, setRole }) {
             </article>
           ))}
         </div>
-        <aside className="capacity-card"><Target size={27} /><h2>السعة هذا الأسبوع</h2><strong>مريحة</strong><p>يمكنك قبول مشروع هوية صغير أو 5 طلبات تسويقية إضافية دون ضغط على الفريق.</p><button className="button inverted">فتح مخطط السعة</button></aside>
+        <aside className="capacity-card"><Target size={27} /><h2>سعتك الإبداعية هذا الأسبوع</h2><strong>محكومة بوقت التركيز</strong><p>يحسب النظام قدرتك من جلسات البحث والتصميم والقرارات، لا من عدد المتعاونين المتاحين.</p><button className="button inverted">فتح مخطط وقتي</button></aside>
       </section>
     </div>
   );
@@ -1471,7 +1799,7 @@ function SystemCenterView({ access }) {
       {readiness.map((item) => <article key={item.label} className={item.ready ? "ready" : "pending"}><span>{item.ready ? <Check size={18} weight="bold" /> : <Clock size={18} />}</span><div><strong>{item.label}</strong><p>{item.description}</p></div><small>{item.ready ? "جاهز" : "بانتظار الربط"}</small></article>)}
     </section>
     <section className="system-columns">
-      <div className="panel system-security"><div className="panel-heading"><div><h2>الحماية المطبقة</h2><p>القواعد موجودة داخل قاعدة البيانات وليست مجرد إخفاء عناصر الواجهة.</p></div><LockKey size={24} /></div><div className="security-points"><span><ShieldCheck size={19} /><strong>المالك والمدير</strong><small>إدارة التشغيل والمستندات والفريق</small></span><span><ShieldCheck size={19} /><strong>العميل</strong><small>مشاريعه وفواتيره والملفات المنشورة له فقط</small></span><span><ShieldCheck size={19} /><strong>المتعاون</strong><small>المهام المسندة وملفات العمل دون مالية العميل</small></span><span><ShieldCheck size={19} /><strong>المحاسب</strong><small>الفواتير والمطالبات دون صلاحيات الموقع</small></span></div></div>
+      <div className="panel system-security"><div className="panel-heading"><div><h2>الحماية المطبقة</h2><p>القواعد موجودة داخل قاعدة البيانات وليست مجرد إخفاء عناصر الواجهة.</p></div><LockKey size={24} /></div><div className="security-points"><span><ShieldCheck size={19} /><strong>عبد الوهاب، المالك والمدير الإبداعي</strong><small>الفكرة والاتجاه والتنفيذ وإدارة التشغيل والمستندات</small></span><span><ShieldCheck size={19} /><strong>العميل</strong><small>مشاريعه وفواتيره والملفات المنشورة له فقط</small></span><span><ShieldCheck size={19} /><strong>المتعاون</strong><small>الجزء الإنتاجي المفوض وملفاته دون مسودات الفكرة أو مالية العميل</small></span><span><ShieldCheck size={19} /><strong>المحاسب</strong><small>الفواتير والمطالبات دون صلاحيات الموقع</small></span></div></div>
       <aside className="panel launch-next"><Target size={27} /><h2>الخطوة التشغيلية التالية</h2>{platformConfig.configured ? <><strong>{authReady ? "اختبار حسابات حقيقية" : "إنشاء أول حساب مالك"}</strong><p>{authReady ? "أنشئ حساب عميل ومتعاون، ثم نفذ مشروع قبول قبل فتح الطلبات العامة." : "سجل المستخدم في Supabase، ثم اربطه بعضوية owner داخل مساحة U89."}</p></> : <><strong>إنشاء مشروع Supabase</strong><p>طبق ملف الترحيل، أضف مفاتيح المتصفح والخادم إلى Vercel، ثم أعد النشر.</p></>}<div className="launch-file-list"><span><FileText size={18} /> supabase/migrations</span><span><FileText size={18} /> .env.example</span><span><FileText size={18} /> vercel.json</span></div></aside>
     </section>
     {connection?.error && <div className="system-error"><ShieldCheck size={20} /><div><strong>تفصيل الفحص</strong><p>{connection.error}</p></div></div>}
@@ -1487,9 +1815,9 @@ function ProjectDrawer({ project, onClose, onToast }) {
         <div className="drawer-title"><div><small>{project.type}</small><h2>{project.name}</h2><p>{project.client}</p></div><span className="status-badge">{project.status}</span></div>
         <StageTrack current={project.stage} />
         <div className="drawer-tabs"><button className={tab === "overview" ? "active" : ""} onClick={() => setTab("overview")}>الملخص</button><button className={tab === "proofs" ? "active" : ""} onClick={() => setTab("proofs")}>البروفات</button><button className={tab === "finance" ? "active" : ""} onClick={() => setTab("finance")}>المالية</button></div>
-        {tab === "overview" && <div className="drawer-content"><div className="next-decision"><Target size={24} /><span><small>القرار التالي</small><strong>{project.next}</strong><p>بعد الاعتماد ستصل المهمة تلقائياً إلى المسؤول التالي.</p></span></div><div className="drawer-facts"><div><small>موعد القرار</small><strong>{project.due}</strong></div><div><small>قيمة المشروع</small><strong>{project.value}</strong></div><div><small>المسؤول</small><strong>ريم السالم</strong></div><div><small>آخر تحديث</small><strong>منذ 32 دقيقة</strong></div></div><button className="button primary full" onClick={() => onToast("تم إرسال البروفة إلى العميل")}>إرسال البروفة للعميل</button></div>}
-        {tab === "proofs" && <div className="drawer-content"><div className="proof-version"><img src={project.image} alt={`البروفة الثانية لمشروع ${project.name}`} /><div><strong>البروفة الثانية</strong><small>رفعتها ريم اليوم، 9:26 ص</small></div><span className="status-badge">جاهزة للإرسال</span></div><div className="comment-box"><strong>ملاحظة داخلية</strong><p>تم توحيد لون العبوة مع تطبيقات الواجهة. النسخة مناسبة للعرض.</p></div><button className="button primary full" onClick={() => onToast("تم إرسال البروفة إلى العميل")}>إرسال البروفة للعميل</button></div>}
-        {tab === "finance" && <div className="drawer-content"><div className="drawer-facts"><div><small>قيمة العقد</small><strong>{project.value}</strong></div><div><small>المحصل</small><strong>50%</strong></div><div><small>تكلفة الفريق</small><strong>2,800 ر.س</strong></div><div><small>صافي متوقع</small><strong>6,450 ر.س</strong></div></div><div className="comment-box"><strong>الفاتورة التالية</strong><p>تُنشأ تلقائياً عند اعتماد البروفة النهائية.</p></div></div>}
+        {tab === "overview" && <div className="drawer-content"><div className="next-decision"><Target size={24} /><span><small>قرارك الإبداعي التالي</small><strong>{project.next}</strong><p>يبقى المسار لديك. لا ينتقل العمل إلى أي شخص إلا إذا اخترت لاحقاً تفويض نطاق إنتاجي.</p></span></div><div className="drawer-facts"><div><small>موعد القرار</small><strong>{project.due}</strong></div><div><small>قيمة المشروع</small><strong>{project.value}</strong></div><div><small>المدير الإبداعي والمصمم</small><strong>عبد الوهاب السويد</strong></div><div><small>آخر تحديث</small><strong>منذ 32 دقيقة</strong></div></div><button className="button primary full" onClick={() => onToast("تم إرسال البروفة إلى العميل")}>إرسال البروفة للعميل</button></div>}
+        {tab === "proofs" && <div className="drawer-content"><div className="proof-version"><img src={project.image} alt={`البروفة الثانية لمشروع ${project.name}`} /><div><strong>البروفة الثانية</strong><small>حفظها عبد الوهاب اليوم، 9:26 ص</small></div><span className="status-badge">جاهزة لقرارك</span></div><div className="comment-box"><strong>ملاحظة عبد الوهاب</strong><p>وحّدت لون العبوة مع تطبيقات الواجهة، وأراجع الآن جاهزية النسخة للعرض.</p></div><button className="button primary full" onClick={() => onToast("تم إرسال البروفة إلى العميل")}>إرسال البروفة للعميل</button></div>}
+        {tab === "finance" && <div className="drawer-content"><div className="drawer-facts"><div><small>قيمة العقد</small><strong>{project.value}</strong></div><div><small>المحصل</small><strong>50%</strong></div><div><small>تكلفة تنفيذ مفوض</small><strong>لا يوجد</strong></div><div><small>الصافي قبل المصروفات</small><strong>يحسب آلياً</strong></div></div><div className="comment-box"><strong>الفاتورة التالية</strong><p>تُنشأ تلقائياً عند اعتماد البروفة النهائية.</p></div></div>}
       </aside>
     </div>
   );
@@ -1680,8 +2008,8 @@ function CaptureModal({ onClose, onAdd }) {
   return (
     <Modal title="التقاط سريع" onClose={onClose} size="compact">
       <form className="capture-form" onSubmit={submit}>
-        <label>ما الذي لا تريد حمله في ذهنك؟<textarea autoFocus rows="3" value={text} onChange={(event) => setText(event.target.value)} placeholder="مثال: راجع أسماء الحملة مع سارة غداً" /></label>
-        <div><small>سيصل إلى صندوقك لتحديد المشروع والمسؤول لاحقاً.</small><button className="button primary" type="submit">حفظ <ArrowLeft size={17} /></button></div>
+        <label>ما الذي لا تريد حمله في ذهنك؟<textarea autoFocus rows="3" value={text} onChange={(event) => setText(event.target.value)} placeholder="مثال: اختبر اسم الحملة غداً قبل تثبيت الاتجاه" /></label>
+        <div><small>سيصل إلى صندوقك لتحديد المشروع والمرحلة الإبداعية لاحقاً.</small><button className="button primary" type="submit">حفظ <ArrowLeft size={17} /></button></div>
       </form>
     </Modal>
   );
@@ -1690,7 +2018,7 @@ function CaptureModal({ onClose, onAdd }) {
 function Sidebar({ section, setSection, onSite }) {
   return (
     <aside className="sidebar">
-      <div className="sidebar-top"><Logo onClick={onSite} /><span className="workspace-label">مساحة الإدارة</span></div>
+      <div className="sidebar-top"><Logo onClick={onSite} /><span className="workspace-label">استوديو عبد الوهاب</span></div>
       <nav aria-label="أقسام الإدارة">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -1699,7 +2027,7 @@ function Sidebar({ section, setSection, onSite }) {
       </nav>
       <div className="sidebar-card"><Sparkle size={21} weight="fill" /><strong>وضع التركيز</strong><p>يعرض لك قراراً واحداً فقط، ويؤجل البقية حتى تنتهي.</p><button>ابدأ 25 دقيقة</button></div>
       <button className="back-to-site" onClick={onSite}><House size={19} /> الموقع التعريفي</button>
-      <div className="profile-mini"><span>ع</span><div><strong>عبد الوهاب السويد</strong><small>مالك الاستوديو</small></div><CaretDown size={15} /></div>
+      <div className="profile-mini"><span>ع</span><div><strong>عبد الوهاب السويد</strong><small>المدير الإبداعي والمصمم</small></div><CaretDown size={15} /></div>
     </aside>
   );
 }
@@ -1710,7 +2038,7 @@ function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExi
       {canPreview ? <>
         <button className="mobile-brand" onClick={onExit} aria-label="العودة للموقع التعريفي"><Logo compact /></button>
         {!connected && <div className="role-switch" aria-label="معاينة صلاحيات المستخدمين">
-          <button className={role === "owner" ? "active" : ""} onClick={() => setRole("owner")}>الإدارة</button>
+          <button className={role === "owner" ? "active" : ""} onClick={() => setRole("owner")}>عبد الوهاب</button>
           <button className={role === "client" ? "active" : ""} onClick={() => setRole("client")}>معاينة العميل</button>
           <button className={role === "collaborator" ? "active" : ""} onClick={() => setRole("collaborator")}>معاينة المتعاون</button>
         </div>}
@@ -1730,6 +2058,7 @@ function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast,
   if (liveData && !["studio-settings", "site-admin", "system"].includes(section)) return <LiveOwnerSection section={section} data={liveData} access={platformAccess} refresh={onRefreshLiveData} onToast={onToast} setSection={setSection} ownerName={siteContent.ownerNameAr} />;
   if (section === "scenario") return <ScenarioCenter scenario={scenario} onReset={onScenarioReset} setSection={setSection} setRole={setRole} />;
   if (section === "projects") return <ProjectsView onProject={onProject} scenario={scenario} onAdvance={onScenarioAdvance} onToast={onToast} />;
+  if (section === "work-orders") return <WorkOrdersView scenario={scenario} setRole={setRole} onToast={onToast} onAdvance={onScenarioAdvance} />;
   if (section === "requests") return <RequestsView onToast={onToast} setSection={setSection} setRole={setRole} scenario={scenario} onAdvance={onScenarioAdvance} />;
   if (section === "briefs") return <BriefsView settings={siteContent} onToast={onToast} setSection={setSection} setRole={setRole} scenario={scenario} onAdvance={onScenarioAdvance} />;
   if (section === "documents") return <DocumentsView settings={siteContent} onToast={onToast} scenario={scenario} onAdvance={onScenarioAdvance} onPatch={onScenarioPatch} />;
@@ -1772,9 +2101,9 @@ function ClientPortal({ onToast, scenario, onAdvance, onPatch }) {
   if (step === 3) actionContent = <div className="portal-wait-state"><FileText size={36} /><h2>يُجهز عرض السعر</h2><p>اعتمد البريف، ويجري الآن تثبيت القيمة والدفعات قبل الإرسال.</p></div>;
   if (step === 4) actionContent = <div className="client-document-action"><div className="portal-action-heading"><div><span>يحتاج موافقتك</span><h2>عرض السعر {scenario.quote.id}</h2><p>راجع النطاق والقيمة وخطة الدفعات.</p></div><span className="status-badge">صالح {scenario.quote.validityDays} أيام</span></div><article className="client-quote-sheet"><small>{scenario.project.service}</small><h3>{scenario.project.name}</h3><p>{scenario.quote.scope}</p><div className="client-quote-total"><span>القيمة الإجمالية</span><strong>{Number(scenario.quote.amount).toLocaleString("en-US")} {scenario.quote.currency}</strong></div><div className="preview-payments"><span><b>50%</b><small>دفعة أولى</small></span><span><b>50%</b><small>قبل التسليم</small></span></div></article><button className="button primary" onClick={() => { onAdvance(5, `اعتمدت ${scenario.client.name} عرض السعر`); onToast("تم اعتماد العرض وتجهيز العقد للتوقيع"); }}>اعتماد العرض <Check size={18} /></button></div>;
   if (step === 5) actionContent = <div className="client-document-action"><div className="portal-action-heading"><div><span>التوقيع الإلكتروني التجريبي</span><h2>عقد تقديم الخدمات {scenario.contract.id}</h2><p>نطاق العرض المعتمد وخطة الدفع مرتبطان بهذا العقد.</p></div></div><div className="client-contract-clauses"><p>يبدأ التنفيذ بعد توقيع الطرفين واستلام الدفعة الأولى.</p><p>تقدم البروفة الأولى خلال 14 يوم عمل، والتعديل خلال 7 أيام عمل.</p><p>تنتقل حقوق استخدام المخرجات النهائية بعد سداد كامل المستحقات.</p><p>تثبت المخرجات والاستثناءات في هذا العقد قبل بدء العمل.</p></div><label className="consent-field"><input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} /><span>قرأت البنود وأوافق على توقيع العقد باسم {scenario.client.company}.</span></label><button className="button primary" disabled={!agreed} onClick={() => { onAdvance(6, `وقعت ${scenario.client.name} العقد`, { contract: { ...scenario.contract, signedAt: "الآن" } }); onToast("تم توقيع العقد وإصدار فاتورة الدفعة الأولى"); }}>توقيع العقد <Check size={18} /></button></div>;
-  if (step === 6) actionContent = <div className="client-payment-action"><Receipt size={34} /><span>فاتورة غير ضريبية</span><h2>الدفعة الأولى</h2><strong>{amount} {scenario.quote.currency}</strong><p>بعد السداد يبدأ المشروع وتظهر المهمة في مساحة المتعاون.</p><button className="button primary" onClick={() => { onAdvance(7, `سددت ${scenario.client.name} الدفعة الأولى`, { payments: { ...scenario.payments, first: true } }); onToast("تم تسجيل الدفعة وفتح مرحلة التنفيذ"); }}>محاكاة السداد الآمن <ArrowLeft size={18} /></button></div>;
-  if (step === 7) actionContent = <div className="portal-wait-state"><UserFocus size={36} /><h2>{scenario.proof.revisionNote ? "التعديل لدى الفريق" : "بدأ التنفيذ"}</h2><p>{scenario.proof.revisionNote ? `ملاحظة التعديل: ${scenario.proof.revisionNote}` : `تعمل ${scenario.collaborator.name} على البروفة الأولى، وسيصلك إشعار عند رفعها.`}</p></div>;
-  if (step === 8) actionContent = <div className="client-proof-action"><div className="portal-action-heading"><div><span>يحتاج قرارك</span><h2>البروفة رقم {scenario.proof.version}</h2><p>راجع الاتجاه البصري ودوّن قراراً واحداً واضحاً.</p></div></div><img src="/work-mandi.jpg" alt={`بروفة ${scenario.project.name}`} /><label>ملاحظة التعديل<textarea rows="3" value={proofNote} onChange={(event) => setProofNote(event.target.value)} placeholder="اكتب ملاحظة محددة عند طلب التعديل" /></label><div><button className="button ghost" disabled={!proofNote.trim()} onClick={() => { onAdvance(7, `طلبت ${scenario.client.name} تعديلاً على البروفة`, { proof: { ...scenario.proof, status: "تعديل مطلوب", revisionNote: proofNote, version: scenario.proof.version + 1 } }); onToast("وصل طلب التعديل إلى مساحة المتعاون"); }}>طلب تعديل</button><button className="button primary" onClick={() => { onAdvance(9, `اعتمدت ${scenario.client.name} البروفة`, { proof: { ...scenario.proof, status: "معتمدة", revisionNote: "" } }); onToast("تم اعتماد البروفة وإصدار الدفعة الأخيرة"); }}>اعتماد البروفة <Check size={18} /></button></div></div>;
+  if (step === 6) actionContent = <div className="client-payment-action"><Receipt size={34} /><span>فاتورة غير ضريبية</span><h2>الدفعة الأولى</h2><strong>{amount} {scenario.quote.currency}</strong><p>بعد السداد يبدأ عبد الوهاب مرحلة البحث وبناء الفكرة والاتجاه الإبداعي.</p><button className="button primary" onClick={() => { onAdvance(7, `سددت ${scenario.client.name} الدفعة الأولى`, { payments: { ...scenario.payments, first: true } }); onToast("تم تسجيل الدفعة وفتح المعمل الإبداعي لعبد الوهاب"); }}>محاكاة السداد الآمن <ArrowLeft size={18} /></button></div>;
+  if (step === 7) actionContent = <div className="portal-wait-state"><UserFocus size={36} /><h2>{scenario.proof.revisionNote ? "يطور عبد الوهاب البروفة" : "العمل في المعمل الإبداعي"}</h2><p>{scenario.proof.revisionNote ? `ملاحظة المراجعة الداخلية: ${scenario.proof.revisionNote}` : "يبني عبد الوهاب الفكرة والاتجاه البصري ويصمم البروفة الأولى. لن يصلك إلا ما اعتمده هو بنفسه."}</p></div>;
+  if (step === 8) actionContent = <div className="client-proof-action"><div className="portal-action-heading"><div><span>يحتاج قرارك</span><h2>البروفة رقم {scenario.proof.version}</h2><p>راجع الاتجاه البصري ودوّن قراراً واحداً واضحاً.</p></div></div><img src="/work-mandi.jpg" alt={`بروفة ${scenario.project.name}`} /><label>ملاحظة التعديل<textarea rows="3" value={proofNote} onChange={(event) => setProofNote(event.target.value)} placeholder="اكتب ملاحظة محددة عند طلب التعديل" /></label><div><button className="button ghost" disabled={!proofNote.trim()} onClick={() => { onAdvance(7, `طلبت ${scenario.client.name} تعديلاً على البروفة`, { proof: { ...scenario.proof, status: "تعديل مطلوب", revisionNote: proofNote, version: scenario.proof.version + 1 } }); onToast("وصل طلب التعديل إلى معمل عبد الوهاب الإبداعي"); }}>طلب تعديل</button><button className="button primary" onClick={() => { onAdvance(9, `اعتمدت ${scenario.client.name} البروفة`, { proof: { ...scenario.proof, status: "معتمدة", revisionNote: "" } }); onToast("تم اعتماد البروفة وإصدار الدفعة الأخيرة"); }}>اعتماد البروفة <Check size={18} /></button></div></div>;
   if (step === 9) actionContent = <div className="client-payment-action"><Receipt size={34} /><span>فاتورة غير ضريبية</span><h2>الدفعة الأخيرة</h2><strong>{amount} {scenario.quote.currency}</strong><p>بعد السداد يجهز عبد الوهاب حزمة الملفات النهائية.</p><button className="button primary" onClick={() => { onAdvance(10, `سددت ${scenario.client.name} الدفعة الأخيرة`, { payments: { ...scenario.payments, final: true } }); onToast("تم تسجيل السداد وأصبح المشروع جاهزاً للتسليم"); }}>محاكاة السداد الآمن <ArrowLeft size={18} /></button></div>;
   if (step === 10) actionContent = <div className="portal-wait-state"><FolderOpen size={36} /><h2>تُجهز حزمة التسليم</h2><p>اكتملت الدفعات، ويجري الآن فحص الملفات وتنظيمها قبل فتحها لك.</p></div>;
   if (step === 11) actionContent = <div className="client-delivery-action"><CheckCircle size={38} weight="fill" /><span>التسليم النهائي جاهز</span><h2>حزمة الملفات النهائية</h2><p>{scenario.project.name}</p><div><button onClick={() => onToast("تم تنزيل ملف دليل الهوية التجريبي")}><FileText size={22} /><span><strong>دليل الهوية.pdf</strong><small>PDF، 18.4 MB</small></span><ArrowLeft size={17} /></button><button onClick={() => onToast("تم تنزيل حزمة الملفات التجريبية")}><FolderOpen size={22} /><span><strong>ملفات الهوية النهائية.zip</strong><small>ZIP، 126 MB</small></span><ArrowLeft size={17} /></button></div><button className="button primary" onClick={() => { onAdvance(12, `أكدت ${scenario.client.name} استلام الملفات`, { delivery: { released: true, received: true } }); onToast("تم تأكيد الاستلام وجدولة المتابعة"); }}>تأكيد الاستلام <Check size={18} /></button></div>;
@@ -1785,37 +2114,63 @@ function ClientPortal({ onToast, scenario, onAdvance, onPatch }) {
     <section className="portal-welcome"><div><small>مرحباً، {scenario.client.name}</small><h1>{scenario.project.name}</h1><p>{scenario.project.service} مع عبد الوهاب السويد.</p></div><span className="status-badge">{scenarioMilestones[Math.min(step, 13)].label}</span></section>
     <section className="portal-project-progress"><StageTrack current={scenarioToProjectStage(step)} /><div><span>التقدم</span><strong>{Math.min(step, 13)} من 13</strong></div></section>
     <section className="panel client-current-action">{actionContent}</section>
-    <section className="client-columns scenario-client-columns"><div className="panel timeline-panel"><div className="panel-heading"><div><h2>سجل المشروع</h2><p>آخر الإجراءات المشتركة بينك وبين الفريق.</p></div></div><div className="client-timeline">{scenario.activity.slice(0, 5).map((item, index) => <div className="done" key={`${item.label}-${index}`}><CheckCircle size={19} weight="fill" /><span><strong>{item.label}</strong><small>{item.actor}، {item.at}</small></span></div>)}</div></div><div className="panel client-files"><div className="panel-heading"><div><h2>المستندات</h2><p>تظهر تلقائياً عند بلوغ مرحلتها.</p></div></div>{step >= 2 && <button><List size={22} /><span><strong>البريف</strong><small>{step >= 3 ? "معتمد" : "بانتظار المراجعة"}</small></span><CheckCircle size={18} weight="fill" /></button>}{step >= 4 && <button><FileText size={22} /><span><strong>عرض السعر</strong><small>{step >= 5 ? "معتمد" : "بانتظار قرارك"}</small></span>{step >= 5 && <CheckCircle size={18} weight="fill" />}</button>}{step >= 6 && <button><Handshake size={22} /><span><strong>العقد</strong><small>موقع إلكترونياً</small></span><CheckCircle size={18} weight="fill" /></button>}</div></section>
+    <section className="client-columns scenario-client-columns"><div className="panel timeline-panel"><div className="panel-heading"><div><h2>سجل المشروع</h2><p>آخر الإجراءات المشتركة بينك وبين عبد الوهاب.</p></div></div><div className="client-timeline">{scenario.activity.slice(0, 5).map((item, index) => <div className="done" key={`${item.label}-${index}`}><CheckCircle size={19} weight="fill" /><span><strong>{item.label}</strong><small>{item.actor}، {item.at}</small></span></div>)}</div></div><div className="panel client-files"><div className="panel-heading"><div><h2>المستندات</h2><p>تظهر تلقائياً عند بلوغ مرحلتها.</p></div></div>{step >= 2 && <button><List size={22} /><span><strong>البريف</strong><small>{step >= 3 ? "معتمد" : "بانتظار المراجعة"}</small></span><CheckCircle size={18} weight="fill" /></button>}{step >= 4 && <button><FileText size={22} /><span><strong>عرض السعر</strong><small>{step >= 5 ? "معتمد" : "بانتظار قرارك"}</small></span>{step >= 5 && <CheckCircle size={18} weight="fill" />}</button>}{step >= 6 && <button><Handshake size={22} /><span><strong>العقد</strong><small>موقع إلكترونياً</small></span><CheckCircle size={18} weight="fill" /></button>}</div></section>
   </div>;
 }
 
 function CollaboratorPortal({ onToast, scenario, onAdvance }) {
-  const deliver = () => {
-    if (scenario.step !== 7) return;
-    onAdvance(8, `رفعت ${scenario.collaborator.name} البروفة رقم ${scenario.proof.version}`, { proof: { ...scenario.proof, status: "بانتظار العميل", revisionNote: "" } });
-    onToast("تم رفع البروفة وظهرت فوراً في بوابة العميل");
+  const [orders, setOrders] = usePersistentState("u89-work-orders", initialWorkOrders);
+  const visible = orders.filter((item) => item.dispatched && item.assignees.includes(scenario.collaborator.name));
+  const [selectedId, setSelectedId] = useState(visible[0]?.id || "");
+  const [message, setMessage] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+  const [proofNote, setProofNote] = useState("");
+  const selectedSource = visible.find((item) => item.id === selectedId) || visible[0];
+  const selected = selectedSource ? { creativeCore: "", creativeRationale: "", delegationScope: "", ...selectedSource } : null;
+  const updateOrder = (id, patch) => setOrders((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  useEffect(() => {
+    if (scenario.step !== 7 || scenario.creative?.executionMode === "owner_led" || orders.some((item) => item.id === "WO-SCENARIO")) return;
+    const scenarioOrder = {
+      id: "WO-SCENARIO",
+      project: scenario.project.name,
+      title: scenario.collaborator.task,
+      description: scenario.quote.scope,
+      recommendations: "ابدئي من البريف المعتمد، وارفعي البروفة هنا لي قبل أي مشاركة مع العميل.",
+      priority: "عالية",
+      due: scenario.collaborator.due,
+      status: scenario.proof.revisionNote ? "changes_requested" : "in_progress",
+      dispatched: true,
+      clientApproval: true,
+      assignees: [scenario.collaborator.name],
+      files: ["البريف المعتمد.pdf", "حزمة المصادر.zip"],
+      messages: [{ id: "scenario-owner-message", author: "عبد الوهاب", body: "هذا طلب العمل الخاص بالبروفة. ارفعي النسخة هنا لأراجعها داخلياً أولاً.", at: "الآن" }],
+      proof: null,
+    };
+    setOrders((items) => [scenarioOrder, ...items]);
+    setSelectedId(scenarioOrder.id);
+  }, [orders, scenario, setOrders]);
+  if (!selected) return <div className="dashboard-content"><div className="empty-state"><LockKey size={34} /><h2>لا توجد طلبات موجهة لك</h2><p>المسودات لا تظهر هنا. سيصل الطلب بعد اختيارك وإرساله من عبد الوهاب.</p></div></div>;
+  const sendMessage = (event) => {
+    event.preventDefault();
+    if (!message.trim()) return;
+    updateOrder(selected.id, { messages: [...selected.messages, { id: `m-${Date.now()}`, author: scenario.collaborator.name, body: message.trim(), at: "الآن" }] });
+    setMessage("");
+    onToast("وصلت رسالتك إلى عبد الوهاب داخل طلب العمل");
   };
-  return (
-    <div className="dashboard-content page-stack collaborator-page">
-      <section className="collaborator-head"><div><small>مساحتك اليوم</small><h1>مرحباً {scenario.collaborator.name.split(" ")[0]}، لديك مهمة واحدة الآن.</h1><p>ترى المطلوب والموعد والملفات فقط، من دون معلومات العميل المالية.</p></div><div><Clock size={27} /><span>موعد المهمة<strong>{scenario.collaborator.due}</strong></span></div></section>
-      <section className="collaborator-layout">
-        <div className="task-stack">
-          <article className="task-card active scenario-collaborator-task">
-            <div className="task-index">1</div>
-            <div className="task-copy"><span>{scenario.project.name}</span><h2>{scenario.collaborator.task}</h2><p><CalendarBlank size={17} /> {scenario.collaborator.due}</p>{scenario.proof.revisionNote && <blockquote>{scenario.proof.revisionNote}</blockquote>}</div>
-            <span className={`task-status ${scenario.step > 7 ? "done" : ""}`}>{scenario.step < 7 ? "لم تبدأ" : scenario.step === 7 ? scenario.proof.revisionNote ? "تعديل مطلوب" : "جاهزة للرفع" : "تم الرفع"}</span>
-            <div className="task-actions">
-              {scenario.step === 7 && <><label className="button ghost upload-button">اختيار ملف <FileArrowUp size={18} /><input type="file" onChange={deliver} /></label><button className="button primary" onClick={deliver}>رفع بروفة تجريبية <ArrowLeft size={18} /></button></>}
-              {scenario.step > 7 && <span className="collaborator-delivered"><CheckCircle size={28} weight="fill" /> ينتظر قرار العميل</span>}
-              {scenario.step < 7 && <span className="collaborator-locked"><LockKey size={20} /> تفتح بعد العقد والدفعة الأولى</span>}
-            </div>
-          </article>
-          <article className="task-card muted-task"><div className="task-index">2</div><div className="task-copy"><span>أصناف</span><h2>قوالب منشورات العودة</h2><p><CalendarBlank size={17} /> غداً، 11:00 ص</p></div><span className="task-status">لاحقاً</span></article>
-        </div>
-        <aside className="brief-card"><div><FileText size={24} /><span><strong>ملخص المهمة الحالية</strong><small>من البريف المعتمد</small></span></div><h3>المطلوب</h3><p>{scenario.quote.scope}</p><h3>الهدف</h3><p>{scenario.briefAnswers.main_goal || scenario.project.goal}</p><h3>ملفات المصدر</h3><button onClick={() => onToast("تم فتح حزمة المصادر التجريبية")}><FolderOpen size={18} /> حزمة المشروع <ArrowLeft size={16} /></button><h3>التسليم</h3><p>ملف PDF للعرض وملفات المصدر المنظمة. لا حاجة لإرسالها عبر واتساب.</p></aside>
-      </section>
-    </div>
-  );
+  const deliver = () => {
+    if (!proofFile) { onToast("اختر ملف البروفة أولاً"); return; }
+    updateOrder(selected.id, {
+      status: "internal_review",
+      files: [...selected.files, proofFile.name],
+      proof: { title: proofFile.name, status: "internal_review", note: proofNote || "بروفة جديدة للمراجعة الداخلية" },
+      messages: [...selected.messages, { id: `m-${Date.now()}`, author: scenario.collaborator.name, body: proofNote || "رفعت بروفة جديدة لاعتماد عبد الوهاب.", at: "الآن" }],
+    });
+    setProofFile(null);
+    setProofNote("");
+    onToast("وصلت البروفة إلى عبد الوهاب فقط، ولم تصل إلى العميل");
+  };
+  const statusLabel = { dispatched: "جديد لديك", in_progress: "قيد التنفيذ", internal_review: "لدى عبد الوهاب", changes_requested: "تعديل مطلوب", client_review: "اعتمد داخلياً", completed: "مكتمل" };
+  return <div className="dashboard-content page-stack collaborator-page collaborator-work-room"><section className="collaborator-head"><div><small>مساحة التنفيذ تحت قيادة عبد الوهاب</small><h1>مرحباً {scenario.collaborator.name.split(" ")[0]}، لديك {visible.length} نطاقات إنتاجية موجهة.</h1><p>الفكرة والاتجاه من عبد الوهاب. ترى فقط الجزء الذي اختار تفويضه لك، مع ملفاته ونقاشه.</p></div><select value={selected.id} onChange={(event) => setSelectedId(event.target.value)}>{visible.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></section><section className="collaborator-work-layout"><main><section className="panel collaborator-brief"><span>{selected.id}، {selected.project}</span><div className="collaborator-direction-owner"><small>المدير الإبداعي والمصمم</small><strong>عبد الوهاب بن سليمان السويد</strong></div><h2>{selected.title}</h2>{selected.creativeCore && <div className="collaborator-creative-core"><small>الفكرة التي تقود التنفيذ</small><strong>{selected.creativeCore}</strong><p>{selected.creativeRationale}</p></div>}<div className="delegated-scope"><small>نطاقك الإنتاجي المحدد</small><p>{selected.delegationScope || selected.description}</p></div>{selected.recommendations && <blockquote><strong>توجيه عبد الوهاب</strong>{selected.recommendations}</blockquote>}<div className="work-order-meta"><span><small>الأولوية</small><strong>{selected.priority}</strong></span><span><small>الموعد</small><strong>{selected.due}</strong></span><span><small>معك</small><strong>{selected.assignees.join("، ")}</strong></span></div>{selected.status === "dispatched" && <button className="button primary" onClick={() => updateOrder(selected.id, { status: "in_progress" })}>بدء الجزء الإنتاجي</button>}{selected.status === "internal_review" && <div className="form-note"><Clock size={18} /> البروفة لدى عبد الوهاب بانتظار قراره الإبداعي.</div>}{["client_review", "completed"].includes(selected.status) && <div className="form-note"><CheckCircle size={18} /> اعتمد عبد الوهاب البروفة {selected.status === "client_review" ? "وأرسلها للعميل." : "وأغلق التنفيذ."}</div>}</section><section className="panel collaborator-files"><div className="panel-heading"><div><h2>ملفات التنفيذ</h2><p>مراجع الاتجاه والملفات التي اختار عبد الوهاب مشاركتها معك.</p></div></div><div className="work-order-file-list">{selected.files.map((file) => <button key={file} onClick={() => onToast(`تم فتح ${file}`)}><FileText size={19} /><span><strong>{file}</strong><small>ملف داخل النطاق</small></span><ArrowLeft size={16} /></button>)}</div></section>{["dispatched", "in_progress", "changes_requested"].includes(selected.status) && <section className="panel collaborator-proof-upload"><span>تسليم داخلي</span><h2>ارفع التنفيذ لعبد الوهاب</h2><p>لا يصل للعميل مباشرة. يراجعه عبد الوهاب بصفته صاحب الفكرة والمدير الإبداعي.</p><label>ملف البروفة<input type="file" onChange={(event) => setProofFile(event.target.files?.[0] || null)} /></label><label>ملاحظة<textarea rows="3" value={proofNote} onChange={(event) => setProofNote(event.target.value)} /></label><button className="button primary" onClick={deliver}><FileArrowUp size={18} /> رفع للمراجعة الإبداعية</button></section>}</main><aside><section className="panel collaborator-thread-panel"><div className="panel-heading"><div><h2>النقاش مع عبد الوهاب</h2><p>مرتبط بالنطاق الذي فوضه لك فقط.</p></div></div><div className="work-order-thread">{selected.messages.map((item) => <article className={item.author === scenario.collaborator.name ? "mine" : ""} key={item.id}><header><strong>{item.author}</strong><time>{item.at}</time></header><p>{item.body}</p></article>)}</div><form className="work-order-composer" onSubmit={sendMessage}><textarea rows="4" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="اكتب سؤالك التنفيذي أو تحديثك" /><div><span /><button className="button primary small" type="submit">إرسال</button></div></form></section><section className="panel"><h2>حدود الدور</h2><p>لا ترى بحث عبد الوهاب الخاص أو عقود العميل وقيمة المشروع وفواتيره. تعمل داخل النطاق الإنتاجي الذي اختاره لك فقط.</p></section></aside></section></div>;
 }
 
 function MobileNav({ section, setSection }) {
@@ -1868,6 +2223,12 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
   }));
   const patchScenario = (patch) => onUpdateScenario((current) => ({ ...current, ...patch }));
   const resetScenario = () => {
+    try {
+      const savedOrders = JSON.parse(window.localStorage.getItem("u89-work-orders") || "[]");
+      window.localStorage.setItem("u89-work-orders", JSON.stringify(savedOrders.filter((item) => item.id !== "WO-SCENARIO")));
+    } catch {
+      window.localStorage.removeItem("u89-work-orders");
+    }
     onResetScenario();
     setRole("owner");
     setSection("scenario");

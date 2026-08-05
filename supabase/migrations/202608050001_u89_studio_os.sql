@@ -187,10 +187,65 @@ create table if not exists public.invoices (
   unique (workspace_id, reference)
 );
 
+create table if not exists public.work_orders (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  project_id uuid not null references public.projects(id) on delete cascade,
+  source_retainer_request_id uuid,
+  reference text not null default ('WO-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))),
+  title text not null,
+  description text not null,
+  owner_recommendations text,
+  creative_core text,
+  creative_rationale text,
+  creative_notes text,
+  delegation_scope text,
+  execution_mode text not null default 'owner_led' check (execution_mode in ('owner_led', 'delegated', 'collaborative')),
+  creative_stage text not null default 'exploration' check (creative_stage in ('exploration', 'concept', 'direction', 'production')),
+  priority text not null default 'normal' check (priority in ('low', 'normal', 'high', 'urgent')),
+  due_date date,
+  requires_client_approval boolean not null default false,
+  status text not null default 'draft' check (status in ('draft', 'creative_development', 'direction_ready', 'owner_production', 'dispatched', 'in_progress', 'internal_review', 'changes_requested', 'owner_approved', 'client_review', 'completed', 'cancelled')),
+  created_by uuid references auth.users(id) on delete set null,
+  dispatched_at timestamptz,
+  owner_approved_by uuid references auth.users(id) on delete set null,
+  owner_approved_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (workspace_id, reference)
+);
+
+create table if not exists public.work_order_assignees (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  work_order_id uuid not null references public.work_orders(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role_label text,
+  assigned_by uuid references auth.users(id) on delete set null,
+  assigned_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  unique (work_order_id, user_id)
+);
+
+create table if not exists public.work_order_messages (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  work_order_id uuid not null references public.work_orders(id) on delete cascade,
+  author_user_id uuid references auth.users(id) on delete set null,
+  author_label text not null,
+  body text not null,
+  message_type text not null default 'message' check (message_type in ('message', 'recommendation', 'decision', 'system')),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.collaborator_claims (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   project_id uuid not null references public.projects(id) on delete restrict,
+  work_order_id uuid references public.work_orders(id) on delete set null,
   collaborator_user_id uuid references auth.users(id) on delete set null,
   reference text not null default ('COL-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))),
   collaborator_name text not null,
@@ -282,6 +337,10 @@ create table if not exists public.retainer_requests (
   unique (workspace_id, reference)
 );
 
+alter table public.work_orders
+  add constraint work_orders_source_retainer_request_fk
+  foreign key (source_retainer_request_id) references public.retainer_requests(id) on delete set null;
+
 create table if not exists public.project_tasks (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -303,6 +362,7 @@ create table if not exists public.proofs (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   project_id uuid not null references public.projects(id) on delete cascade,
   task_id uuid references public.project_tasks(id) on delete set null,
+  work_order_id uuid references public.work_orders(id) on delete set null,
   version integer not null default 1,
   title text not null,
   note text,
@@ -320,6 +380,8 @@ create table if not exists public.project_files (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   project_id uuid not null references public.projects(id) on delete cascade,
+  work_order_id uuid references public.work_orders(id) on delete set null,
+  message_id uuid references public.work_order_messages(id) on delete set null,
   proof_id uuid references public.proofs(id) on delete set null,
   invoice_id uuid references public.invoices(id) on delete set null,
   category text not null default 'general' check (category in ('brief', 'source', 'proof', 'contract', 'invoice', 'delivery', 'general')),
@@ -403,6 +465,9 @@ create index if not exists clients_workspace_user_idx on public.clients(workspac
 create index if not exists requests_workspace_status_idx on public.service_requests(workspace_id, status, created_at desc);
 create index if not exists projects_workspace_client_idx on public.projects(workspace_id, client_id, status);
 create index if not exists tasks_workspace_assignee_idx on public.project_tasks(workspace_id, assignee_user_id, status);
+create index if not exists work_orders_workspace_project_idx on public.work_orders(workspace_id, project_id, status, created_at desc);
+create index if not exists work_order_assignees_user_idx on public.work_order_assignees(workspace_id, user_id, work_order_id);
+create index if not exists work_order_messages_order_idx on public.work_order_messages(work_order_id, created_at);
 create index if not exists invoices_workspace_status_idx on public.invoices(workspace_id, status, due_date);
 create index if not exists claims_workspace_user_idx on public.collaborator_claims(workspace_id, collaborator_user_id, status);
 create index if not exists rates_workspace_user_idx on public.collaborator_rates(workspace_id, collaborator_user_id, active);
@@ -431,7 +496,7 @@ begin
     'workspaces', 'memberships', 'clients', 'service_requests', 'projects',
     'brief_templates', 'briefs', 'quotes', 'contracts', 'invoices',
     'collaborator_claims', 'collaborator_rates', 'financial_entries', 'retainers',
-    'retainer_requests', 'project_tasks', 'proofs', 'project_files',
+    'retainer_requests', 'project_tasks', 'work_orders', 'work_order_messages', 'proofs', 'project_files',
     'notifications', 'studio_settings', 'public_site_content'
   ] loop
     execute format('drop trigger if exists touch_updated_at on public.%I', table_name);
@@ -510,7 +575,7 @@ do $$
 declare
   table_name text;
 begin
-  foreach table_name in array array['projects', 'briefs', 'quotes', 'contracts', 'invoices', 'collaborator_claims', 'proofs'] loop
+  foreach table_name in array array['projects', 'briefs', 'quotes', 'contracts', 'invoices', 'collaborator_claims', 'work_orders', 'proofs'] loop
     execute format('drop trigger if exists protect_workflow_status_change on public.%I', table_name);
     execute format(
       'create trigger protect_workflow_status_change before update on public.%I for each row execute function private.protect_workflow_status_change()',
@@ -547,6 +612,60 @@ as $$
   select private.has_workspace_role(target_workspace_id, array['owner', 'manager', 'accountant', 'collaborator', 'client']);
 $$;
 
+create or replace function private.is_work_order_assignee(target_work_order_id uuid, require_dispatched boolean default true)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.work_order_assignees a
+    join public.work_orders w on w.id = a.work_order_id
+    where a.work_order_id = target_work_order_id
+      and a.user_id = (select auth.uid())
+      and (not require_dispatched or w.dispatched_at is not null)
+      and w.status <> 'cancelled'
+  );
+$$;
+
+create or replace function private.is_project_work_assignee(target_project_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.work_orders w
+    join public.work_order_assignees a on a.work_order_id = w.id
+    where w.project_id = target_project_id
+      and w.dispatched_at is not null
+      and w.status <> 'cancelled'
+      and a.user_id = (select auth.uid())
+  );
+$$;
+
+create or replace function private.can_access_work_order(target_work_order_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.work_orders w
+    where w.id = target_work_order_id
+      and (
+        private.has_workspace_role(w.workspace_id, array['owner', 'manager'])
+        or private.is_work_order_assignee(w.id, true)
+      )
+  );
+$$;
+
 create or replace function private.can_access_project(target_project_id uuid)
 returns boolean
 language sql
@@ -568,6 +687,7 @@ as $$
           select 1 from public.project_tasks t
           where t.project_id = p.id and t.assignee_user_id = (select auth.uid())
         )
+        or private.is_project_work_assignee(p.id)
       )
   );
 $$;
@@ -595,12 +715,13 @@ stable
 security definer
 set search_path = ''
 as $$
-  select exists (
-    select 1
-    from public.project_tasks t
-    where t.project_id = target_project_id
-      and t.assignee_user_id = (select auth.uid())
-  );
+  select private.is_project_work_assignee(target_project_id)
+    or exists (
+      select 1
+      from public.project_tasks t
+      where t.project_id = target_project_id
+        and t.assignee_user_id = (select auth.uid())
+    );
 $$;
 
 create or replace function private.can_read_project_file(target_storage_path text)
@@ -616,7 +737,12 @@ as $$
     where f.storage_path = target_storage_path
       and (
         private.has_workspace_role(f.workspace_id, array['owner', 'manager'])
-        or (private.is_project_assignee(f.project_id) and f.category not in ('contract', 'invoice'))
+        or (
+          f.work_order_id is not null
+          and private.is_work_order_assignee(f.work_order_id, true)
+          and f.category not in ('contract', 'invoice', 'delivery')
+        )
+        or (f.work_order_id is null and private.is_project_assignee(f.project_id) and f.category not in ('contract', 'invoice', 'delivery'))
         or (private.is_project_client(f.project_id) and (f.is_client_visible or f.uploaded_by = (select auth.uid())))
       )
   );
@@ -680,6 +806,36 @@ as $$
     and m.status = 'active'
   order by m.created_at
   limit 1;
+$$;
+
+create or replace function private.notify_work_order_assignees(
+  target_work_order_id uuid,
+  notification_kind text,
+  notification_subject text,
+  notification_message text
+)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  insert into public.notifications (
+    workspace_id, project_id, recipient_user_id, recipient_email, recipient_phone,
+    channels, kind, subject, message, action_url
+  )
+  select
+    w.workspace_id, w.project_id, a.user_id, u.email, m.phone,
+    array['in_app']::text[]
+      || case when coalesce((m.notification_preferences->>'email')::boolean, false) and u.email is not null then array['email']::text[] else array[]::text[] end
+      || case when coalesce((m.notification_preferences->>'whatsapp')::boolean, false) and m.phone is not null then array['whatsapp']::text[] else array[]::text[] end,
+    notification_kind, notification_subject, notification_message,
+    '/portal/work-orders/' || w.id::text
+  from public.work_orders w
+  join public.work_order_assignees a on a.work_order_id = w.id
+  left join public.memberships m on m.workspace_id = w.workspace_id and m.user_id = a.user_id
+  left join auth.users u on u.id = a.user_id
+  where w.id = target_work_order_id
+    and w.dispatched_at is not null;
 $$;
 
 create or replace function public.submit_service_request(
@@ -1175,7 +1331,7 @@ begin
     invoice_row.payment_reference, (select auth.uid())
   );
   if invoice_row.installment_number = 1 then
-    update public.projects set status = 'active', current_stage = 'active', start_date = coalesce(start_date, current_date), next_action = 'إسناد أول مهمة تنفيذ' where id = invoice_row.project_id;
+    update public.projects set status = 'active', current_stage = 'active', start_date = coalesce(start_date, current_date), next_action = 'إنشاء أول طلب عمل وتوجيهه للفريق' where id = invoice_row.project_id;
   end if;
   insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
   values (invoice_row.workspace_id, invoice_row.project_id, (select auth.uid()), 'الحسابات', 'invoice.paid', 'تم تسجيل تحصيل دفعة العميل', jsonb_build_object('invoice_id', invoice_row.id, 'reference', invoice_row.reference));
@@ -1239,6 +1395,339 @@ begin
     sar_amount, 'cleared', current_date, p_payment_reference, (select auth.uid())
   );
   return claim_row;
+end;
+$$;
+
+create or replace function public.create_work_order(
+  p_project_id uuid,
+  p_title text,
+  p_description text,
+  p_owner_recommendations text default null,
+  p_creative_core text default null,
+  p_creative_rationale text default null,
+  p_creative_notes text default null,
+  p_delegation_scope text default null,
+  p_execution_mode text default 'owner_led',
+  p_priority text default 'normal',
+  p_due_date date default null,
+  p_requires_client_approval boolean default false,
+  p_assignee_user_ids uuid[] default array[]::uuid[],
+  p_source_retainer_request_id uuid default null
+)
+returns public.work_orders
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  project_row public.projects%rowtype;
+  work_order_row public.work_orders%rowtype;
+  requested_assignees integer;
+  inserted_assignees integer;
+begin
+  select * into project_row from public.projects where id = p_project_id;
+  if project_row.id is null then raise exception 'Project not found'; end if;
+  if not private.has_workspace_role(project_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  if coalesce(trim(p_title), '') = '' or coalesce(trim(p_description), '') = '' then raise exception 'Title and instructions are required'; end if;
+  if p_execution_mode not in ('owner_led', 'delegated', 'collaborative') then raise exception 'Invalid execution mode'; end if;
+  if p_priority not in ('low', 'normal', 'high', 'urgent') then raise exception 'Invalid priority'; end if;
+  if p_source_retainer_request_id is not null and not exists (
+    select 1 from public.retainer_requests r
+    where r.id = p_source_retainer_request_id
+      and r.project_id = project_row.id
+      and r.workspace_id = project_row.workspace_id
+  ) then raise exception 'Retainer request does not belong to this project'; end if;
+
+  insert into public.work_orders (
+    workspace_id, project_id, source_retainer_request_id, title, description,
+    owner_recommendations, creative_core, creative_rationale, creative_notes,
+    delegation_scope, execution_mode, priority, due_date, requires_client_approval, created_by
+  ) values (
+    project_row.workspace_id, project_row.id, p_source_retainer_request_id, trim(p_title), trim(p_description),
+    nullif(trim(p_owner_recommendations), ''), nullif(trim(p_creative_core), ''), nullif(trim(p_creative_rationale), ''),
+    nullif(trim(p_creative_notes), ''), nullif(trim(p_delegation_scope), ''), p_execution_mode,
+    p_priority, p_due_date, p_requires_client_approval, (select auth.uid())
+  ) returning * into work_order_row;
+
+  select count(distinct value) into requested_assignees from unnest(coalesce(p_assignee_user_ids, array[]::uuid[])) as ids(value);
+  insert into public.work_order_assignees (workspace_id, work_order_id, user_id, role_label, assigned_by)
+  select project_row.workspace_id, work_order_row.id, ids.value, m.display_name, (select auth.uid())
+  from (select distinct value from unnest(coalesce(p_assignee_user_ids, array[]::uuid[])) as values(value)) ids
+  join public.memberships m on m.workspace_id = project_row.workspace_id
+    and m.user_id = ids.value
+    and m.status = 'active'
+    and m.role in ('manager', 'collaborator');
+  get diagnostics inserted_assignees = row_count;
+  if inserted_assignees <> requested_assignees then raise exception 'One or more assignees are not active collaborators'; end if;
+
+  insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
+  values (project_row.workspace_id, project_row.id, (select auth.uid()), 'عبد الوهاب', 'work_order.created', 'فتح عبد الوهاب مساحة عمل إبداعية خاصة', jsonb_build_object('work_order_id', work_order_row.id, 'reference', work_order_row.reference, 'execution_mode', p_execution_mode));
+  return work_order_row;
+end;
+$$;
+
+create or replace function public.save_work_order_assignees(p_work_order_id uuid, p_user_ids uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+  requested_assignees integer;
+  inserted_assignees integer;
+begin
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  if work_order_row.status not in ('draft', 'creative_development', 'direction_ready', 'owner_production') then raise exception 'Assignees can only change before delegation'; end if;
+  select count(distinct value) into requested_assignees from unnest(coalesce(p_user_ids, array[]::uuid[])) as ids(value);
+  delete from public.work_order_assignees where work_order_id = work_order_row.id;
+  insert into public.work_order_assignees (workspace_id, work_order_id, user_id, role_label, assigned_by)
+  select work_order_row.workspace_id, work_order_row.id, ids.value, m.display_name, (select auth.uid())
+  from (select distinct value from unnest(coalesce(p_user_ids, array[]::uuid[])) as values(value)) ids
+  join public.memberships m on m.workspace_id = work_order_row.workspace_id
+    and m.user_id = ids.value
+    and m.status = 'active'
+    and m.role in ('manager', 'collaborator');
+  get diagnostics inserted_assignees = row_count;
+  if inserted_assignees <> requested_assignees then raise exception 'One or more assignees are not active collaborators'; end if;
+  return inserted_assignees;
+end;
+$$;
+
+create or replace function public.advance_owner_work_order(p_work_order_id uuid, p_status text)
+returns public.work_orders
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+  allowed boolean := false;
+begin
+  if p_status not in ('creative_development', 'direction_ready', 'owner_production') then raise exception 'Invalid owner work status'; end if;
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  allowed := (work_order_row.status = 'draft' and p_status = 'creative_development')
+    or (work_order_row.status = 'creative_development' and p_status = 'direction_ready')
+    or (work_order_row.status = 'direction_ready' and p_status = 'owner_production')
+    or (work_order_row.status = 'changes_requested' and p_status = 'owner_production');
+  if not allowed then raise exception 'Creative work cannot move to that stage'; end if;
+  if p_status in ('direction_ready', 'owner_production')
+    and (coalesce(trim(work_order_row.creative_core), '') = '' or coalesce(trim(work_order_row.creative_rationale), '') = '') then
+    raise exception 'Creative core and rationale are required';
+  end if;
+  update public.work_orders
+  set status = p_status,
+      creative_stage = case p_status when 'creative_development' then 'concept' when 'direction_ready' then 'direction' else 'production' end,
+      execution_mode = case when p_status = 'owner_production' then 'owner_led' else execution_mode end
+  where id = work_order_row.id
+  returning * into work_order_row;
+  update public.projects
+  set next_action = case p_status when 'creative_development' then 'عبد الوهاب يطور الفكرة الإبداعية' when 'direction_ready' then 'عبد الوهاب يقرر أسلوب تنفيذ الاتجاه' else 'عبد الوهاب ينفذ الاتجاه الإبداعي' end
+  where id = work_order_row.project_id;
+  insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
+  values (work_order_row.workspace_id, work_order_row.project_id, (select auth.uid()), 'عبد الوهاب', 'work_order.owner_advanced', case p_status when 'creative_development' then 'بدأ عبد الوهاب تطوير الفكرة' when 'direction_ready' then 'ثبت عبد الوهاب الاتجاه الإبداعي' else 'بدأ عبد الوهاب تنفيذ الاتجاه بنفسه' end, jsonb_build_object('work_order_id', work_order_row.id, 'status', p_status));
+  return work_order_row;
+end;
+$$;
+
+create or replace function public.dispatch_work_order(p_work_order_id uuid)
+returns public.work_orders
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+begin
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  if work_order_row.status not in ('direction_ready', 'owner_production') then raise exception 'Build and approve the creative direction before delegation'; end if;
+  if coalesce(trim(work_order_row.creative_core), '') = '' or coalesce(trim(work_order_row.creative_rationale), '') = '' then raise exception 'Creative core and rationale are required before delegation'; end if;
+  if coalesce(trim(work_order_row.delegation_scope), '') = '' then raise exception 'Define the delegated production scope before dispatch'; end if;
+  if not exists (select 1 from public.work_order_assignees where work_order_id = work_order_row.id) then raise exception 'Assign at least one collaborator before dispatch'; end if;
+  update public.work_orders set status = 'dispatched', creative_stage = 'production', execution_mode = case when execution_mode = 'owner_led' then 'delegated' else execution_mode end, dispatched_at = now()
+  where id = work_order_row.id returning * into work_order_row;
+  update public.projects set next_action = 'متابعة الجزء الإنتاجي تحت قيادة عبد الوهاب' where id = work_order_row.project_id;
+  insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type)
+  values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'النظام', 'أنهى عبد الوهاب بناء الاتجاه الإبداعي ووجّه نطاقاً إنتاجياً محدداً للمتعاونين.', 'system');
+  insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
+  values (work_order_row.workspace_id, work_order_row.project_id, (select auth.uid()), 'عبد الوهاب', 'work_order.dispatched', 'فوّض عبد الوهاب جزءاً إنتاجياً بعد تثبيت الاتجاه', jsonb_build_object('work_order_id', work_order_row.id));
+  perform private.notify_work_order_assignees(work_order_row.id, 'work_order.dispatched', 'نطاق إنتاجي جديد من عبد الوهاب', work_order_row.title || '، راجع الفكرة والاتجاه ونطاق التنفيذ المحدد في الغرفة.');
+  return work_order_row;
+end;
+$$;
+
+create or replace function public.start_work_order(p_work_order_id uuid)
+returns public.work_orders
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+begin
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.is_work_order_assignee(work_order_row.id, true) then raise exception 'Forbidden'; end if;
+  if work_order_row.status not in ('dispatched', 'changes_requested') then raise exception 'Work order cannot start from its current status'; end if;
+  update public.work_orders set status = 'in_progress' where id = work_order_row.id returning * into work_order_row;
+  return work_order_row;
+end;
+$$;
+
+create or replace function public.post_work_order_message(p_work_order_id uuid, p_body text, p_message_type text default 'message')
+returns public.work_order_messages
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+  message_row public.work_order_messages%rowtype;
+  author_name text;
+  is_manager boolean;
+begin
+  select * into work_order_row from public.work_orders where id = p_work_order_id;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  is_manager := private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']);
+  if not is_manager and not private.is_work_order_assignee(work_order_row.id, true) then raise exception 'Forbidden'; end if;
+  if coalesce(trim(p_body), '') = '' then raise exception 'Message is required'; end if;
+  if p_message_type not in ('message', 'recommendation') then raise exception 'Invalid message type'; end if;
+  select coalesce(m.display_name, 'عضو الفريق') into author_name
+  from public.memberships m
+  where m.workspace_id = work_order_row.workspace_id and m.user_id = (select auth.uid())
+  limit 1;
+  insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type)
+  values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), coalesce(author_name, 'عضو الفريق'), trim(p_body), p_message_type)
+  returning * into message_row;
+  if is_manager then
+    perform private.notify_work_order_assignees(work_order_row.id, 'work_order.message', 'رسالة جديدة في طلب العمل', trim(p_body));
+  else
+    perform private.notify_workspace_owner(work_order_row.workspace_id, work_order_row.project_id, 'work_order.message', 'رسالة جديدة من متعاون', trim(p_body), '/workspace/work-orders/' || work_order_row.id::text);
+  end if;
+  return message_row;
+end;
+$$;
+
+create or replace function public.submit_work_order_proof(p_work_order_id uuid, p_title text, p_note text default null)
+returns public.proofs
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+  proof_row public.proofs%rowtype;
+  next_version integer;
+  proof_file_id uuid;
+begin
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.is_work_order_assignee(work_order_row.id, true) then raise exception 'Forbidden'; end if;
+  if work_order_row.status not in ('dispatched', 'in_progress', 'changes_requested') then raise exception 'Work order is not ready for a proof'; end if;
+  select id into proof_file_id from public.project_files
+  where work_order_id = work_order_row.id and category = 'proof'
+    and uploaded_by = (select auth.uid()) and proof_id is null
+  order by created_at desc limit 1;
+  if proof_file_id is null then raise exception 'Upload a proof file before submitting'; end if;
+  select coalesce(max(version), 0) + 1 into next_version from public.proofs where project_id = work_order_row.project_id;
+  update public.proofs set status = 'superseded'
+  where work_order_id = work_order_row.id and status in ('internal_review', 'changes_requested');
+  insert into public.proofs (workspace_id, project_id, work_order_id, version, title, note, status, submitted_by)
+  values (work_order_row.workspace_id, work_order_row.project_id, work_order_row.id, next_version, trim(p_title), nullif(trim(p_note), ''), 'internal_review', (select auth.uid()))
+  returning * into proof_row;
+  update public.project_files set proof_id = proof_row.id where id = proof_file_id;
+  update public.work_orders set status = 'internal_review' where id = work_order_row.id;
+  update public.projects set status = 'proof', current_stage = 'proof', next_action = 'مراجعة بروفات طلبات العمل داخلياً' where id = work_order_row.project_id;
+  insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
+  values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'المتعاون', coalesce(nullif(trim(p_note), ''), 'رفع المتعاون بروفة جديدة للاعتماد.'), 'system', jsonb_build_object('proof_id', proof_row.id, 'version', proof_row.version));
+  perform private.notify_workspace_owner(work_order_row.workspace_id, work_order_row.project_id, 'work_order.proof', 'بروفة جديدة تحتاج قرارك', work_order_row.title || '، افتح غرفة الطلب لاعتمادها أو طلب تعديل.', '/workspace/work-orders/' || work_order_row.id::text);
+  return proof_row;
+end;
+$$;
+
+create or replace function public.submit_owner_work_order_proof(p_work_order_id uuid, p_title text, p_note text default null)
+returns public.proofs
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  work_order_row public.work_orders%rowtype;
+  proof_row public.proofs%rowtype;
+  next_version integer;
+  proof_file_id uuid;
+begin
+  select * into work_order_row from public.work_orders where id = p_work_order_id for update;
+  if work_order_row.id is null then raise exception 'Work order not found'; end if;
+  if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  if work_order_row.status not in ('creative_development', 'direction_ready', 'owner_production', 'changes_requested') then raise exception 'Owner work is not ready for a proof'; end if;
+  select id into proof_file_id from public.project_files
+  where work_order_id = work_order_row.id and category = 'proof'
+    and uploaded_by = (select auth.uid()) and proof_id is null
+  order by created_at desc limit 1;
+  if proof_file_id is null then raise exception 'Upload a proof file before submitting'; end if;
+  select coalesce(max(version), 0) + 1 into next_version from public.proofs where project_id = work_order_row.project_id;
+  update public.proofs set status = 'superseded'
+  where work_order_id = work_order_row.id and status in ('internal_review', 'changes_requested');
+  insert into public.proofs (workspace_id, project_id, work_order_id, version, title, note, status, submitted_by)
+  values (work_order_row.workspace_id, work_order_row.project_id, work_order_row.id, next_version, trim(p_title), nullif(trim(p_note), ''), 'internal_review', (select auth.uid()))
+  returning * into proof_row;
+  update public.project_files set proof_id = proof_row.id where id = proof_file_id;
+  update public.work_orders set status = 'internal_review', creative_stage = 'production' where id = work_order_row.id;
+  update public.projects set status = 'proof', current_stage = 'proof', next_action = 'قرار عبد الوهاب على بروفته قبل مشاركتها' where id = work_order_row.project_id;
+  insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
+  values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'عبد الوهاب', coalesce(nullif(trim(p_note), ''), 'حفظ عبد الوهاب بروفة من عمله في بوابة القرار.'), 'system', jsonb_build_object('proof_id', proof_row.id, 'version', proof_row.version, 'owner_authored', true));
+  insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
+  values (work_order_row.workspace_id, work_order_row.project_id, (select auth.uid()), 'عبد الوهاب', 'work_order.owner_proof', 'حفظ عبد الوهاب بروفته في بوابة القرار', jsonb_build_object('work_order_id', work_order_row.id, 'proof_id', proof_row.id));
+  return proof_row;
+end;
+$$;
+
+create or replace function public.review_work_order_proof(p_proof_id uuid, p_decision text, p_note text default null, p_send_to_client boolean default false)
+returns public.proofs
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  proof_row public.proofs%rowtype;
+  work_order_row public.work_orders%rowtype;
+begin
+  if p_decision not in ('approved', 'changes_requested') then raise exception 'Invalid proof decision'; end if;
+  select * into proof_row from public.proofs where id = p_proof_id for update;
+  if proof_row.id is null or proof_row.work_order_id is null then raise exception 'Work order proof not found'; end if;
+  select * into work_order_row from public.work_orders where id = proof_row.work_order_id for update;
+  if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
+  if proof_row.status <> 'internal_review' then raise exception 'Proof is not waiting for internal review'; end if;
+  if p_decision = 'changes_requested' and coalesce(trim(p_note), '') = '' then raise exception 'Revision note is required'; end if;
+
+  if p_decision = 'changes_requested' then
+    update public.proofs set status = 'changes_requested', client_note = trim(p_note), reviewed_at = now() where id = proof_row.id returning * into proof_row;
+    update public.work_orders set status = 'changes_requested' where id = work_order_row.id;
+    insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
+    values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'عبد الوهاب', trim(p_note), 'decision', jsonb_build_object('decision', 'changes_requested', 'proof_id', proof_row.id));
+    perform private.notify_work_order_assignees(work_order_row.id, 'work_order.changes', 'ملاحظات تعديل من عبد الوهاب', trim(p_note));
+  else
+    if p_send_to_client then
+      update public.proofs set status = 'sent', reviewed_at = now() where id = proof_row.id returning * into proof_row;
+      update public.project_files set is_client_visible = true where proof_id = proof_row.id and category = 'proof';
+      update public.work_orders set status = 'client_review', owner_approved_by = (select auth.uid()), owner_approved_at = now() where id = work_order_row.id;
+      perform private.notify_project_client(work_order_row.workspace_id, work_order_row.project_id, 'proof.sent', 'بروفة جديدة بانتظار قرارك', 'راجع البروفة من مساحة المشروع واختر الاعتماد أو اطلب تعديلاً.', '/portal/projects/' || work_order_row.project_id::text || '/proof');
+    else
+      update public.proofs set status = 'approved', reviewed_at = now() where id = proof_row.id returning * into proof_row;
+      update public.work_orders set status = 'completed', owner_approved_by = (select auth.uid()), owner_approved_at = now(), completed_at = now() where id = work_order_row.id;
+    end if;
+    insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
+    values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'عبد الوهاب', coalesce(nullif(trim(p_note), ''), case when p_send_to_client then 'اعتمدت البروفة داخلياً وأرسلتها إلى العميل.' else 'اعتمدت البروفة وأغلقت طلب العمل.' end), 'decision', jsonb_build_object('decision', 'approved', 'proof_id', proof_row.id, 'sent_to_client', p_send_to_client));
+    perform private.notify_work_order_assignees(work_order_row.id, 'work_order.approved', 'اعتمد عبد الوهاب البروفة', case when p_send_to_client then 'اعتمدت البروفة داخلياً وانتقلت إلى مراجعة العميل.' else 'اكتمل طلب العمل واعتمدت البروفة.' end);
+  end if;
+  return proof_row;
 end;
 $$;
 
@@ -1375,6 +1864,14 @@ begin
   where id = p_proof_id returning * into proof_row;
   if proof_row.task_id is not null then
     update public.project_tasks set status = case when p_decision = 'approved' then 'done' else 'changes_requested' end where id = proof_row.task_id;
+  end if;
+  if proof_row.work_order_id is not null then
+    update public.work_orders
+    set status = case when p_decision = 'approved' then 'completed' else 'changes_requested' end,
+        completed_at = case when p_decision = 'approved' then now() else null end
+    where id = proof_row.work_order_id;
+    insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type, metadata)
+    values (proof_row.workspace_id, proof_row.work_order_id, (select auth.uid()), 'العميل', coalesce(nullif(trim(p_note), ''), case when p_decision = 'approved' then 'اعتمد العميل البروفة.' else 'طلب العميل تعديلاً على البروفة.' end), 'decision', jsonb_build_object('decision', p_decision, 'proof_id', proof_row.id));
   end if;
   if p_decision = 'approved' then
     update public.invoices
@@ -1582,6 +2079,9 @@ alter table public.financial_entries enable row level security;
 alter table public.retainers enable row level security;
 alter table public.retainer_requests enable row level security;
 alter table public.project_tasks enable row level security;
+alter table public.work_orders enable row level security;
+alter table public.work_order_assignees enable row level security;
+alter table public.work_order_messages enable row level security;
 alter table public.proofs enable row level security;
 alter table public.project_files enable row level security;
 alter table public.notifications enable row level security;
@@ -1692,7 +2192,14 @@ create policy "collaborator submits own claims" on public.collaborator_claims
   for insert to authenticated
   with check (
     collaborator_user_id = (select auth.uid())
-    and private.is_project_assignee(project_id)
+    and (
+      (work_order_id is not null and private.is_work_order_assignee(work_order_id, true))
+      or (work_order_id is null and private.is_project_assignee(project_id))
+    )
+    and (work_order_id is null or exists (
+      select 1 from public.work_orders w
+      where w.id = work_order_id and w.project_id = project_id and w.workspace_id = workspace_id
+    ))
     and status = 'submitted'
     and paid_at is null
   );
@@ -1777,11 +2284,44 @@ create policy "managers delete tasks" on public.project_tasks
   for delete to authenticated
   using (private.has_workspace_role(workspace_id, array['owner', 'manager']));
 
+create policy "work order participants view orders" on public.work_orders
+  for select to authenticated
+  using (
+    private.has_workspace_role(workspace_id, array['owner', 'manager'])
+    or private.is_work_order_assignee(id, true)
+  );
+create policy "managers create work orders" on public.work_orders
+  for insert to authenticated
+  with check (private.has_workspace_role(workspace_id, array['owner', 'manager']));
+create policy "managers update work orders" on public.work_orders
+  for update to authenticated
+  using (private.has_workspace_role(workspace_id, array['owner', 'manager']))
+  with check (private.has_workspace_role(workspace_id, array['owner', 'manager']));
+create policy "managers delete draft work orders" on public.work_orders
+  for delete to authenticated
+  using (private.has_workspace_role(workspace_id, array['owner', 'manager']) and status = 'draft');
+
+create policy "work order participants view assignees" on public.work_order_assignees
+  for select to authenticated
+  using (
+    private.has_workspace_role(workspace_id, array['owner', 'manager'])
+    or private.is_work_order_assignee(work_order_id, true)
+  );
+create policy "managers manage work order assignees" on public.work_order_assignees
+  for all to authenticated
+  using (private.has_workspace_role(workspace_id, array['owner', 'manager']))
+  with check (private.has_workspace_role(workspace_id, array['owner', 'manager']));
+
+create policy "work order participants view messages" on public.work_order_messages
+  for select to authenticated
+  using (private.can_access_work_order(work_order_id));
+
 create policy "project participants view proofs" on public.proofs
   for select to authenticated
   using (
     private.has_workspace_role(workspace_id, array['owner', 'manager'])
-    or private.is_project_assignee(project_id)
+    or (work_order_id is not null and private.is_work_order_assignee(work_order_id, true))
+    or (work_order_id is null and private.is_project_assignee(project_id))
     or (private.is_project_client(project_id) and status in ('sent', 'approved', 'changes_requested'))
   );
 create policy "managers manage proofs" on public.proofs
@@ -1793,7 +2333,8 @@ create policy "project participants view file records" on public.project_files
   for select to authenticated
   using (
     private.has_workspace_role(workspace_id, array['owner', 'manager'])
-    or (private.is_project_assignee(project_id) and category not in ('contract', 'invoice'))
+    or (work_order_id is not null and private.is_work_order_assignee(work_order_id, true) and category not in ('contract', 'invoice', 'delivery'))
+    or (work_order_id is null and private.is_project_assignee(project_id) and category not in ('contract', 'invoice', 'delivery'))
     or (private.is_project_client(project_id) and (is_client_visible or uploaded_by = (select auth.uid())))
   );
 create policy "project participants create file records" on public.project_files
@@ -1804,6 +2345,11 @@ create policy "project participants create file records" on public.project_files
     and split_part(storage_path, '/', 2) = project_id::text
     and uploaded_by = (select auth.uid())
     and (invoice_id is null or exists (select 1 from public.invoices i where i.id = invoice_id and i.project_id = project_id and i.workspace_id = workspace_id))
+    and (work_order_id is null or exists (
+      select 1 from public.work_orders w
+      where w.id = work_order_id and w.project_id = project_id and w.workspace_id = workspace_id
+        and (private.has_workspace_role(workspace_id, array['owner', 'manager']) or private.is_work_order_assignee(w.id, true))
+    ))
     and (
       private.has_workspace_role(workspace_id, array['owner', 'manager'])
       or (is_client_visible = false and proof_id is null)
@@ -1873,6 +2419,15 @@ revoke all on function public.sign_contract(uuid, text) from public, anon;
 revoke all on function public.record_invoice_payment(uuid, text, text) from public, anon;
 revoke all on function public.approve_collaborator_claim(uuid) from public, anon;
 revoke all on function public.record_claim_payment(uuid, text, numeric) from public, anon;
+revoke all on function public.create_work_order(uuid, text, text, text, text, text, text, text, text, text, date, boolean, uuid[], uuid) from public, anon;
+revoke all on function public.save_work_order_assignees(uuid, uuid[]) from public, anon;
+revoke all on function public.advance_owner_work_order(uuid, text) from public, anon;
+revoke all on function public.dispatch_work_order(uuid) from public, anon;
+revoke all on function public.start_work_order(uuid) from public, anon;
+revoke all on function public.post_work_order_message(uuid, text, text) from public, anon;
+revoke all on function public.submit_work_order_proof(uuid, text, text) from public, anon;
+revoke all on function public.submit_owner_work_order_proof(uuid, text, text) from public, anon;
+revoke all on function public.review_work_order_proof(uuid, text, text, boolean) from public, anon;
 revoke all on function public.update_assigned_task_status(uuid, text) from public, anon;
 revoke all on function public.submit_proof(uuid, uuid, text, text, boolean) from public, anon;
 revoke all on function public.send_proof_to_client(uuid) from public, anon;
@@ -1894,6 +2449,15 @@ grant execute on function public.sign_contract(uuid, text) to authenticated;
 grant execute on function public.record_invoice_payment(uuid, text, text) to authenticated;
 grant execute on function public.approve_collaborator_claim(uuid) to authenticated;
 grant execute on function public.record_claim_payment(uuid, text, numeric) to authenticated;
+grant execute on function public.create_work_order(uuid, text, text, text, text, text, text, text, text, text, date, boolean, uuid[], uuid) to authenticated;
+grant execute on function public.save_work_order_assignees(uuid, uuid[]) to authenticated;
+grant execute on function public.advance_owner_work_order(uuid, text) to authenticated;
+grant execute on function public.dispatch_work_order(uuid) to authenticated;
+grant execute on function public.start_work_order(uuid) to authenticated;
+grant execute on function public.post_work_order_message(uuid, text, text) to authenticated;
+grant execute on function public.submit_work_order_proof(uuid, text, text) to authenticated;
+grant execute on function public.submit_owner_work_order_proof(uuid, text, text) to authenticated;
+grant execute on function public.review_work_order_proof(uuid, text, text, boolean) to authenticated;
 grant execute on function public.update_assigned_task_status(uuid, text) to authenticated;
 grant execute on function public.submit_proof(uuid, uuid, text, text, boolean) to authenticated;
 grant execute on function public.send_proof_to_client(uuid) to authenticated;
