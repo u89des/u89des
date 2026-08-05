@@ -182,7 +182,7 @@ function LiveRequests({ data, refresh, onToast, access, setSection }) {
   };
   return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>طلبات العملاء</h1><p>طلبات المشاريع الجديدة والطلبات الدورية في طابور واحد واضح.</p></div></div>
     <section className="panel live-list-panel"><div className="panel-heading"><div><h2>طلبات المشاريع</h2><p>يُنشأ المشروع والبريف فقط بعد قبولك.</p></div><span>{data.service_requests?.length || 0}</span></div>{data.service_requests?.length ? <div className="live-entity-list">{data.service_requests.map((request) => { const client = clients[request.client_id]; return <article key={request.id}><EntityHeader icon={Tray} title={request.project_name} meta={`${request.reference}، ${client?.company_name || "عميل"}`} status={request.status} /><div className="live-facts"><span><small>الخدمة</small><strong>{request.service_name}</strong></span><span><small>التواصل</small><strong>{client?.preferred_contact || "غير محدد"}</strong></span><span><small>الميزانية</small><strong>{request.budget || "غير محددة"}</strong></span><span><small>الموعد</small><strong>{displayDate(request.requested_deadline)}</strong></span></div>{request.goal && <p className="live-entity-note">{request.goal}</p>}{["new", "needs_info"].includes(request.status) && <button className="button primary small" disabled={busy === request.id} onClick={() => accept(request)}>{busy === request.id ? <CircleNotch size={17} className="spin" /> : <Check size={17} />} قبول وإرسال البريف</button>}</article>; })}</div> : <EmptyState icon={Tray} title="لا توجد طلبات جديدة" body="سيظهر هنا أول طلب يصل من نموذج الموقع العام." />}</section>
-    <section className="panel live-list-panel"><div className="panel-heading"><div><h2>طلبات العقود التسويقية</h2><p>تبقى في طابورك حتى تفتح لها مساحة إبداعية وتبدأ أنت ببناء الفكرة. لا تنتقل تلقائياً إلى أي متعاون.</p></div><span>{data.retainer_requests?.length || 0}</span></div>{data.retainer_requests?.length ? <div className="live-entity-list compact">{data.retainer_requests.map((request) => <article key={request.id}><EntityHeader icon={Handshake} title={request.title} meta={`${request.reference}، ${request.request_type}`} status={request.status} /><p className="live-entity-note">{request.brief}</p><div className="live-actions"><span className="form-note"><LockKey size={17} /> لم يبدأ العمل الإبداعي بعد</span><button className="button primary small" onClick={() => setSection("work-orders")}><ArrowLeft size={16} /> فتح مساحة إبداعية للطلب</button></div></article>)}</div> : <EmptyState icon={Handshake} title="لا توجد طلبات دورية" body="يستطيع عميل العقد النشط إرسال طلباته من بوابته." />}</section>
+    <section className="panel live-list-panel"><div className="panel-heading"><div><h2>طلبات العقود التسويقية</h2><p>تبقى في طابورك حتى تختار: تنفيذها بنفسك، إرسالها كاملة، أو تقسيمها إلى أجزاء.</p></div><span>{data.retainer_requests?.length || 0}</span></div>{data.retainer_requests?.length ? <div className="live-entity-list compact">{data.retainer_requests.map((request) => <article key={request.id}><EntityHeader icon={Handshake} title={request.title} meta={`${request.reference}، ${request.request_type}`} status={request.status} /><p className="live-entity-note">{request.brief}</p><div className="live-actions"><span className="form-note"><LockKey size={17} /> لا يصل لأي متعاون قبل إرسالك</span><button className="button primary small" onClick={() => setSection("work-orders")}><ArrowLeft size={16} /> اختيار طريقة التنفيذ</button></div></article>)}</div> : <EmptyState icon={Handshake} title="لا توجد طلبات دورية" body="يستطيع عميل العقد النشط إرسال طلباته من بوابته." />}</section>
   </div>;
 }
 
@@ -233,10 +233,8 @@ function CreateWorkOrderForm({ data, refresh, onToast, onCreated }) {
         projectId: values.projectId,
         title: values.title,
         description: values.description,
-        creativeCore: values.creativeCore || null,
-        creativeRationale: values.creativeRationale || null,
-        creativeNotes: values.creativeNotes || null,
-        executionMode: values.executionMode,
+        recommendations: values.idea || null,
+        executionMode: "owner_led",
         priority: values.priority,
         dueDate: values.due || null,
         requiresClientApproval: values.clientApproval === "on",
@@ -245,13 +243,13 @@ function CreateWorkOrderForm({ data, refresh, onToast, onCreated }) {
       });
       event.currentTarget.reset();
       setProjectId("");
-      onToast("فُتحت مساحة إبداعية خاصة بك. لا يرى المتعاونون أي شيء منها");
+      onToast("أُضيف العمل. اختر الآن طريقة تنفيذه");
       await refresh();
       onCreated(order.id);
     } catch (error) { onToast(error.message); } finally { setBusy(false); }
   };
   const matchingRetainerRequests = (data.retainer_requests || []).filter((item) => item.project_id === projectId && !["done", "cancelled"].includes(item.status));
-  return <form className="panel work-order-create creative-space-create" onSubmit={submit}><div className="work-order-form-intro"><span><Plus size={20} /></span><div><h2>افتح مساحة للفكرة قبل التنفيذ</h2><p>الافتراضي أن يقود عبد الوهاب الفكرة وينفذها. اختيار المتعاون يأتي لاحقاً بعد وضوح الاتجاه.</p></div></div><div className="field-row"><label>المشروع<select name="projectId" required value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="" disabled>اختر المشروع</option>{(data.projects || []).map((project) => <option value={project.id} key={project.id}>{project.name}</option>)}</select></label><label>عنوان المساحة<input name="title" required placeholder="مثال: فكرة الهوية والاتجاه البصري" /></label></div><label>السؤال أو المخرج الإبداعي<textarea name="description" rows="4" required placeholder="ما المشكلة التي ستحلها؟ وما النتيجة التي تريد الوصول إليها؟" /></label><div className="field-row"><label>بذرة الفكرة، اختيارية<textarea name="creativeCore" rows="3" placeholder="الجملة أو المعنى الذي تريد اختباره" /></label><label>ملاحظات عبد الوهاب<textarea name="creativeNotes" rows="3" placeholder="مشاهدات، احتمالات، وما يحتاج بحثاً" /></label></div><label>منطق الفكرة، يمكن استكماله لاحقاً<textarea name="creativeRationale" rows="3" placeholder="لماذا يمكن أن تكون هذه الفكرة مناسبة للعميل والجمهور؟" /></label><label>نمط التنفيذ الافتراضي<select name="executionMode" defaultValue="owner_led"><option value="owner_led">عبد الوهاب يقود وينفذ</option><option value="delegated">عبد الوهاب يبني الاتجاه ثم يفوض جزءاً إنتاجياً</option><option value="collaborative">عبد الوهاب يقود ويشارك متعاوناً في التنفيذ</option></select></label><div className="field-row"><label>الأولوية<select name="priority" defaultValue="normal"><option value="low">منخفضة</option><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label><label>موعد عبد الوهاب الداخلي<input name="due" type="date" /></label></div>{matchingRetainerRequests.length > 0 && <label>ربط طلب العقد بهذه المساحة، اختياري<select name="retainerRequestId" defaultValue=""><option value="">بدون ربط</option>{matchingRetainerRequests.map((item) => <option value={item.id} key={item.id}>{item.reference}، {item.title}</option>)}</select></label>}<label className="work-order-client-toggle"><input type="checkbox" name="clientApproval" /><span><strong>تصل النتيجة إلى العميل بعد قرار عبد الوهاب</strong><small>لا يرسل النظام أي بروفة تلقائياً.</small></span></label><button className="button primary" type="submit" disabled={busy}>{busy ? <CircleNotch size={18} className="spin" /> : <Plus size={18} />} فتح المساحة الخاصة</button></form>;
+  return <form className="panel work-order-create simple-work-create" onSubmit={submit}><div className="work-order-form-intro"><span><Plus size={20} /></span><div><h2>أضف العمل كما وصل</h2><p>يكفي عنوان ومطلوب واضح. الفكرة والتوجيه اختياريان.</p></div></div><div className="field-row"><label>المشروع<select name="projectId" required value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="" disabled>اختر المشروع</option>{(data.projects || []).map((project) => <option value={project.id} key={project.id}>{project.name}</option>)}</select></label><label>عنوان العمل<input name="title" required placeholder="مثال: تصميم منشور إطلاق" /></label></div><label>المطلوب<textarea name="description" rows="3" required placeholder="صف النتيجة المطلوبة ببساطة" /></label><label>فكرة أو توجيه، اختياري<textarea name="idea" rows="3" placeholder="اتركه فارغاً إذا كان الطلب مباشراً" /></label><div className="field-row"><label>الأولوية<select name="priority" defaultValue="normal"><option value="low">منخفضة</option><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label><label>الموعد<input name="due" type="date" /></label></div>{matchingRetainerRequests.length > 0 && <label>ربط طلب العقد، اختياري<select name="retainerRequestId" defaultValue=""><option value="">بدون ربط</option>{matchingRetainerRequests.map((item) => <option value={item.id} key={item.id}>{item.reference}، {item.title}</option>)}</select></label>}<label className="work-order-client-toggle"><input type="checkbox" name="clientApproval" /><span><strong>يحتاج اعتماد العميل بعد مراجعتي</strong><small>لا يرسل النظام أي بروفة تلقائياً.</small></span></label><button className="button primary" type="submit" disabled={busy}>{busy ? <CircleNotch size={18} className="spin" /> : <Plus size={18} />} إضافة واختيار التنفيذ</button></form>;
 }
 
 function WorkOrderFiles({ files, onOpen }) {
@@ -267,11 +265,9 @@ function WorkOrderMessages({ messages, currentUserId }) {
 function LegacyWorkOrderRoom({ order, data, access, refresh, onToast }) {
   const [description, setDescription] = useState(order.description || "");
   const [recommendations, setRecommendations] = useState(order.owner_recommendations || "");
-  const [creativeCore, setCreativeCore] = useState(order.creative_core || "");
-  const [creativeRationale, setCreativeRationale] = useState(order.creative_rationale || "");
   const [creativeNotes, setCreativeNotes] = useState(order.creative_notes || "");
-  const [delegationScope, setDelegationScope] = useState(order.delegation_scope || "");
-  const [executionMode, setExecutionMode] = useState(order.execution_mode || "owner_led");
+  const childOrders = (data.work_orders || []).filter((item) => item.parent_work_order_id === order.id);
+  const [executionMode, setExecutionMode] = useState(childOrders.length ? "split" : order.execution_mode || "owner_led");
   const [priority, setPriority] = useState(order.priority || "normal");
   const [dueDate, setDueDate] = useState(order.due_date || "");
   const [requiresClientApproval, setRequiresClientApproval] = useState(Boolean(order.requires_client_approval));
@@ -284,7 +280,6 @@ function LegacyWorkOrderRoom({ order, data, access, refresh, onToast }) {
   const [busy, setBusy] = useState("");
   const project = (data.projects || []).find((item) => item.id === order.project_id);
   const people = (data.memberships || []).filter((item) => ["manager", "collaborator"].includes(item.role) && item.status === "active");
-  const assignedRows = (data.work_order_assignees || []).filter((item) => item.work_order_id === order.id);
   const files = (data.project_files || []).filter((item) => item.work_order_id === order.id);
   const messages = (data.work_order_messages || []).filter((item) => item.work_order_id === order.id).slice().reverse();
   const proof = (data.proofs || []).find((item) => item.work_order_id === order.id && item.status !== "superseded");
@@ -394,48 +389,61 @@ function WorkOrderRoom({ order, data, access, refresh, onToast }) {
   const proof = (data.proofs || []).find((item) => item.work_order_id === order.id && item.status !== "superseded");
   const proofFiles = proof ? files.filter((item) => item.proof_id === proof.id) : [];
   const editable = ["draft", "creative_development", "direction_ready", "owner_production"].includes(order.status);
-  const executionPlanLocked = ["internal_review", "client_review", "completed"].includes(order.status);
   const isOwnerExecution = executionMode === "owner_led" && !order.dispatched_at;
   const ownerAuthoredProof = proof?.submitted_by === access.user.id || isOwnerExecution;
-  const modeLabels = { owner_led: "عبد الوهاب يقود وينفذ", delegated: "عبد الوهاب يقود ويفوض الإنتاج", collaborative: "قيادة عبد الوهاب مع تنفيذ مشترك" };
-  const patch = { description, owner_recommendations: recommendations || null, creative_core: creativeCore || null, creative_rationale: creativeRationale || null, creative_notes: creativeNotes || null, delegation_scope: delegationScope || null, execution_mode: executionMode, priority, due_date: dueDate || null, requires_client_approval: requiresClientApproval };
+  const patch = { description, owner_recommendations: recommendations || null, creative_notes: creativeNotes || null, priority, due_date: dueDate || null, requires_client_approval: requiresClientApproval };
   const openFile = async (file) => { try { window.open(await createSignedProjectFileUrl(file.storage_path), "_blank", "noopener,noreferrer"); } catch (error) { onToast(error.message); } };
   const persist = async () => {
     await updateRecord("work_orders", order.id, patch, access.workspaceId);
-    // A proof returned to the owner is already past the delegation gate.
-    // Keep the creative fields editable without reopening team assignment.
     if (order.status !== "changes_requested") await workflow.saveWorkOrderAssignees(order.id, assignees);
   };
   const chooseExecutionMode = (mode) => {
     setExecutionMode(mode);
-    if (mode === "owner_led") { setAssignees([]); setDelegationScope(""); }
-    onToast(mode === "owner_led" ? "سيبقى التنفيذ بيد عبد الوهاب" : mode === "delegated" ? "حفظت نية تفويض جزء إنتاجي. لن يصل شيء للمتعاون قبل تثبيت الاتجاه والإرسال الصريح" : "حفظت خطة التنفيذ المشترك بقيادة عبد الوهاب");
+    if (mode !== "delegated") setAssignees([]);
+    onToast(mode === "owner_led" ? "اخترت تنفيذه بنفسك" : mode === "delegated" ? "اختر المتعاون ثم أرسل الطلب كاملاً" : "أضف أجزاء العمل واربط كل جزء بمتعاون");
   };
   const save = async () => {
     setBusy("save");
-    try { await persist(); onToast("حفظت الفكرة والاتجاه وملاحظاتك الخاصة"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+    try { await persist(); onToast("حُفظت تفاصيل العمل"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
   };
-  const advance = async (status) => {
-    if (["direction_ready", "owner_production"].includes(status) && (!creativeCore.trim() || !creativeRationale.trim())) { onToast("ثبت الفكرة المركزية ومنطقها أولاً"); return; }
-    setBusy(status);
-    try { await persist(); await workflow.advanceOwnerWorkOrder(order.id, status); onToast(status === "creative_development" ? "بدأت تطوير الفكرة داخل مساحتك" : status === "direction_ready" ? "ثبت الاتجاه الإبداعي" : "انتقلت إلى التنفيذ بقيادتك وتصميمك"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  const startOwner = async () => {
+    setBusy("owner");
+    try {
+      await updateRecord("work_orders", order.id, { ...patch, status: "owner_production", execution_mode: "owner_led", creative_stage: "production" }, access.workspaceId);
+      await workflow.saveWorkOrderAssignees(order.id, []);
+      onToast("أصبح العمل في قائمة تنفيذك");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
   };
   const dispatch = async () => {
     if (!assignees.length) { onToast("اختر منفذاً واحداً على الأقل"); return; }
-    if (!delegationScope.trim()) { onToast("حدد نطاق التفويض الإنتاجي أولاً"); return; }
     setBusy("dispatch");
-    try { await persist(); await workflow.dispatchWorkOrder(order.id); onToast("أرسلت الجزء الإنتاجي المحدد فقط، وبقيت القيادة الإبداعية لديك"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+    try { await persist(); await workflow.dispatchWorkOrder(order.id); onToast("وصل الطلب الآن إلى لوحة المتعاون"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const addPart = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+    setBusy("part");
+    try {
+      const part = await workflow.createWorkOrder({ projectId: order.project_id, title: values.title, description: values.description, recommendations: values.idea || recommendations || null, executionMode: "delegated", priority: values.priority, dueDate: values.due || null, assigneeUserIds: [values.assignee], parentWorkOrderId: order.id, workKind: "part" });
+      await workflow.dispatchWorkOrder(part.id);
+      await updateRecord("work_orders", order.id, { execution_mode: "collaborative", status: "owner_production" }, access.workspaceId);
+      form.reset();
+      onToast("أُضيف الجزء ووصل إلى المتعاون المختار");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
   };
   const uploadSource = async (file) => {
     if (!file) return;
     setBusy("upload");
-    try { await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file, category: "source" }); onToast("أضفت الملف إلى مساحة العمل الإبداعية"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+    try { await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file, category: "source" }); onToast("أُرفق الملف بهذا العمل"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
   };
   const postMessage = async (event) => {
     event.preventDefault();
     if (!message.trim() && !messageFile) return;
     setBusy("message");
-    try { if (messageFile) await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file: messageFile, category: "source" }); await workflow.postWorkOrderMessage(order.id, message.trim() || `أرفقت ملف ${messageFile.name}`); setMessage(""); setMessageFile(null); onToast("أضفت توجيهك إلى غرفة التنفيذ"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+    try { if (messageFile) await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file: messageFile, category: "source" }); await workflow.postWorkOrderMessage(order.id, message.trim() || `أرفقت ملف ${messageFile.name}`); setMessage(""); setMessageFile(null); onToast("وصلت الرسالة إلى غرفة العمل"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
   };
   const submitOwnerProof = async () => {
     if (!ownerProofFile) { onToast("اختر ملف البروفة أولاً"); return; }
@@ -464,17 +472,148 @@ function WorkOrderRoom({ order, data, access, refresh, onToast }) {
   </section>;
 }
 
+function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }) {
+  const [description, setDescription] = useState(order.description || "");
+  const [recommendations, setRecommendations] = useState(order.owner_recommendations || "");
+  const [privateNotes, setPrivateNotes] = useState(order.creative_notes || "");
+  const childOrders = (data.work_orders || []).filter((item) => item.parent_work_order_id === order.id);
+  const parentOrder = order.parent_work_order_id ? (data.work_orders || []).find((item) => item.id === order.parent_work_order_id) : null;
+  const [mode, setMode] = useState(childOrders.length ? "split" : order.execution_mode || "owner_led");
+  const [priority, setPriority] = useState(order.priority || "normal");
+  const [dueDate, setDueDate] = useState(order.due_date || "");
+  const [requiresClientApproval, setRequiresClientApproval] = useState(Boolean(order.requires_client_approval));
+  const [assignees, setAssignees] = useState((data.work_order_assignees || []).filter((item) => item.work_order_id === order.id).map((item) => item.user_id));
+  const [message, setMessage] = useState("");
+  const [messageFile, setMessageFile] = useState(null);
+  const [reviewNote, setReviewNote] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+  const [proofNote, setProofNote] = useState("");
+  const [busy, setBusy] = useState("");
+  const project = (data.projects || []).find((item) => item.id === order.project_id);
+  const people = (data.memberships || []).filter((item) => ["manager", "collaborator"].includes(item.role) && item.status === "active");
+  const files = (data.project_files || []).filter((item) => item.work_order_id === order.id);
+  const messages = (data.work_order_messages || []).filter((item) => item.work_order_id === order.id).slice().reverse();
+  const proof = (data.proofs || []).find((item) => item.work_order_id === order.id && item.status !== "superseded");
+  const proofFiles = proof ? files.filter((item) => item.proof_id === proof.id) : [];
+  const editable = ["draft", "creative_development", "direction_ready", "owner_production"].includes(order.status) && !order.dispatched_at;
+  const ownerRevision = order.status === "changes_requested" && !order.dispatched_at;
+  const patch = { description, owner_recommendations: recommendations || null, creative_notes: privateNotes || null, priority, due_date: dueDate || null, requires_client_approval: requiresClientApproval };
+  const openFile = async (file) => { try { window.open(await createSignedProjectFileUrl(file.storage_path), "_blank", "noopener,noreferrer"); } catch (error) { onToast(error.message); } };
+  const chooseMode = (value) => {
+    setMode(value);
+    if (value !== "delegated") setAssignees([]);
+    onToast(value === "owner_led" ? "اخترت تنفيذه بنفسك" : value === "delegated" ? "اختر المتعاون ثم أرسل الطلب كاملاً" : "أضف أجزاء العمل واربط كل جزء بمتعاون");
+  };
+  const save = async () => {
+    setBusy("save");
+    try {
+      await updateRecord("work_orders", order.id, patch, access.workspaceId);
+      if (editable) await workflow.saveWorkOrderAssignees(order.id, assignees);
+      onToast("حُفظت تفاصيل العمل");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const startOwner = async () => {
+    setBusy("owner");
+    try {
+      if (editable) await workflow.saveWorkOrderAssignees(order.id, []);
+      await updateRecord("work_orders", order.id, { ...patch, status: "owner_production", execution_mode: "owner_led", creative_stage: "production" }, access.workspaceId);
+      onToast("أصبح العمل في قائمة تنفيذك");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const dispatch = async () => {
+    if (!assignees.length) { onToast("اختر متعاوناً واحداً على الأقل"); return; }
+    setBusy("dispatch");
+    try {
+      await updateRecord("work_orders", order.id, { ...patch, execution_mode: "delegated" }, access.workspaceId);
+      await workflow.saveWorkOrderAssignees(order.id, assignees);
+      await workflow.dispatchWorkOrder(order.id);
+      onToast("وصل الطلب الآن إلى لوحة المتعاون");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const addPart = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+    setBusy("part");
+    try {
+      const part = await workflow.createWorkOrder({ projectId: order.project_id, title: values.title, description: values.description, recommendations: values.idea || recommendations || null, executionMode: "delegated", priority: values.priority, dueDate: values.due || null, assigneeUserIds: [values.assignee], parentWorkOrderId: order.id, workKind: "part" });
+      await workflow.dispatchWorkOrder(part.id);
+      await updateRecord("work_orders", order.id, { execution_mode: "collaborative", status: "owner_production" }, access.workspaceId);
+      form.reset();
+      onToast("أُضيف الجزء ووصل إلى المتعاون المختار");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const upload = async (file) => {
+    if (!file) return;
+    setBusy("upload");
+    try { await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file, category: "source" }); onToast("أُرفق الملف بهذا العمل"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const postMessage = async (event) => {
+    event.preventDefault();
+    if (!message.trim() && !messageFile) return;
+    setBusy("message");
+    try {
+      if (messageFile) await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file: messageFile, category: "source" });
+      await workflow.postWorkOrderMessage(order.id, message.trim() || `أرفقت ملف ${messageFile.name}`);
+      setMessage(""); setMessageFile(null);
+      onToast("وصلت الرسالة إلى غرفة العمل");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const submitProof = async () => {
+    if (!proofFile) { onToast("اختر ملف البروفة أولاً"); return; }
+    setBusy("proof");
+    try {
+      await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file: proofFile, category: "proof" });
+      await workflow.submitOwnerWorkOrderProof(order.id, proofFile.name, proofNote || null);
+      setProofFile(null); setProofNote("");
+      onToast("حُفظت البروفة للمراجعة");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+  const review = async (decision, sendToClient = false) => {
+    if (decision === "changes_requested" && !reviewNote.trim()) { onToast("اكتب ملاحظة واضحة أولاً"); return; }
+    setBusy(decision);
+    try {
+      await workflow.reviewWorkOrderProof(proof.id, decision, reviewNote || null, sendToClient);
+      setReviewNote("");
+      onToast(decision === "changes_requested" ? "وصلت ملاحظة التعديل إلى المنفذ" : sendToClient ? "اعتمدت العمل وأرسلته للعميل" : "اعتمدت العمل وأغلقته");
+      await refresh();
+    } catch (error) { onToast(error.message); } finally { setBusy(""); }
+  };
+
+  return <section className="panel work-order-room simple-work-room"><header className="work-order-room-head"><div>{parentOrder && <button className="text-link" onClick={() => onSelect(parentOrder.id)}>العودة إلى {parentOrder.title}</button>}<span>{order.reference}، {project?.name || "مشروع"}</span><h2>{order.title}</h2></div><LiveStatus value={order.status} /></header>
+    {editable && <section className="simple-execution-decision"><header><small>قرار واحد فقط</small><h3>كيف تريد تنفيذ هذا العمل؟</h3><p>لا توجد مرحلة يجب إنهاؤها قبل التفويض.</p></header><div className="execution-mode-options"><button className={mode === "owner_led" ? "active" : ""} onClick={() => chooseMode("owner_led")}><strong>أنفذه بنفسي</strong><small>يبقى في قائمتي</small></button><button className={mode === "delegated" ? "active" : ""} onClick={() => chooseMode("delegated")}><strong>أرسله كاملاً</strong><small>لمتعاون أختاره</small></button><button className={mode === "split" ? "active" : ""} onClick={() => chooseMode("split")}><strong>أقسمه إلى أجزاء</strong><small>كل جزء لمتعاون</small></button></div></section>}
+    <section className="work-order-brief-block"><small>{order.work_kind === "part" ? "جزء من العمل" : "المطلوب"}</small>{editable ? <textarea rows="4" value={description} onChange={(event) => setDescription(event.target.value)} /> : <p>{order.description}</p>}{order.owner_recommendations && !editable && <blockquote><strong>فكرة أو توجيه من عبد الوهاب</strong>{order.owner_recommendations}</blockquote>}<div className="work-order-meta"><span><small>الأولوية</small><strong>{priorityLabels[priority]}</strong></span><span><small>الموعد</small><strong>{displayDate(dueDate)}</strong></span><span><small>النوع</small><strong>{order.work_kind === "part" ? "جزء مرتبط" : "طلب كامل"}</strong></span></div></section>
+    {editable && <details className="optional-owner-note" open={Boolean(recommendations || privateNotes)}><summary><span><strong>إضافة فكرة أو توجيه</strong><small>اختياري، ولا يمنع التفويض إذا تركته فارغاً</small></span><Plus size={18} /></summary><label>الفكرة أو التوجيه<textarea rows="4" value={recommendations} onChange={(event) => setRecommendations(event.target.value)} placeholder="اكتب فقط ما يفيد التنفيذ" /></label><label>ملاحظات خاصة<textarea rows="3" value={privateNotes} onChange={(event) => setPrivateNotes(event.target.value)} placeholder="لا تظهر للمتعاون" /></label><div className="creative-primary-actions"><button className="button ghost" disabled={Boolean(busy)} onClick={save}>حفظ</button></div></details>}
+    {editable && <div className="creative-settings-row"><label>الأولوية<select value={priority} onChange={(event) => setPriority(event.target.value)}><option value="low">منخفضة</option><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label><label>الموعد<input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label><label className="work-order-client-toggle"><input type="checkbox" checked={requiresClientApproval} onChange={(event) => setRequiresClientApproval(event.target.checked)} /><span><strong>يحتاج اعتماد العميل</strong></span></label></div>}
+    {editable && mode === "owner_led" && <div className="simple-owner-action"><button className="button primary" disabled={Boolean(busy)} onClick={startOwner}><UserFocus size={18} /> وضعه في قائمة تنفيذي</button></div>}
+    {ownerRevision && <div className="simple-owner-action"><button className="button primary" disabled={Boolean(busy)} onClick={startOwner}><UserFocus size={18} /> العودة إلى تنفيذي</button></div>}
+    {editable && mode === "delegated" && <section className="simple-delegation-box"><div><small>تفويض مباشر</small><h3>اختر المتعاون وأرسل الطلب كما هو</h3><p>الفكرة ليست إلزامية. المطلوب المكتوب أعلاه يكفي.</p></div><AssigneeChecks people={people} selected={assignees} onChange={setAssignees} /><button className="button primary" disabled={Boolean(busy) || !assignees.length || !description.trim()} onClick={dispatch}><PaperPlaneTilt size={18} /> إرسال الطلب الآن</button></section>}
+    {editable && mode === "split" && <section className="simple-split-box"><header><div><small>تجزئة العمل</small><h3>أضف جزءاً واربطه بمن سينفذه</h3><p>يصل كل جزء إلى لوحة المتعاون المختار فور الإضافة.</p></div><span>{childOrders.length} أجزاء</span></header><form onSubmit={addPart}><div className="field-row"><label>اسم الجزء<input name="title" required placeholder="مثال: تجهيز المقاسات" /></label><label>المتعاون<select name="assignee" required defaultValue=""><option value="" disabled>اختر المتعاون</option>{people.map((person) => <option value={person.user_id} key={person.user_id}>{person.display_name}</option>)}</select></label></div><label>المطلوب في هذا الجزء<textarea name="description" rows="3" required /></label><label>توجيه لهذا الجزء، اختياري<textarea name="idea" rows="2" /></label><div className="field-row"><label>الأولوية<select name="priority" defaultValue="normal"><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label><label>الموعد<input name="due" type="date" /></label></div><button className="button primary" type="submit" disabled={busy === "part"}><Plus size={18} /> إضافة الجزء وإرساله</button></form></section>}
+    {childOrders.length > 0 && <section className="linked-work-parts"><header><div><h3>أجزاء هذا العمل</h3><p>كل جزء له متعاون وغرفة مستقلة.</p></div></header>{childOrders.map((part) => <button key={part.id} onClick={() => onSelect(part.id)}><span><small>{part.reference}</small><strong>{part.title}</strong></span><LiveStatus value={part.status} /><ArrowLeft size={17} /></button>)}</section>}
+    {order.status === "owner_production" && mode === "owner_led" && <section className="owner-proof-station"><div><span>تنفيذك</span><h3>ارفع البروفة عندما تصبح جاهزة</h3><p>لا توجد خطوة إضافية قبل ذلك.</p></div><label>ملف البروفة<input type="file" onChange={(event) => setProofFile(event.target.files?.[0] || null)} /></label><label>ملاحظة<textarea rows="3" value={proofNote} onChange={(event) => setProofNote(event.target.value)} /></label><button className="button primary" disabled={busy === "proof" || !proofFile} onClick={submitProof}><FileArrowUp size={18} /> رفع للمراجعة</button></section>}
+    {proof?.status === "internal_review" && <section className="work-order-proof-gate"><div><span>قرارك مطلوب</span><h3>{proof.title}</h3><p>{proof.note || "راجع الملف ثم اعتمده أو اطلب تعديلاً."}</p></div><WorkOrderFiles files={proofFiles} onOpen={openFile} /><label>ملاحظة القرار<textarea rows="3" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></label><div className="live-actions"><button className="button ghost" disabled={Boolean(busy)} onClick={() => review("changes_requested")}><X size={17} /> طلب تعديل</button><button className="button primary" disabled={Boolean(busy) || !proofFiles.length} onClick={() => review("approved", false)}><Check size={17} /> اعتماد وإنهاء</button>{order.requires_client_approval && <button className="button primary secondary-action" disabled={Boolean(busy) || !proofFiles.length} onClick={() => review("approved", true)}><PaperPlaneTilt size={17} /> اعتماد وإرسال للعميل</button>}</div></section>}
+    <section className="work-order-room-columns"><div><div className="work-order-section-title"><div><h3>الملفات</h3><p>المراجع والملفات المرتبطة بهذا العمل.</p></div><label className="button ghost small upload-button">إرفاق ملف <FileArrowUp size={16} /><input type="file" onChange={(event) => { upload(event.target.files?.[0]); event.target.value = ""; }} /></label></div><WorkOrderFiles files={files} onOpen={openFile} /></div>{order.dispatched_at ? <div><div className="work-order-section-title"><div><h3>غرفة العمل</h3><p>نقاش مباشر خاص بهذا العمل.</p></div></div><WorkOrderMessages messages={messages} currentUserId={access.user.id} /><form className="work-order-composer" onSubmit={postMessage}><textarea rows="3" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="اكتب توجيهاً أو رداً" /><div><label className="text-link">إرفاق<input type="file" onChange={(event) => setMessageFile(event.target.files?.[0] || null)} /></label>{messageFile && <small>{messageFile.name}</small>}<button className="button primary small" type="submit" disabled={busy === "message" || (!message.trim() && !messageFile)}>إرسال <PaperPlaneTilt size={16} /></button></div></form></div> : <div className="creative-private-journal"><LockKey size={25} /><h3>لم يُرسل لمتعاون</h3><p>سيبقى خاصاً بعبد الوهاب حتى يضغط الإرسال بنفسه.</p></div>}</section>
+  </section>;
+}
+
 function LiveWorkOrders({ data, access, refresh, onToast }) {
   const [selectedId, setSelectedId] = useState(data.work_orders?.[0]?.id || "");
   const [creating, setCreating] = useState(!(data.work_orders || []).length);
   const orders = data.work_orders || [];
+  const rootOrders = orders.filter((item) => !item.parent_work_order_id);
   const projects = useMemo(() => Object.fromEntries((data.projects || []).map((item) => [item.id, item])), [data.projects]);
   useEffect(() => { if (!orders.some((item) => item.id === selectedId) && orders[0]) setSelectedId(orders[0].id); }, [orders, selectedId]);
   const selected = orders.find((item) => item.id === selectedId);
   const waiting = orders.filter((item) => item.status === "internal_review").length;
-  const ownerActive = orders.filter((item) => !item.dispatched_at && !["completed", "cancelled"].includes(item.status)).length;
+  const ownerActive = rootOrders.filter((item) => !item.dispatched_at && !["completed", "cancelled"].includes(item.status)).length;
   const delegated = orders.filter((item) => item.dispatched_at && !["completed", "cancelled"].includes(item.status)).length;
-  return <div className="dashboard-content page-stack work-orders-page creative-lab-page"><div className="page-title"><div><span className="creative-director-kicker">مساحة عبد الوهاب الإبداعية</span><h1>المعمل الإبداعي</h1><p>هنا يبني عبد الوهاب الفكرة والاتجاه والتصميم. التفويض خيار لاحق لجزء إنتاجي محدد.</p></div><button className="button primary" onClick={() => setCreating((value) => !value)}><Plus size={18} /> مساحة إبداعية جديدة</button></div><section className="creative-lead-banner"><div><small>الدور الأساسي</small><strong>عبد الوهاب، المدير الإبداعي والمصمم</strong><p>الفكرة والاتجاه والقرار البصري تبدأ منه. النظام يحمي وقته ويوثق قراراته، ولا يحوله إلى موزع مهام.</p></div><div><span><b>01</b> أفهم وأبحث</span><span><b>02</b> أبني الفكرة</span><span><b>03</b> أصمم الاتجاه</span><span><b>04</b> أنفذ أو أفوض جزءاً</span></div></section><section className="work-order-kpis"><span><small>أعمال يقودها بنفسه</small><strong>{ownerActive}</strong></span><span><small>اتجاهات قيد البناء</small><strong>{orders.filter((item) => ["draft", "creative_development"].includes(item.status)).length}</strong></span><span><small>تنفيذ إنتاجي مفوض</small><strong>{delegated}</strong></span><span className={waiting ? "attention" : ""}><small>بوابات قرار</small><strong>{waiting}</strong></span></section>{creating && <CreateWorkOrderForm data={data} refresh={refresh} onToast={onToast} onCreated={(id) => { setSelectedId(id); setCreating(false); }} />}{orders.length ? <section className="work-order-command creative-work-command"><aside className="work-order-index"><header><strong>الأعمال الإبداعية</strong><small>{orders.length} مساحات عبر المشاريع</small></header>{orders.map((order) => { const assigned = (data.work_order_assignees || []).filter((item) => item.work_order_id === order.id); return <button className={selectedId === order.id ? "active" : ""} key={order.id} onClick={() => setSelectedId(order.id)}><span><small>{order.reference}</small><strong>{order.title}</strong><em>{projects[order.project_id]?.name || "مشروع"}</em></span><LiveStatus value={order.status} /><div>{!order.dispatched_at && <i className="owner-avatar">ع</i>}{assigned.slice(0, 3).map((item) => <i key={item.id}>{(item.role_label || "م").slice(0, 1)}</i>)}{assigned.length > 3 && <i>+{assigned.length - 3}</i>}</div></button>; })}</aside>{selected && <WorkOrderRoom key={selected.id} order={selected} data={data} access={access} refresh={refresh} onToast={onToast} />}</section> : !creating && <EmptyState icon={Target} title="افتح أول مساحة إبداعية" body="ابدأ بالسؤال والفكرة. لا تحتاج إلى اختيار متعاون حتى تقرر أنت أن جزءاً من التنفيذ يحتاج مساعدة." />}</div>;
+  return <div className="dashboard-content page-stack work-orders-page simple-execution-page"><div className="page-title"><div><span className="creative-director-kicker">قرار التنفيذ بيدك</span><h1>التنفيذ والتفويض</h1><p>لا توجد مراحل إلزامية. نفذ العمل، أرسله كاملاً، أو قسّمه إلى أجزاء.</p></div><button className="button primary" onClick={() => setCreating((value) => !value)}><Plus size={18} /> إضافة عمل</button></div><section className="simple-flow-banner"><span><b>1</b><small>وصل الطلب</small></span><span><b>2</b><small>اختر طريقة التنفيذ</small></span><span><b>3</b><small>أرسل فقط إذا قررت</small></span></section><section className="work-order-kpis"><span><small>لدى عبد الوهاب</small><strong>{ownerActive}</strong></span><span><small>مفوضة</small><strong>{delegated}</strong></span><span><small>أجزاء مرتبطة</small><strong>{orders.length - rootOrders.length}</strong></span><span className={waiting ? "attention" : ""}><small>تحتاج مراجعته</small><strong>{waiting}</strong></span></section>{creating && <CreateWorkOrderForm data={data} refresh={refresh} onToast={onToast} onCreated={(id) => { setSelectedId(id); setCreating(false); }} />}{orders.length ? <section className="work-order-command simple-work-command"><aside className="work-order-index"><header><strong>الأعمال</strong><small>{rootOrders.length} طلبات رئيسية</small></header>{rootOrders.map((item) => { const assigned = (data.work_order_assignees || []).filter((row) => row.work_order_id === item.id); const partCount = orders.filter((part) => part.parent_work_order_id === item.id).length; return <button className={selectedId === item.id || selected?.parent_work_order_id === item.id ? "active" : ""} key={item.id} onClick={() => setSelectedId(item.id)}><span><small>{item.reference}</small><strong>{item.title}</strong><em>{projects[item.project_id]?.name || "مشروع"}{partCount ? ` · ${partCount} أجزاء` : ""}</em></span><LiveStatus value={item.status} /><div>{!item.dispatched_at && <i className="owner-avatar">ع</i>}{assigned.slice(0, 3).map((row) => <i key={row.id}>{(row.role_label || "م").slice(0, 1)}</i>)}</div></button>; })}</aside>{selected && <SimpleWorkOrderRoom key={selected.id} order={selected} data={data} access={access} refresh={refresh} onToast={onToast} onSelect={setSelectedId} />}</section> : !creating && <EmptyState icon={Target} title="أضف أول عمل" body="يكفي عنوان ومطلوب واضح، ثم اختر طريقة التنفيذ." />}</div>;
 }
 
 function LiveBriefs({ data, refresh, onToast }) {
@@ -680,7 +819,7 @@ function CollaboratorRateForm({ access, data, refresh, onToast }) {
 }
 
 function LiveTeam({ data, access, refresh, onToast }) {
-  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>الفريق والصلاحيات</h1><p>هنا تدير الحسابات والأسعار فقط. أي مساعدة إنتاجية تبدأ من «المعمل الإبداعي» بعد أن تثبّت أنت الاتجاه.</p></div></div><section className="system-columns live-team-columns"><div className="panel"><div className="panel-heading"><div><h2>الأعضاء</h2><p>الحسابات المرتبطة بالمساحة.</p></div></div><div className="live-member-list">{(data.memberships || []).map((person) => <article key={person.id}><span className="person-avatar">{person.display_name.slice(0, 1)}</span><div><strong>{person.display_name}</strong><small>{person.role}</small></div><LiveStatus value={person.status} label={person.status === "active" ? "نشط" : undefined} /></article>)}</div></div><aside className="panel"><div className="panel-heading"><div><h2>دعوة مستخدم</h2><p>تُرسل من الخادم ولا تكشف مفاتيح الإدارة.</p></div></div><InviteUserForm access={access} data={data} refresh={refresh} onToast={onToast} /></aside></section><section className="panel team-workflow-note"><Target size={25} /><div><h2>التكليف لا يبدأ من هنا</h2><p>ابدأ بالفكرة في المعمل الإبداعي. وعندما يكتمل الاتجاه، حدّد جزءاً إنتاجياً واضحاً واختر من يساعدك فيه إن احتجت.</p></div></section><section className="panel"><div className="panel-heading"><div><h2>أسعار المتعاونين</h2><p>سعر مستقل لكل قطعة وبالعملة المتفق عليها.</p></div></div><CollaboratorRateForm access={access} data={data} refresh={refresh} onToast={onToast} />{data.collaborator_rates?.length ? <div className="live-rate-list">{data.collaborator_rates.map((rate) => <span key={rate.id}><strong>{rate.collaborator_name}</strong><small>{rate.item_name}</small><b>{formatMoney(rate.unit_price, rate.currency)}</b></span>)}</div> : null}</section></div>;
+  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>الفريق والصلاحيات</h1><p>هنا تدير حسابات المتعاونين وأسعارهم وصلاحياتهم. التكليف الفعلي يبدأ من «التنفيذ والتفويض».</p></div></div><section className="system-columns live-team-columns"><div className="panel"><div className="panel-heading"><div><h2>الأعضاء</h2><p>الحسابات المرتبطة بالمساحة.</p></div></div><div className="live-member-list">{(data.memberships || []).map((person) => <article key={person.id}><span className="person-avatar">{person.display_name.slice(0, 1)}</span><div><strong>{person.display_name}</strong><small>{person.role}</small></div><LiveStatus value={person.status} label={person.status === "active" ? "نشط" : undefined} /></article>)}</div></div><aside className="panel"><div className="panel-heading"><div><h2>دعوة مستخدم</h2><p>تُرسل من الخادم ولا تكشف مفاتيح الإدارة.</p></div></div><InviteUserForm access={access} data={data} refresh={refresh} onToast={onToast} /></aside></section><section className="panel team-workflow-note"><Target size={25} /><div><h2>التكليف من داخل العمل</h2><p>افتح العمل ثم أرسله كاملاً لمتعاون، أو قسّمه واربط كل جزء بمن سينفذه. لا توجد مرحلة إبداعية إلزامية قبل الإرسال.</p></div></section><section className="panel"><div className="panel-heading"><div><h2>أسعار المتعاونين</h2><p>سعر مستقل لكل قطعة وبالعملة المتفق عليها.</p></div></div><CollaboratorRateForm access={access} data={data} refresh={refresh} onToast={onToast} />{data.collaborator_rates?.length ? <div className="live-rate-list">{data.collaborator_rates.map((rate) => <span key={rate.id}><strong>{rate.collaborator_name}</strong><small>{rate.item_name}</small><b>{formatMoney(rate.unit_price, rate.currency)}</b></span>)}</div> : null}</section></div>;
 }
 
 export function LiveOwnerSection({ section, data, access, refresh, onToast, setSection, ownerName }) {
@@ -834,7 +973,7 @@ function CollaboratorClaimForm({ task, data, access, refresh, onToast }) {
   return <form className="panel live-claim-form" onSubmit={submit}><div className="panel-heading"><div><h2>مطالبة تقديم خدمة</h2><p>ترتبط بطلب العمل الحالي ولا تختلط بفواتير العميل.</p></div><Coins size={21} /></div>{rates.length ? <label>السعر المتفق عليه<select value={rateId} onChange={(event) => setRateId(event.target.value)}>{rates.map((item) => <option value={item.id} key={item.id}>{item.item_name}، {formatMoney(item.unit_price, item.currency)}</option>)}</select></label> : <><label>الخدمة<input name="item" required /></label><div className="field-row"><label>سعر القطعة<input name="price" type="number" min="0" step="0.01" required /></label><label>العملة<select name="currency"><option>SAR</option><option>USD</option><option>EUR</option></select></label></div></>}<div className="field-row"><label>الكمية<input name="quantity" type="number" min="1" defaultValue="1" required /></label><label>الاستحقاق<input name="due" type="date" /></label></div><label>ملاحظة<textarea name="notes" rows="2" /></label><button className="button ghost" type="submit">إرسال المطالبة</button></form>;
 }
 
-export function LiveCollaboratorPortal({ data, access, refresh, onToast }) {
+function LiveCollaboratorWorkRoom({ data, access, refresh, onToast }) {
   const [selectedId, setSelectedId] = useState(data.work_orders?.[0]?.id || "");
   const [proofFile, setProofFile] = useState(null);
   const [proofNote, setProofNote] = useState("");
@@ -876,4 +1015,23 @@ export function LiveCollaboratorPortal({ data, access, refresh, onToast }) {
     } catch (error) { onToast(error.message); } finally { setBusy(""); }
   };
   return <div className="portal-shell live-portal collaborator-work-room"><header className="live-portal-head"><div><small>تنفيذ تحت قيادة عبد الوهاب، {task.reference}</small><h1>{task.title}</h1><p>{project?.name || "مشروع"}</p></div>{tasks.length > 1 && <select value={task.id} onChange={(event) => setSelectedId(event.target.value)}>{tasks.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select>}<LiveStatus value={task.status} /></header><section className="collaborator-work-layout"><main><section className="panel collaborator-brief"><span>نطاق إنتاجي من عبد الوهاب</span><div className="collaborator-direction-owner"><small>المدير الإبداعي والمصمم</small><strong>عبد الوهاب بن سليمان السويد</strong></div><h2>{task.title}</h2>{task.creative_core && <div className="collaborator-creative-core"><small>الفكرة التي تقود التنفيذ</small><strong>{task.creative_core}</strong><p>{task.creative_rationale}</p></div>}<div className="delegated-scope"><small>نطاقك الإنتاجي المحدد</small><p>{task.delegation_scope || task.description}</p></div>{task.owner_recommendations && <blockquote><strong>توجيه عبد الوهاب</strong>{task.owner_recommendations}</blockquote>}<div className="work-order-meta"><span><small>الأولوية</small><strong>{priorityLabels[task.priority]}</strong></span><span><small>موعد التسليم</small><strong>{displayDate(task.due_date)}</strong></span><span><small>معك في التنفيذ</small><strong>{assignees.map((item) => item.role_label || "متعاون").join("، ")}</strong></span></div>{task.status === "dispatched" && <button className="button primary" disabled={Boolean(busy)} onClick={changeStatus}>بدء الجزء الإنتاجي</button>}{task.status === "internal_review" && <div className="form-note"><Clock size={18} /> التنفيذ لدى عبد الوهاب بانتظار قراره الإبداعي.</div>}{["completed", "client_review"].includes(task.status) && <div className="form-note"><CheckCircle size={18} /> {task.status === "completed" ? "اعتمد عبد الوهاب التنفيذ وأغلق النطاق." : "اعتمد عبد الوهاب التنفيذ وأرسل النتيجة للعميل."}</div>}</section><section className="panel collaborator-files"><div className="work-order-section-title"><div><h3>ملفات التنفيذ</h3><p>المراجع التي اختار عبد الوهاب مشاركتها ضمن هذا النطاق.</p></div></div><WorkOrderFiles files={files} onOpen={openFile} /></section>{["in_progress", "changes_requested", "dispatched"].includes(task.status) && <section className="panel live-proof-upload collaborator-proof-upload"><div><span>تسليم داخلي</span><h2>ارفع التنفيذ لعبد الوهاب</h2><p>لا يصل للعميل مباشرة. يراجعه عبد الوهاب بصفته صاحب الفكرة والمدير الإبداعي.</p></div><label>ملف البروفة<input type="file" onChange={(event) => setProofFile(event.target.files?.[0] || null)} /></label><label>ملاحظة التسليم<textarea rows="3" value={proofNote} onChange={(event) => setProofNote(event.target.value)} placeholder="ما الذي نفذته داخل النطاق؟ وما الذي يحتاج انتباه عبد الوهاب؟" /></label><button className="button primary" disabled={busy === "proof" || !proofFile} onClick={submitProof}><FileArrowUp size={18} /> رفع للمراجعة الإبداعية</button></section>}</main><aside><section className="panel collaborator-thread-panel"><div className="work-order-section-title"><div><h3>النقاش مع عبد الوهاب</h3><p>مرتبط بالنطاق الذي فوضه لك فقط.</p></div></div><WorkOrderMessages messages={messages} currentUserId={access.user.id} /><form className="work-order-composer" onSubmit={postMessage}><textarea rows="4" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="اكتب سؤالك التنفيذي أو تحديثك" /><div><label className="text-link">إرفاق ملف<input type="file" onChange={(event) => setMessageFile(event.target.files?.[0] || null)} /></label>{messageFile && <small>{messageFile.name}</small>}<button className="button primary small" type="submit" disabled={busy === "message" || (!message.trim() && !messageFile)}>إرسال <PaperPlaneTilt size={16} /></button></div></form></section><section className="panel collaborator-scope-note"><h2>حدود الدور</h2><p>لا ترى بحث عبد الوهاب الخاص أو عقود العميل ومالياته. تعمل داخل الجزء الإنتاجي الذي اختار تفويضه لك فقط.</p></section><CollaboratorClaimForm task={task} data={data} access={access} refresh={refresh} onToast={onToast} /></aside></section></div>;
+}
+
+export function LiveCollaboratorPortal({ data, access, refresh, onToast }) {
+  const [tab, setTab] = useState("active");
+  const tasks = data.work_orders || [];
+  const activeTasks = tasks.filter((item) => !["completed", "cancelled"].includes(item.status));
+  const completedTasks = tasks.filter((item) => item.status === "completed");
+  const claims = (data.collaborator_claims || []).filter((item) => item.collaborator_user_id === access.user.id);
+  const unpaidClaims = claims.filter((item) => ["submitted", "approved", "due"].includes(item.status));
+  const unpaidByCurrency = unpaidClaims.reduce((totals, item) => ({ ...totals, [item.currency]: (totals[item.currency] || 0) + Number(item.amount || 0) }), {});
+  const projects = useMemo(() => Object.fromEntries((data.projects || []).map((item) => [item.id, item])), [data.projects]);
+  const member = (data.memberships || []).find((item) => item.user_id === access.user.id);
+  return <div className="portal-shell live-portal collaborator-dashboard-page"><header className="live-portal-head"><div><small>لوحة المتعاون</small><h1>مرحباً {member?.display_name?.split(" ")[0] || access.user.email}</h1><p>أعمالك الحالية، سجلك، فواتير الخدمة، والمبالغ التي لم تُحوّل لك.</p></div></header>
+    <section className="collaborator-dashboard-kpis"><article><small>أعمال نشطة</small><strong>{activeTasks.length}</strong><span>مرسلة إليك فقط</span></article><article><small>أعمال سابقة</small><strong>{completedTasks.length}</strong><span>السجل المكتمل</span></article><article className="money"><small>غير محول لك</small><strong>{Object.keys(unpaidByCurrency).length}</strong><span>{Object.entries(unpaidByCurrency).map(([currency, value]) => `${formatMoney(value, currency)}`).join(" · ") || "لا توجد مستحقات"}</span></article><article><small>فواتير الخدمة</small><strong>{claims.length}</strong><span>{unpaidClaims.length} تحت الإجراء</span></article></section>
+    <nav className="collaborator-dashboard-tabs"><button className={tab === "active" ? "active" : ""} onClick={() => setTab("active")}>أعمالي الحالية</button><button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>الأعمال السابقة</button><button className={tab === "invoices" ? "active" : ""} onClick={() => setTab("invoices")}>فواتيري ومستحقاتي</button></nav>
+    {tab === "active" && (activeTasks.length ? <LiveCollaboratorWorkRoom data={{ ...data, work_orders: activeTasks }} access={access} refresh={refresh} onToast={onToast} /> : <EmptyState icon={CheckCircle} title="لا توجد أعمال نشطة" body="سيظهر العمل هنا فور أن يختارك عبد الوهاب ويضغط الإرسال." />)}
+    {tab === "history" && <section className="panel collaborator-history"><div className="panel-heading"><div><h2>الأعمال السابقة</h2><p>سجل ما أنجزته وتاريخ إغلاقه.</p></div></div>{completedTasks.length ? completedTasks.map((item) => <article key={item.id}><CheckCircle size={20} weight="fill" /><span><strong>{item.title}</strong><small>{projects[item.project_id]?.name || item.reference}</small></span><time>{displayDate(item.completed_at || item.updated_at)}</time></article>) : <EmptyState icon={CheckCircle} title="لا توجد أعمال مكتملة بعد" body="تنتقل الأعمال إلى هنا بعد اعتماد عبد الوهاب وإغلاقها." />}</section>}
+    {tab === "invoices" && <section className="panel collaborator-own-invoices"><div className="panel-heading"><div><h2>فواتير تقديم الخدمة</h2><p>كل مبلغ بعملته الأصلية مع حالة الاعتماد والتحويل.</p></div></div>{claims.length ? claims.map((claim) => <article key={claim.id}><span className="invoice-icon"><Coins size={20} /></span><span><strong>{claim.item_name}</strong><small>{claim.reference} · {projects[claim.project_id]?.name || "مشروع"}</small></span><strong>{formatMoney(claim.amount, claim.currency)}</strong><LiveStatus value={claim.status} /></article>) : <EmptyState icon={Receipt} title="لا توجد فواتير خدمة بعد" body="يمكنك إرسال مطالبة مرتبطة بأي عمل من غرفته." />}</section>}
+  </div>;
 }

@@ -9363,6 +9363,399 @@ kbd {
   background: color-mix(in srgb, var(--surface) 96%, var(--accent));
 }
 
+/* Simplified execution and delegation */
+.simple-execution-page {
+  --execution-ink: var(--ink);
+}
+
+.simple-flow-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--on-dark);
+  border-radius: 1.15rem;
+}
+
+.simple-flow-banner > span {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 5.3rem;
+  padding: 1rem 1.2rem;
+  border-inline-start: 1px solid color-mix(in srgb, var(--on-dark) 14%, transparent);
+}
+
+.simple-flow-banner > span:first-child {
+  border-inline-start: 0;
+}
+
+.simple-flow-banner b {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.45rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--on-dark) 9%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.simple-flow-banner small {
+  font-size: 0.87rem;
+  font-weight: 650;
+}
+
+.simple-work-command .work-order-index > button.active {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.simple-work-room {
+  display: grid;
+  gap: 1rem;
+}
+
+.simple-execution-decision,
+.simple-delegation-box,
+.simple-split-box,
+.linked-work-parts,
+.optional-owner-note {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: var(--surface-2);
+}
+
+.simple-execution-decision > header,
+.simple-delegation-box > div:first-child,
+.simple-split-box > header {
+  margin-bottom: 1rem;
+}
+
+.simple-execution-decision h3,
+.simple-delegation-box h3,
+.simple-split-box h3,
+.linked-work-parts h3 {
+  margin: 0.2rem 0 0.3rem;
+  font-size: 1.08rem;
+}
+
+.simple-execution-decision p,
+.simple-delegation-box p,
+.simple-split-box p,
+.linked-work-parts p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.optional-owner-note > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.optional-owner-note > summary::-webkit-details-marker {
+  display: none;
+}
+
+.optional-owner-note > summary span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.optional-owner-note > summary small {
+  color: var(--muted);
+  font-weight: 450;
+}
+
+.optional-owner-note[open] > summary {
+  margin-bottom: 1rem;
+}
+
+.optional-owner-note label,
+.simple-split-box label {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.simple-owner-action {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.simple-delegation-box .work-order-assignee-checks {
+  margin-block: 1rem;
+}
+
+.simple-split-box > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.simple-split-box > header > span {
+  align-self: flex-start;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.45rem;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.simple-split-box form {
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.simple-split-box form > .button {
+  margin-top: 1rem;
+}
+
+.linked-work-parts {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.linked-work-parts > header {
+  margin-bottom: 0.35rem;
+}
+
+.linked-work-parts > button {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.9rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.linked-work-parts > button:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.linked-work-parts > button > span:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.linked-work-parts em {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-style: normal;
+}
+
+/* Collaborator dashboard */
+.collaborator-dashboard-page .collaborator-head label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.collaborator-dashboard-kpis {
+  display: grid;
+  grid-template-columns: 0.85fr 0.85fr 1.45fr 1fr;
+  gap: 0.65rem;
+}
+
+.collaborator-dashboard-kpis article {
+  display: grid;
+  min-height: 8.5rem;
+  align-content: space-between;
+  padding: 1rem;
+  border-radius: 0.95rem;
+  background: var(--surface-2);
+}
+
+.collaborator-dashboard-kpis article.money {
+  background: var(--ink);
+  color: var(--on-dark);
+}
+
+.collaborator-dashboard-kpis small,
+.collaborator-dashboard-kpis span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.collaborator-dashboard-kpis article.money small,
+.collaborator-dashboard-kpis article.money span {
+  color: color-mix(in srgb, var(--on-dark) 66%, transparent);
+}
+
+.collaborator-dashboard-kpis strong {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.collaborator-dashboard-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 0.8rem;
+  background: var(--surface-2);
+}
+
+.collaborator-dashboard-tabs button {
+  flex: 1;
+  padding: 0.7rem 0.9rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.collaborator-dashboard-tabs button.active {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.collaborator-task-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.collaborator-task-list > button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: transparent;
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+}
+
+.collaborator-task-list > button.active {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.collaborator-task-list > button > span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.collaborator-task-list em {
+  overflow: hidden;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collaborator-task-list b {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.collaborator-history,
+.collaborator-own-invoices {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.collaborator-history > article,
+.collaborator-own-invoices > article {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.collaborator-history > article {
+  grid-template-columns: auto 1fr auto;
+}
+
+.collaborator-history > article > span,
+.collaborator-own-invoices > article > span:nth-child(2) {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.collaborator-history time {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.collaborator-selected-room {
+  margin-top: 0.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 900px) {
+  .simple-flow-banner,
+  .collaborator-dashboard-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .simple-flow-banner > span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .collaborator-own-invoices > article {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .collaborator-own-invoices > article .payment-status,
+  .collaborator-own-invoices > article .text-link {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 620px) {
+  .simple-flow-banner,
+  .collaborator-dashboard-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .simple-flow-banner > span,
+  .simple-flow-banner > span:last-child {
+    grid-column: auto;
+    border-inline-start: 0;
+    border-top: 1px solid color-mix(in srgb, var(--on-dark) 14%, transparent);
+  }
+
+  .simple-flow-banner > span:first-child {
+    border-top: 0;
+  }
+
+  .collaborator-dashboard-tabs {
+    display: grid;
+  }
+
+  .linked-work-parts > button,
+  .collaborator-task-list > button,
+  .collaborator-history > article,
+  .collaborator-own-invoices > article {
+    grid-template-columns: 1fr;
+  }
+}
+
 .creative-execution-planner > header {
   display: flex;
   align-items: flex-start;

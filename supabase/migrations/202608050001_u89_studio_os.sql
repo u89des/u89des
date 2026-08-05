@@ -192,6 +192,8 @@ create table if not exists public.work_orders (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   project_id uuid not null references public.projects(id) on delete cascade,
   source_retainer_request_id uuid,
+  parent_work_order_id uuid references public.work_orders(id) on delete cascade,
+  work_kind text not null default 'whole' check (work_kind in ('whole', 'part')),
   reference text not null default ('WO-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))),
   title text not null,
   description text not null,
@@ -215,6 +217,9 @@ create table if not exists public.work_orders (
   updated_at timestamptz not null default now(),
   unique (workspace_id, reference)
 );
+
+alter table public.work_orders add column if not exists parent_work_order_id uuid references public.work_orders(id) on delete cascade;
+alter table public.work_orders add column if not exists work_kind text not null default 'whole' check (work_kind in ('whole', 'part'));
 
 create table if not exists public.work_order_assignees (
   id uuid primary key default gen_random_uuid(),
@@ -466,6 +471,7 @@ create index if not exists requests_workspace_status_idx on public.service_reque
 create index if not exists projects_workspace_client_idx on public.projects(workspace_id, client_id, status);
 create index if not exists tasks_workspace_assignee_idx on public.project_tasks(workspace_id, assignee_user_id, status);
 create index if not exists work_orders_workspace_project_idx on public.work_orders(workspace_id, project_id, status, created_at desc);
+create index if not exists work_orders_parent_idx on public.work_orders(parent_work_order_id, status) where parent_work_order_id is not null;
 create index if not exists work_order_assignees_user_idx on public.work_order_assignees(workspace_id, user_id, work_order_id);
 create index if not exists work_order_messages_order_idx on public.work_order_messages(work_order_id, created_at);
 create index if not exists invoices_workspace_status_idx on public.invoices(workspace_id, status, due_date);
@@ -1546,18 +1552,16 @@ begin
   select * into work_order_row from public.work_orders where id = p_work_order_id for update;
   if work_order_row.id is null then raise exception 'Work order not found'; end if;
   if not private.has_workspace_role(work_order_row.workspace_id, array['owner', 'manager']) then raise exception 'Forbidden'; end if;
-  if work_order_row.status not in ('direction_ready', 'owner_production') then raise exception 'Build and approve the creative direction before delegation'; end if;
-  if coalesce(trim(work_order_row.creative_core), '') = '' or coalesce(trim(work_order_row.creative_rationale), '') = '' then raise exception 'Creative core and rationale are required before delegation'; end if;
-  if coalesce(trim(work_order_row.delegation_scope), '') = '' then raise exception 'Define the delegated production scope before dispatch'; end if;
+  if work_order_row.status not in ('draft', 'creative_development', 'direction_ready', 'owner_production') then raise exception 'Work order cannot be dispatched from its current status'; end if;
   if not exists (select 1 from public.work_order_assignees where work_order_id = work_order_row.id) then raise exception 'Assign at least one collaborator before dispatch'; end if;
-  update public.work_orders set status = 'dispatched', creative_stage = 'production', execution_mode = case when execution_mode = 'owner_led' then 'delegated' else execution_mode end, dispatched_at = now()
+  update public.work_orders set status = 'dispatched', creative_stage = 'production', execution_mode = 'delegated', delegation_scope = coalesce(nullif(trim(delegation_scope), ''), description), dispatched_at = now()
   where id = work_order_row.id returning * into work_order_row;
   update public.projects set next_action = 'متابعة الجزء الإنتاجي تحت قيادة عبد الوهاب' where id = work_order_row.project_id;
   insert into public.work_order_messages (workspace_id, work_order_id, author_user_id, author_label, body, message_type)
-  values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'النظام', 'أنهى عبد الوهاب بناء الاتجاه الإبداعي ووجّه نطاقاً إنتاجياً محدداً للمتعاونين.', 'system');
+  values (work_order_row.workspace_id, work_order_row.id, (select auth.uid()), 'النظام', 'وجّه عبد الوهاب هذا العمل إلى المتعاون المحدد.', 'system');
   insert into public.activity_events (workspace_id, project_id, actor_user_id, actor_label, event_type, label, metadata)
-  values (work_order_row.workspace_id, work_order_row.project_id, (select auth.uid()), 'عبد الوهاب', 'work_order.dispatched', 'فوّض عبد الوهاب جزءاً إنتاجياً بعد تثبيت الاتجاه', jsonb_build_object('work_order_id', work_order_row.id));
-  perform private.notify_work_order_assignees(work_order_row.id, 'work_order.dispatched', 'نطاق إنتاجي جديد من عبد الوهاب', work_order_row.title || '، راجع الفكرة والاتجاه ونطاق التنفيذ المحدد في الغرفة.');
+  values (work_order_row.workspace_id, work_order_row.project_id, (select auth.uid()), 'عبد الوهاب', 'work_order.dispatched', 'وجّه عبد الوهاب عملاً إلى متعاون', jsonb_build_object('work_order_id', work_order_row.id, 'work_kind', work_order_row.work_kind));
+  perform private.notify_work_order_assignees(work_order_row.id, 'work_order.dispatched', 'عمل جديد من عبد الوهاب', work_order_row.title || '، افتح المطلوب والملفات من لوحتك.');
   return work_order_row;
 end;
 $$;

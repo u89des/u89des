@@ -333,22 +333,29 @@ export const workflow = Object.freeze({
     p_payment_reference: reference,
     p_exchange_rate_to_sar: exchangeRate,
   }),
-  createWorkOrder: ({ projectId, title, description, recommendations = null, creativeCore = null, creativeRationale = null, creativeNotes = null, delegationScope = null, executionMode = "owner_led", priority = "normal", dueDate = null, requiresClientApproval = false, assigneeUserIds = [], sourceRetainerRequestId = null }) => callWorkflow("create_work_order", {
-    p_project_id: projectId,
-    p_title: title,
-    p_description: description,
-    p_owner_recommendations: recommendations,
-    p_creative_core: creativeCore,
-    p_creative_rationale: creativeRationale,
-    p_creative_notes: creativeNotes,
-    p_delegation_scope: delegationScope,
-    p_execution_mode: executionMode,
-    p_priority: priority,
-    p_due_date: dueDate,
-    p_requires_client_approval: requiresClientApproval,
-    p_assignee_user_ids: assigneeUserIds,
-    p_source_retainer_request_id: sourceRetainerRequestId,
-  }),
+  createWorkOrder: async ({ projectId, title, description, recommendations = null, creativeCore = null, creativeRationale = null, creativeNotes = null, delegationScope = null, executionMode = "owner_led", priority = "normal", dueDate = null, requiresClientApproval = false, assigneeUserIds = [], sourceRetainerRequestId = null, parentWorkOrderId = null, workKind = "whole" }) => {
+    const order = await callWorkflow("create_work_order", {
+      p_project_id: projectId,
+      p_title: title,
+      p_description: description,
+      p_owner_recommendations: recommendations,
+      p_creative_core: creativeCore,
+      p_creative_rationale: creativeRationale,
+      p_creative_notes: creativeNotes,
+      p_delegation_scope: delegationScope,
+      p_execution_mode: executionMode,
+      p_priority: priority,
+      p_due_date: dueDate,
+      p_requires_client_approval: requiresClientApproval,
+      p_assignee_user_ids: assigneeUserIds,
+      p_source_retainer_request_id: sourceRetainerRequestId,
+    });
+    if (!parentWorkOrderId && workKind === "whole") return order;
+    return updateRecord("work_orders", order.id, {
+      parent_work_order_id: parentWorkOrderId,
+      work_kind: workKind,
+    }, order.workspace_id);
+  },
   advanceOwnerWorkOrder: (workOrderId, status) => callWorkflow("advance_owner_work_order", {
     p_work_order_id: workOrderId,
     p_status: status,
