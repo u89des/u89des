@@ -1,5 +1,13 @@
+@font-face {
+  font-family: "Fustat";
+  src: url("/fonts/fustat-variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
 :root {
-  font-family: "Noto Sans Arabic Variable", Arial, sans-serif;
+  font-family: "Fustat", Arial, sans-serif;
   color: #282b27;
   background: #f2f3ef;
   font-synthesis: none;

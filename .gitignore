@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vercel/
+.env
+.env.local
+.env.*.local
+!.env.example
+.DS_Store
+work/
+tmp/
+outputs/
+npm-debug.log*

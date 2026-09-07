@@ -1,8 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import "@fontsource-variable/noto-sans-arabic";
 import App from "./App";
 import "./styles.css";
+import "./marketing.css";
+import "./exhibit.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

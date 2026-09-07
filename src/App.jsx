@@ -20,6 +20,10 @@ import {
   LiveOwnerSection,
   useWorkspaceData,
 } from "./LiveOperations";
+import MarketingSite from "./MarketingSite";
+import ControlCenter, { buildControlModel, groupMoney, CommandPalette, FocusSession } from "./ControlCenter";
+import "./control-center.css";
+import { portfolioProjects } from "./portfolio-data";
 import {
   ArrowLeft,
   ArrowUpLeft,
@@ -629,13 +633,13 @@ const reusableBriefTemplates = [
 ];
 
 const defaultSiteContent = {
-  catalogVersion: 2,
-  heroTitle: "نصنع علامات يصعب تجاوزها.",
-  heroBody: "من الاستراتيجية والتسمية إلى الهوية والتجربة، نبني علامة واضحة تعيش في ذهن الناس وتعمل في السوق.",
-  heroCta: "اطلب مشروعك",
-  servicesTitle: "كل ما تحتاجه العلامة لتبدأ بوضوح.",
-  workTitle: "علامات صممنا لها حضوراً خاصاً.",
-  finalTitle: "مشروعك القادم يبدأ بسؤال جيد.",
+  catalogVersion: 8,
+  heroTitle: "نصنع الأثر الذي تحتاجه علامتك.",
+  heroBody: "من الفكرة الأولى إلى حضور يتماسك، يُرى، ويُتذكر.",
+  heroCta: "تواصل معنا",
+  servicesTitle: "كيف أقدر أخدمك؟",
+  workTitle: "أعمال مختارة",
+  finalTitle: "لنتحدث عن علامتك.",
   email: "w@u89des.com",
   phone: "+966 555 8 777 33",
   domain: "U89DES.COM",
@@ -672,12 +676,11 @@ const defaultSiteContent = {
     { id: "three-40", label: "ثلاث دفعات 40% / 30% / 30%", percentages: [40, 30, 30] },
   ],
   serviceVisibility: serviceList.map(() => true),
-  workVisibility: [true, true, true],
+  portfolioProjects,
+  workVisibility: portfolioProjects.map(() => true),
   maintenance: false,
   sectionVisibility: {
-    statement: true,
     services: true,
-    method: true,
     work: true,
     about: true,
   },
@@ -991,12 +994,12 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
   };
 
   return (
-    <Modal title="ابدأ مشروعك" onClose={onClose}>
+    <Modal title="تواصل معنا" onClose={onClose}>
       {status === "sent" ? (
         <div className="success-state">
           <CheckCircle size={46} weight="fill" />
-          <h3>وصل الطلب بوضوح</h3>
-          <p>ستصلك خلال يوم عمل دعوة لمساحة مشروعك، ومعها الخطوة التالية فقط.</p>
+          <h3>وصلت رسالتك</h3>
+          <p>سأتواصل معك خلال يوم عمل لمراجعة احتياج المشروع.</p>
           <button className="button primary" onClick={onClose}>تم</button>
         </div>
       ) : (
@@ -1012,7 +1015,7 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
           </div>
           <div className="field-row">
             <label>التواصل المفضل<select name="communication" required defaultValue="واتساب"><option value="واتساب">واتساب</option><option value="البريد الإلكتروني">البريد الإلكتروني</option><option value="اتصال هاتفي">اتصال هاتفي</option></select></label>
-            <label>إشعارات المشروع<select name="notifications" required defaultValue="واتساب"><option value="واتساب">واتساب</option><option value="البريد الإلكتروني">البريد الإلكتروني</option><option value="واتساب والبريد">واتساب والبريد</option></select></label>
+            <label>طريقة استلام الرد<select name="notifications" required defaultValue="واتساب"><option value="واتساب">واتساب</option><option value="البريد الإلكتروني">البريد الإلكتروني</option><option value="واتساب والبريد">واتساب والبريد</option></select></label>
           </div>
           <label>الخدمة المطلوبة
             <select required value={serviceId} onChange={(event) => selectService(event.target.value)}><option value="" disabled>اختر الخدمة</option>{(settings.services || []).filter((service) => service.active).map((service) => <option value={service.id} key={service.id}>{service.title}</option>)}</select>
@@ -1021,7 +1024,7 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
             <header><strong>{selectedService.selectionLabel || "حدد نطاق العمل"}</strong><small>يمكنك اختيار أكثر من عنصر</small></header>
             <div className="request-choice-grid">{(selectedService.options || []).map((option) => <label className={selectedOptions.includes(option) ? "selected" : ""} key={option}><input type="checkbox" checked={selectedOptions.includes(option)} onChange={() => toggleOption(option, setSelectedOptions)} /><span><Check size={15} /></span>{option}</label>)}</div>
             {selectedService.conditionalOption && selectedOptions.includes(selectedService.conditionalOption) && <div className="request-conditional-scope"><strong>{selectedService.conditionalLabel}</strong><div className="request-choice-grid applications">{(selectedService.conditionalOptions || []).map((option) => <label className={selectedConditionalOptions.includes(option) ? "selected" : ""} key={option}><input type="checkbox" checked={selectedConditionalOptions.includes(option)} onChange={() => toggleOption(option, setSelectedConditionalOptions)} /><span><Check size={15} /></span>{option}</label>)}</div></div>}
-            {selectedService.engagement === "retainer" && <div className="request-billing-cycle"><strong>مدة الشراكة</strong><div>{(selectedService.billingOptions || ["شهري", "سنوي"]).map((option) => <label className={billingCycle === option ? "selected" : ""} key={option}><input type="radio" name="billingCycleChoice" checked={billingCycle === option} onChange={() => setBillingCycle(option)} />{option}<small>{option === "شهري" ? "طلبات مفتوحة طوال الشهر" : "طلبات مفتوحة طوال سنة العقد"}</small></label>)}</div><p>بعد توقيع العقد وتفعيله تظهر لك مساحة لرفع طلبات جديدة طوال المدة.</p></div>}
+            {selectedService.engagement === "retainer" && <div className="request-billing-cycle"><strong>مدة الشراكة</strong><div>{(selectedService.billingOptions || ["شهري", "سنوي"]).map((option) => <label className={billingCycle === option ? "selected" : ""} key={option}><input type="radio" name="billingCycleChoice" checked={billingCycle === option} onChange={() => setBillingCycle(option)} />{option}<small>{option === "شهري" ? "احتياج إبداعي مستمر خلال الشهر" : "شراكة إبداعية ممتدة طوال السنة"}</small></label>)}</div></div>}
           </section>}
           <label>اسم المشروع أو العلامة<input name="project" required placeholder="مثال: هوية منصة سُرى" /></label>
           {(settings.requestQuestions || []).filter((question) => question.enabled).map((question) => <label key={question.id}>{question.label}
@@ -1031,9 +1034,9 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
             {question.type === "select" && <select name={question.id} required={question.required} defaultValue=""><option value="" disabled>اختر الإجابة</option>{(question.options || []).map((option) => <option key={option}>{option}</option>)}</select>}
           </label>)}
           <label className="consent-field"><input type="checkbox" required /><span>أوافق على التواصل وإرسال إشعارات الطلب عبر القناة التي اخترتها.</span></label>
-          <div className="form-note"><ShieldCheck size={19} /> تحفظ معلوماتك داخل مساحة خاصة بالمشروع.</div>
+          <div className="form-note"><ShieldCheck size={19} /> معلوماتك محفوظة وتستخدم للتواصل بشأن طلبك فقط.</div>
           {error && <div className="form-error" role="alert">{error}</div>}
-          <button className="button primary full" type="submit" disabled={status === "sending"}>{status === "sending" ? <><CircleNotch size={18} className="spin" /> جارٍ إرسال الطلب</> : <>إرسال الطلب <ArrowLeft size={18} /></>}</button>
+          <button className="button primary full" type="submit" disabled={status === "sending"}>{status === "sending" ? <><CircleNotch size={18} className="spin" /> جارٍ الإرسال</> : <>إرسال <ArrowLeft size={18} /></>}</button>
         </form>
       )}
     </Modal>
@@ -1739,6 +1742,12 @@ function FinanceView({ onToast, settings, scenario, setRole }) {
   const [selectedFinancial, setSelectedFinancial] = useState(null);
   const [clientInvoices, setClientInvoices] = usePersistentState("u89-invoices", invoices);
   const [teamClaims, setTeamClaims] = usePersistentState("u89-collaborator-claims", collaboratorBills);
+  const receivable = groupMoney(clientInvoices.filter((item) => ["مستحقة", "متأخرة"].includes(item.status)));
+  const scheduled = groupMoney(clientInvoices.filter((item) => item.status === "مجدولة"));
+  const payable = groupMoney(teamClaims.filter((item) => item.status === "مستحقة"));
+  const renderBalances = (balances, empty) => Object.keys(balances).length
+    ? Object.entries(balances).map(([currency, amount]) => <strong key={currency} dir="ltr">{amount.toLocaleString("en-US", { maximumFractionDigits: 2 })} <small>{currency}</small></strong>)
+    : <strong>{empty}</strong>;
   const saveEntry = (kind, data) => {
     if (kind === "client") {
       const next = {
@@ -1774,8 +1783,8 @@ function FinanceView({ onToast, settings, scenario, setRole }) {
       <div className="page-title"><div><h1>الحسابات</h1><p>ما لك، وما عليك، وربحية كل مشروع دون ملف منفصل.</p></div><button className="button primary" onClick={() => setEntryKind(tab === "clients" ? "client" : "collaborator")}><Plus size={18} /> {tab === "clients" ? "فاتورة عميل" : "مطالبة متعاون"}</button></div>
       {scenario.step >= 6 && <section className="panel scenario-invoice-panel"><span className="invoice-icon"><Invoice size={22} /></span><div><span className="scenario-live-label"><Sparkle size={13} weight="fill" /> المشروع التجريبي</span><strong>{scenario.step === 9 ? "فاتورة الدفعة الأخيرة" : "فاتورة الدفعة الأولى"}</strong><small>{scenario.project.name}، {scenario.client.company}</small></div><div><small>القيمة</small><strong>{(Number(scenario.quote.amount) * 0.5).toLocaleString("en-US")} {scenario.quote.currency}</strong></div><span className={`payment-status ${scenario.step > 9 || (scenario.step > 6 && scenario.step < 9) ? "paid" : ""}`}>{scenario.step === 6 || scenario.step === 9 ? "مستحقة" : "مدفوعة"}</span>{(scenario.step === 6 || scenario.step === 9) && <button className="button primary small" onClick={() => setRole("client")}>فتح بوابة العميل</button>}</section>}
       <section className="finance-hero">
-        <div className="finance-balance"><span>الرصيد المتوقع بعد الالتزامات</span><strong>36,420 <small>ر.س</small></strong><p>حتى نهاية أغسطس، بناء على العقود والفواتير المسجلة.</p></div>
-        <div className="finance-pairs"><div><Receipt size={22} /><span>مستحقات العملاء<strong>16,350 SAR</strong></span></div><div><UsersThree size={22} /><span>دفعات المتعاونين<strong>4,800 SAR + عملات</strong></span></div><div><ChartLineUp size={22} /><span>هامش المشاريع<strong>31%</strong></span></div></div>
+        <div className="finance-balance"><span>مستحقات العملاء غير المحصّلة</span>{renderBalances(receivable, "لا توجد مستحقات")}<p>من الفواتير المسجلة، كل عملة مستقلة. المسودات والمبالغ المجدولة خارج المستحق الحالي.</p></div>
+        <div className="finance-pairs"><div><UsersThree size={22} /><span>مستحقات المتعاونين{renderBalances(payable, "لا توجد مستحقات")}</span></div><div><Clock size={22} /><span>دفعات العملاء المجدولة{renderBalances(scheduled, "لا توجد دفعات مجدولة")}</span></div></div>
       </section>
       <section className="panel">
         <div className="panel-heading finance-heading"><div><h2>{tab === "clients" ? "فواتير العملاء" : "مستحقات المتعاونين"}</h2><p>{tab === "clients" ? "فواتير عادية غير ضريبية مرتبطة بالدفعات والمشاريع." : "تكلفة كل قطعة بالعملة التي يعمل بها المتعاون."}</p></div><div className="finance-tabs"><button className={tab === "clients" ? "active" : ""} onClick={() => setTab("clients")}>العملاء</button><button className={tab === "collaborators" ? "active" : ""} onClick={() => setTab("collaborators")}>المتعاونون</button></div></div>
@@ -1801,10 +1810,11 @@ function FinanceView({ onToast, settings, scenario, setRole }) {
   );
 }
 
-function WorkOrdersView({ scenario, setRole, onToast, onAdvance }) {
+function WorkOrdersView({ scenario, setRole, onToast, onAdvance, targetId }) {
   const [orders, setOrders] = usePersistentState("u89-work-orders", initialWorkOrders);
   const [teamClaims, setTeamClaims] = usePersistentState("u89-collaborator-claims", collaboratorBills);
   const [selectedId, setSelectedId] = useState(orders.find((item) => !item.parentId)?.id || "");
+  useEffect(() => { if (targetId && orders.some((item) => item.id === targetId)) setSelectedId(targetId); }, [targetId]);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState("");
   const [reviewNote, setReviewNote] = useState("");
@@ -1941,7 +1951,7 @@ function WorkOrdersView({ scenario, setRole, onToast, onAdvance }) {
       updateOrder(selected.id, { status: selected.clientApproval ? "client_review" : "completed", proof: { ...selected.proof, status: "approved" }, messages: selected.dispatched ? [...selected.messages, { id: `m-${Date.now()}`, author: "عبد الوهاب", body: selected.clientApproval ? "اعتمدت العمل وأرسلته للعميل." : "اعتمدت العمل وأغلقته.", at: "الآن", decision: true }] : selected.messages });
       if (selected.dispatched) {
         setTeamClaims((items) => {
-          const additions = selected.assignees.filter((name) => !items.some((item) => item.workOrderId === selected.id && item.collaborator === name)).map((name, index) => ({
+          const additions = [...new Set(selected.assignees)].filter((name) => !items.some((item) => item.workOrderId === selected.id && item.collaborator === name)).map((name, index) => ({
             id: `COL-${Date.now().toString().slice(-5)}-${index + 1}`,
             workOrderId: selected.id,
             collaborator: name,
@@ -1951,7 +1961,7 @@ function WorkOrdersView({ scenario, setRole, onToast, onAdvance }) {
             currency: selected.compensation[name]?.currency || "SAR",
             status: "مستحقة",
           }));
-          return [...additions, ...items.map((item) => item.workOrderId === selected.id ? { ...item, status: "مستحقة" } : item)];
+          return [...additions, ...items.map((item) => item.workOrderId === selected.id && !["مدفوعة", "paid"].includes(item.status) ? { ...item, status: "مستحقة" } : item)];
         });
       }
       onToast(selected.clientApproval ? "اعتمدت العمل وأرسلته للعميل" : "اعتمدت العمل وأغلقته");
@@ -2149,10 +2159,13 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
     ["settings", "الإعدادات", SlidersHorizontal],
   ];
   const update = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
-  const updateVisibility = (group, index, value) => setDraft((current) => ({
-    ...current,
-    [group]: current[group].map((item, itemIndex) => itemIndex === index ? value : item),
-  }));
+  const updateVisibility = (group, index, value) => setDraft((current) => {
+    const source = current[group] || [];
+    return {
+      ...current,
+      [group]: Array.from({ length: Math.max(source.length, index + 1) }, (_, itemIndex) => itemIndex === index ? value : source[itemIndex] !== false),
+    };
+  });
   const updateSection = (key, value) => setDraft((current) => ({
     ...current,
     sectionVisibility: { ...current.sectionVisibility, [key]: value },
@@ -2170,6 +2183,52 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
     const serviceId = current.services[index].id;
     return { ...current, services: current.services.filter((_, serviceIndex) => serviceIndex !== index), briefTemplates: (current.briefTemplates || []).filter((template) => template.serviceId !== serviceId) };
   });
+  const updatePortfolioProject = (index, key, value) => setDraft((current) => ({
+    ...current,
+    portfolioProjects: current.portfolioProjects.map((project, projectIndex) => projectIndex === index ? { ...project, [key]: value } : project),
+  }));
+  const updatePortfolioPalette = (index, key, value) => setDraft((current) => ({
+    ...current,
+    portfolioProjects: current.portfolioProjects.map((project, projectIndex) => projectIndex === index ? {
+      ...project,
+      palette: { ...(project.palette || {}), [key]: value },
+    } : project),
+  }));
+  const updatePortfolioGallery = (index, value) => setDraft((current) => ({
+    ...current,
+    portfolioProjects: current.portfolioProjects.map((project, projectIndex) => {
+      if (projectIndex !== index) return project;
+      const existing = project.gallery || [];
+      const gallery = value.split("\n").map((src) => src.trim()).filter(Boolean).map((src, imageIndex) => ({
+        src,
+        alt: existing[imageIndex]?.alt || `تطبيق من مشروع ${project.name}`,
+        layout: existing[imageIndex]?.layout || (imageIndex === 0 ? "wide" : imageIndex % 3 === 1 ? "tall" : "standard"),
+      }));
+      return { ...project, gallery };
+    }),
+  }));
+  const addPortfolioProject = () => setDraft((current) => ({
+    ...current,
+    portfolioProjects: [...current.portfolioProjects, {
+      id: `portfolio-${Date.now()}`,
+      name: "مشروع جديد",
+      nameEn: "New Project",
+      cover: "/portfolio/bukhary-logo.webp",
+      category: "صناعة علامة",
+      statement: "اكتب الفكرة التي تقود دراسة الحالة.",
+      story: "اكتب قصة المشروع ودورك فيه من البداية حتى التطبيقات.",
+      scope: ["شخصية العلامة", "صناعة العلامة"],
+      consulting: [],
+      palette: { surface: "#edf0e8", ink: "#151814", accent: "#b7d43b" },
+      gallery: [{ src: "/portfolio/bukhary-hero.webp", alt: "تطبيق من المشروع", layout: "wide" }],
+    }],
+    workVisibility: [...(current.workVisibility || []), true],
+  }));
+  const removePortfolioProject = (index) => setDraft((current) => ({
+    ...current,
+    portfolioProjects: current.portfolioProjects.filter((_, projectIndex) => projectIndex !== index),
+    workVisibility: (current.workVisibility || []).filter((_, projectIndex) => projectIndex !== index),
+  }));
   const updateQuestion = (index, key, value) => setDraft((current) => ({ ...current, requestQuestions: current.requestQuestions.map((question, questionIndex) => questionIndex === index ? { ...question, [key]: value } : question) }));
   const addQuestion = () => setDraft((current) => ({ ...current, requestQuestions: [...current.requestQuestions, { id: `question-${Date.now()}`, label: "سؤال جديد", type: "text", required: false, enabled: true }] }));
   const removeQuestion = (index) => setDraft((current) => ({ ...current, requestQuestions: current.requestQuestions.filter((_, questionIndex) => questionIndex !== index) }));
@@ -2211,13 +2270,12 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
             <div className="cms-fields">
               <label className="cms-field full">العنوان الرئيسي<input value={draft.heroTitle} onChange={(event) => update("heroTitle", event.target.value)} /></label>
               <label className="cms-field full">وصف المقدمة<textarea rows="4" value={draft.heroBody} onChange={(event) => update("heroBody", event.target.value)} /></label>
-              <label className="cms-field">نص زر الطلب<input value={draft.heroCta} onChange={(event) => update("heroCta", event.target.value)} /></label>
+              <label className="cms-field">نص زر التواصل<input value={draft.heroCta} onChange={(event) => update("heroCta", event.target.value)} /></label>
               <label className="cms-field">عنوان الخدمات<input value={draft.servicesTitle} onChange={(event) => update("servicesTitle", event.target.value)} /></label>
               <label className="cms-field">عنوان الأعمال<input value={draft.workTitle} onChange={(event) => update("workTitle", event.target.value)} /></label>
-              <label className="cms-field">عنوان الدعوة الختامية<input value={draft.finalTitle} onChange={(event) => update("finalTitle", event.target.value)} /></label>
             </div>
             <div className="cms-section"><h3>إظهار أقسام الصفحة</h3><div className="cms-toggle-grid">
-              {[["statement", "العبارة التعريفية"], ["services", "الخدمات"], ["method", "منهجية العمل"], ["work", "الأعمال المختارة"], ["about", "عن الاستوديو"]].map(([id, label]) => <label className="cms-toggle" key={id}><span><strong>{label}</strong><small>{draft.sectionVisibility[id] ? "ظاهر في الموقع" : "مخفي مؤقتاً"}</small></span><input type="checkbox" checked={draft.sectionVisibility[id]} onChange={(event) => updateSection(id, event.target.checked)} /></label>)}
+              {[["services", "الخدمات"], ["work", "الأعمال المختارة"], ["about", "نبذة شخصية"]].map(([id, label]) => <label className="cms-toggle" key={id}><span><strong>{label}</strong><small>{draft.sectionVisibility[id] ? "ظاهر في الموقع" : "مخفي مؤقتاً"}</small></span><input type="checkbox" checked={draft.sectionVisibility[id]} onChange={(event) => updateSection(id, event.target.checked)} /></label>)}
             </div></div>
           </>}
 
@@ -2227,8 +2285,26 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
           </>}
 
           {tab === "work" && <>
-            <div className="cms-editor-heading"><div><h2>الأعمال المختارة</h2><p>تحكم بما يظهر في واجهة الموقع التعريفية.</p></div><button className="button ghost small" onClick={() => onToast("رفع مشروع جديد سيكون مربوطاً بمكتبة الملفات في النسخة الإنتاجية")}><Plus size={17} /> إضافة مشروع</button></div>
-            <div className="cms-work-list">{initialProjects.map((project, index) => <label className="cms-work-item" key={project.id}><img src={project.image} alt="" /><span><strong>{project.name}</strong><small>{project.type}</small></span><input type="checkbox" checked={draft.workVisibility[index]} onChange={(event) => updateVisibility("workVisibility", index, event.target.checked)} /></label>)}</div>
+            <div className="cms-editor-heading"><div><h2>الأعمال المختارة</h2><p>المشاريع ودراسات الحالة التي تظهر في واجهة الموقع التعريفية.</p></div><button className="button ghost small" onClick={addPortfolioProject}><Plus size={17} /> إضافة مشروع</button></div>
+            <div className="cms-portfolio-editor">{(draft.portfolioProjects || []).map((project, index) => <article className="cms-portfolio-item" key={project.id}>
+              <img src={project.cover} alt="" />
+              <div className="cms-portfolio-fields">
+                <div className="field-row"><label>اسم المشروع<input value={project.name} onChange={(event) => updatePortfolioProject(index, "name", event.target.value)} /></label><label>الاسم بالإنجليزية<input dir="ltr" value={project.nameEn || ""} onChange={(event) => updatePortfolioProject(index, "nameEn", event.target.value)} /></label></div>
+                <label>تصنيف المشروع<input value={project.category || ""} onChange={(event) => updatePortfolioProject(index, "category", event.target.value)} /></label>
+                <label>الفكرة الرئيسية لدراسة الحالة<textarea rows="2" value={project.statement || ""} onChange={(event) => updatePortfolioProject(index, "statement", event.target.value)} /></label>
+                <label>قصة المشروع ودورك فيه<textarea rows="4" value={project.story || ""} onChange={(event) => updatePortfolioProject(index, "story", event.target.value)} /></label>
+                <label>نطاق العمل كما يظهر داخل المشروع<textarea rows="3" value={(project.scope || []).join("، ")} onChange={(event) => updatePortfolioProject(index, "scope", event.target.value.split("،").map((item) => item.trim()).filter(Boolean))} /></label>
+                <label>تفاصيل الاستشارات الإبداعية<textarea rows="2" value={(project.consulting || []).join("، ")} onChange={(event) => updatePortfolioProject(index, "consulting", event.target.value.split("،").map((item) => item.trim()).filter(Boolean))} /></label>
+                <label>صورة الشعار<input dir="ltr" value={project.cover} onChange={(event) => updatePortfolioProject(index, "cover", event.target.value)} /></label>
+                <label>صور دراسة الحالة، رابط واحد في كل سطر<textarea dir="ltr" rows="5" value={(project.gallery || []).map((image) => image.src).join("\n")} onChange={(event) => updatePortfolioGallery(index, event.target.value)} /></label>
+                <div className="field-row cms-palette-fields">
+                  <label>لون الخلفية<input dir="ltr" type="color" value={project.palette?.surface || "#edf0e8"} onChange={(event) => updatePortfolioPalette(index, "surface", event.target.value)} /></label>
+                  <label>لون النص<input dir="ltr" type="color" value={project.palette?.ink || "#151814"} onChange={(event) => updatePortfolioPalette(index, "ink", event.target.value)} /></label>
+                  <label>لون الحركة<input dir="ltr" type="color" value={project.palette?.accent || "#b7d43b"} onChange={(event) => updatePortfolioPalette(index, "accent", event.target.value)} /></label>
+                </div>
+              </div>
+              <div className="cms-portfolio-actions"><label><input type="checkbox" checked={draft.workVisibility?.[index] !== false} onChange={(event) => updateVisibility("workVisibility", index, event.target.checked)} /> ظاهر</label><button aria-label={`حذف ${project.name}`} onClick={() => removePortfolioProject(index)}><X size={18} /></button></div>
+            </article>)}</div>
           </>}
 
           {tab === "forms" && <>
@@ -2299,24 +2375,24 @@ function CaptureModal({ onClose, onAdd }) {
   );
 }
 
-function Sidebar({ section, setSection, onSite }) {
+function Sidebar({ section, setSection, onSite, onFocus, counts }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-top"><Logo onClick={onSite} /><span className="workspace-label">استوديو عبد الوهاب</span></div>
       <nav aria-label="أقسام الإدارة">
-        {navItems.map((item) => {
+        {[{ label: "يومي والعمل", ids: ["overview", "requests", "projects", "work-orders", "briefs"] }, { label: "العلاقات والمال", ids: ["documents", "finance", "clients", "team"] }, { label: "الاستوديو", ids: ["studio-settings", "site-admin", "system", "scenario"] }].map((group) => <div className="cc-nav-group" key={group.label}><small>{group.label}</small>{group.ids.map((id) => navItems.find((item) => item.id === id)).map((item) => {
           const Icon = item.icon;
-          return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label}</span>{item.id === "requests" && <b>2</b>}{item.id === "briefs" && <b>1</b>}</button>;
-        })}
+          return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label}</span>{counts?.[item.id] > 0 && <b>{counts[item.id]}</b>}</button>;
+        })}</div>)}
       </nav>
-      <div className="sidebar-card"><Sparkle size={21} weight="fill" /><strong>وضع التركيز</strong><p>يعرض لك قراراً واحداً فقط، ويؤجل البقية حتى تنتهي.</p><button>ابدأ 25 دقيقة</button></div>
+      <div className="sidebar-card"><Target size={21} /><strong>مساحة للتركيز</strong><p>جلسة واحدة لعمل تختاره.</p><button onClick={onFocus}>ابدأ 25 دقيقة</button></div>
       <button className="back-to-site" onClick={onSite}><House size={19} /> الموقع التعريفي</button>
       <div className="profile-mini"><span>ع</span><div><strong>عبد الوهاب السويد</strong><small>المدير الإبداعي والمصمم</small></div><CaretDown size={15} /></div>
     </aside>
   );
 }
 
-function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExit, connected, onLogout, notificationCount, notificationsOpen, onNotifications }) {
+function AppTopbar({ theme, onTheme, role, setRole, onCapture, onSearch, canPreview, onExit, connected, onLogout, notificationCount, notificationsOpen, onNotifications }) {
   return (
     <header className="app-topbar">
       {canPreview ? <>
@@ -2328,7 +2404,7 @@ function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExi
         </div>}
       </> : <div className="portal-identity"><Logo compact /><span><strong>{role === "client" ? "بوابة العميل" : "مساحة المتعاون"}</strong><small>دخول خاص وآمن</small></span></div>}
       <div className="topbar-actions">
-        {canPreview && role === "owner" && <button className="quick-capture" onClick={onCapture}><Plus size={18} /> التقاط سريع <kbd>⌘ K</kbd></button>}
+        {canPreview && role === "owner" && <><button className="icon-button" aria-label="البحث والانتقال السريع" onClick={onSearch}><MagnifyingGlass size={20} /></button><button className="quick-capture" onClick={onCapture}><Plus size={18} /> التقاط سريع <kbd>⌘ ⇧ K</kbd></button></>}
         <ThemeButton theme={theme} onToggle={onTheme} />
         <button type="button" className={`icon-button ${notificationsOpen ? "active" : ""}`} aria-label="الإشعارات" title="الإشعارات" onClick={onNotifications}><Bell size={19} />{notificationCount > 0 && <span className="notification-count">{notificationCount > 9 ? "9+" : notificationCount}</span>}</button>
         {connected && <button className="button ghost portal-exit" onClick={onLogout}><SignOut size={18} /> خروج</button>}
@@ -2338,11 +2414,11 @@ function AppTopbar({ theme, onTheme, role, setRole, onCapture, canPreview, onExi
   );
 }
 
-function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast, siteContent, onPublishSite, onSite, scenario, onScenarioAdvance, onScenarioPatch, onScenarioReset, platformAccess, liveData, onRefreshLiveData }) {
-  if (liveData && !["studio-settings", "site-admin", "system"].includes(section)) return <LiveOwnerSection section={section} data={liveData} access={platformAccess} refresh={onRefreshLiveData} onToast={onToast} setSection={setSection} ownerName={siteContent.ownerNameAr} />;
+function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast, siteContent, onPublishSite, onSite, scenario, onScenarioAdvance, onScenarioPatch, onScenarioReset, platformAccess, liveData, onRefreshLiveData, targetId }) {
+  if (liveData && !["studio-settings", "site-admin", "system"].includes(section)) return <LiveOwnerSection section={section} targetId={targetId} data={liveData} access={platformAccess} refresh={onRefreshLiveData} onToast={onToast} setSection={setSection} ownerName={siteContent.ownerNameAr} />;
   if (section === "scenario") return <ScenarioCenter scenario={scenario} onReset={onScenarioReset} setSection={setSection} setRole={setRole} />;
   if (section === "projects") return <ProjectsView onProject={onProject} scenario={scenario} onAdvance={onScenarioAdvance} onToast={onToast} />;
-  if (section === "work-orders") return <WorkOrdersView scenario={scenario} setRole={setRole} onToast={onToast} onAdvance={onScenarioAdvance} />;
+  if (section === "work-orders") return <WorkOrdersView scenario={scenario} targetId={targetId} setRole={setRole} onToast={onToast} onAdvance={onScenarioAdvance} />;
   if (section === "requests") return <RequestsView onToast={onToast} setSection={setSection} setRole={setRole} scenario={scenario} onAdvance={onScenarioAdvance} />;
   if (section === "briefs") return <BriefsView settings={siteContent} onToast={onToast} setSection={setSection} setRole={setRole} scenario={scenario} onAdvance={onScenarioAdvance} />;
   if (section === "documents") return <DocumentsView settings={siteContent} onToast={onToast} scenario={scenario} onAdvance={onScenarioAdvance} onPatch={onScenarioPatch} />;
@@ -2518,12 +2594,27 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
   const [role, setRole] = useState(initialRole);
   const canPreview = initialRole === "owner";
   const [section, setSection] = useState("overview");
+  const [targetId, setTargetId] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [focusTask, setFocusTask] = useState(null);
+  const [notes, setNotes] = usePersistentState(`u89-capture-notes-${platformAccess?.user?.id || "local"}`, []);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [toast, setToast] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [localReadNotifications, setLocalReadNotifications] = useState([]);
   const liveWorkspace = useWorkspaceData(platformAccess);
+  const controlModel = useMemo(() => buildControlModel({ liveData: platformAccess ? liveWorkspace.data || {} : null, seeds: { orders: initialWorkOrders, invoices, claims: collaboratorBills, requests: retainerRequests }, scenario }), [platformAccess, liveWorkspace.data, section, scenario]);
+  const navigate = (nextSection, id = null) => { setTargetId(id); setSection(nextSection); };
+  useEffect(() => {
+    if (!canPreview || role !== "owner") return;
+    const shortcut = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); if (event.shiftKey) setCaptureOpen(true); else setSearchOpen(true); }
+      if (event.key === "Escape") { setSearchOpen(false); setFocusTask(null); }
+    };
+    document.addEventListener("keydown", shortcut);
+    return () => document.removeEventListener("keydown", shortcut);
+  }, [role, canPreview]);
   const localNotifications = [
     { id: "local-proof", subject: "بروفة تحتاج مراجعتك", message: "البروفة الثانية لمشروع سيد مندي جاهزة للقرار.", created_at: new Date().toISOString() },
     { id: "local-quote", subject: "عرض سعر بانتظار الاعتماد", message: "راجع نطاق عرض بخاري أختر قبل الإرسال.", created_at: new Date().toISOString() },
@@ -2567,19 +2658,21 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
     window.scrollTo({ top: 0, left: 0 });
   }, [role, section]);
   return (
-    <div className="workspace">
-      {canPreview && role === "owner" && <Sidebar section={section} setSection={setSection} onSite={onSite} />}
+    <div className={`workspace ${canPreview && role === "owner" ? "studio-workspace" : ""}`}>
+      {canPreview && role === "owner" && <Sidebar section={section} setSection={navigate} onSite={onSite} onFocus={() => setFocusTask({ title: "مساحة لعملك الإبداعي", section: "work-orders" })} counts={{ requests: controlModel.requestCount, overview: controlModel.decisions.length }} />}
       <div className={`workspace-main ${role !== "owner" || !canPreview ? "portal-main" : ""}`}>
-        <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} canPreview={canPreview} onExit={onSite} connected={Boolean(platformAccess?.session)} onLogout={onLogout} notificationCount={unreadNotificationCount} notificationsOpen={notificationsOpen} onNotifications={() => setNotificationsOpen(true)} />
+        <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} onSearch={() => setSearchOpen(true)} canPreview={canPreview} onExit={onSite} connected={Boolean(platformAccess?.session)} onLogout={onLogout} notificationCount={unreadNotificationCount} notificationsOpen={notificationsOpen} onNotifications={() => setNotificationsOpen(true)} />
         {notificationsOpen && <NotificationCenter items={personalNotifications} onClose={() => setNotificationsOpen(false)} onRead={readNotification} />}
         {platformAccess && liveWorkspace.loading && <div className="workspace-loading"><div /><div /><div /><span>جارٍ تحميل مساحة العمل</span></div>}
         {platformAccess && liveWorkspace.error && <div className="workspace-error-state"><ShieldCheck size={32} /><h2>تعذر تحميل مساحة العمل</h2><p>{liveWorkspace.error}</p><button className="button primary" onClick={liveWorkspace.refresh}>إعادة المحاولة</button></div>}
-        {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && canPreview && role === "owner" && <OwnerApp section={section} setSection={setSection} setRole={setRole} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} scenario={scenario} onScenarioAdvance={advanceScenario} onScenarioPatch={patchScenario} onScenarioReset={resetScenario} platformAccess={platformAccess} liveData={platformAccess ? liveWorkspace.data : null} onRefreshLiveData={liveWorkspace.refresh} />}
+        {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && canPreview && role === "owner" && (section === "overview" ? <ControlCenter model={controlModel} onNavigate={navigate} onCapture={() => setCaptureOpen(true)} onFocus={setFocusTask} notes={notes} onToggleNote={(id) => setNotes((items) => items.map((item) => item.id === id ? { ...item, done: !item.done } : item))} onSearch={() => setSearchOpen(true)} /> : <OwnerApp targetId={targetId} section={section} setSection={navigate} setRole={setRole} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} scenario={scenario} onScenarioAdvance={advanceScenario} onScenarioPatch={patchScenario} onScenarioReset={resetScenario} platformAccess={platformAccess} liveData={platformAccess ? liveWorkspace.data : null} onRefreshLiveData={liveWorkspace.refresh} />)}
         {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && role === "client" && (platformAccess ? <LiveClientPortal data={liveWorkspace.data || {}} access={platformAccess} refresh={liveWorkspace.refresh} onToast={showToast} /> : <ClientPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} onPatch={patchScenario} />)}
         {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && role === "collaborator" && (platformAccess ? <LiveCollaboratorPortal data={liveWorkspace.data || {}} access={platformAccess} refresh={liveWorkspace.refresh} onToast={showToast} /> : <CollaboratorPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} />)}
       </div>
-      {canPreview && role === "owner" && <MobileNav section={section} setSection={setSection} />}
-      {canPreview && captureOpen && <CaptureModal onClose={() => setCaptureOpen(false)} onAdd={(text) => showToast(`تم حفظ: ${text}`)} />}
+      {canPreview && role === "owner" && <MobileNav section={section} setSection={navigate} />}
+      {canPreview && role === "owner" && captureOpen && <CaptureModal onClose={() => setCaptureOpen(false)} onAdd={(text) => { setNotes((items) => [{ id: crypto.randomUUID(), text: text.trim(), createdAt: new Date().toISOString(), done: false }, ...items]); showToast("حُفظت الفكرة في صندوق أفكارك على هذا الجهاز"); }} />}
+      {canPreview && role === "owner" && searchOpen && <CommandPalette sections={navItems} orders={controlModel.orders} onNavigate={navigate} onClose={() => setSearchOpen(false)} onCapture={() => setCaptureOpen(true)} />}
+      {canPreview && role === "owner" && focusTask && <FocusSession task={focusTask} onClose={() => setFocusTask(null)} onOpen={() => { navigate(focusTask.section || "work-orders", focusTask.targetId); setFocusTask(null); }} />}
       {selectedProject && <ProjectDrawer project={selectedProject} onClose={() => setSelectedProject(null)} onToast={showToast} />}
       <Toast message={toast} />
     </div>
@@ -2596,6 +2689,8 @@ export default function App() {
   }, []);
   const [theme, setTheme] = useState(initialTheme);
   const [siteContent, setSiteContent] = useState(() => {
+    // Production must wait for published settings, never a cached demo configuration.
+    if (platformConfig.configured) return { ...defaultSiteContent, acceptingRequests: false };
     try {
       const saved = JSON.parse(window.localStorage.getItem("u89-site-content"));
       if (!saved) return defaultSiteContent;
@@ -2608,6 +2703,14 @@ export default function App() {
         merged.catalogVersion = defaultSiteContent.catalogVersion;
         merged.services = defaultSiteContent.services.map((service) => ({ ...service, active: savedServices[service.id]?.active ?? service.active }));
         merged.briefTemplates = defaultSiteContent.briefTemplates;
+        merged.heroTitle = defaultSiteContent.heroTitle;
+        merged.heroBody = defaultSiteContent.heroBody;
+        merged.heroCta = defaultSiteContent.heroCta;
+        merged.servicesTitle = defaultSiteContent.servicesTitle;
+        merged.workTitle = defaultSiteContent.workTitle;
+        merged.finalTitle = defaultSiteContent.finalTitle;
+        merged.portfolioProjects = defaultSiteContent.portfolioProjects;
+        merged.workVisibility = defaultSiteContent.workVisibility;
       }
       return merged;
     } catch {
@@ -2637,7 +2740,7 @@ export default function App() {
   });
   const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
-  const [accessOpen, setAccessOpen] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(() => window.location.hash === "#studio");
   const roleForWorkspace = (role) => ["owner", "manager", "accountant"].includes(role) ? "owner" : role;
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
@@ -2646,6 +2749,14 @@ export default function App() {
   };
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
+  }, [view]);
+  useEffect(() => {
+    const syncPrivateEntry = () => {
+      if (window.location.hash === "#studio" && view === "site") setAccessOpen(true);
+    };
+    syncPrivateEntry();
+    window.addEventListener("hashchange", syncPrivateEntry);
+    return () => window.removeEventListener("hashchange", syncPrivateEntry);
   }, [view]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -2697,7 +2808,19 @@ export default function App() {
     loadPublishedSiteContent().then((published) => {
       if (!published) return;
       const upgradedPublished = Number(published.catalogVersion || 0) < defaultSiteContent.catalogVersion
-        ? { ...published, catalogVersion: defaultSiteContent.catalogVersion, services: defaultSiteContent.services }
+        ? {
+            ...published,
+            catalogVersion: defaultSiteContent.catalogVersion,
+            heroTitle: defaultSiteContent.heroTitle,
+            heroBody: defaultSiteContent.heroBody,
+            heroCta: defaultSiteContent.heroCta,
+            servicesTitle: defaultSiteContent.servicesTitle,
+            workTitle: defaultSiteContent.workTitle,
+            finalTitle: defaultSiteContent.finalTitle,
+            services: defaultSiteContent.services,
+            portfolioProjects: defaultSiteContent.portfolioProjects,
+            workVisibility: defaultSiteContent.workVisibility,
+          }
         : published;
       setSiteContent((current) => ({
         ...current,
@@ -2754,13 +2877,6 @@ export default function App() {
   const openRequest = () => {
     if (siteContent.acceptingRequests) setRequestOpen(true);
   };
-  const openAccess = () => {
-    if (platformAccess) {
-      enterWorkspace(roleForWorkspace(platformAccess.role));
-      return;
-    }
-    setAccessOpen(true);
-  };
   const publishSite = async (nextContent) => {
     setSiteContent(nextContent);
     window.localStorage.setItem("u89-site-content", JSON.stringify(nextContent));
@@ -2781,7 +2897,7 @@ export default function App() {
   return (
     <>
       {view === "site" ? (
-        <LandingPage theme={theme} onTheme={toggleTheme} onAccess={openAccess} onRequest={openRequest} content={siteContent} />
+        <MarketingSite theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
       ) : (
         <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
