@@ -2740,7 +2740,7 @@ export default function App() {
   });
   const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
-  const [accessOpen, setAccessOpen] = useState(() => window.location.hash === "#studio");
+  const [accessOpen, setAccessOpen] = useState(() => window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname));
   const roleForWorkspace = (role) => ["owner", "manager", "accountant"].includes(role) ? "owner" : role;
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
@@ -2791,6 +2791,10 @@ export default function App() {
       if (!active || !access) return;
       setPlatformAccess(access);
       setWorkspaceRole(roleForWorkspace(access.role));
+      if (window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname)) {
+        setAccessOpen(false);
+        setView("workspace");
+      }
       if (["owner", "manager", "accountant"].includes(access.role)) {
         loadStudioSettings(access.workspaceId).then((privateSettings) => {
           if (privateSettings && active) setSiteContent((current) => ({ ...current, ...privateSettings }));
