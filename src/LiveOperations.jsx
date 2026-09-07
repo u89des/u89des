@@ -816,8 +816,9 @@ function InviteUserForm({ access, data, refresh, onToast }) {
   const [busy, setBusy] = useState(false);
   const submit = async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
     setBusy(true);
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const values = Object.fromEntries(new FormData(form));
     try {
       const response = await fetch("/api/admin/invite-user", {
         method: "POST",
@@ -826,7 +827,7 @@ function InviteUserForm({ access, data, refresh, onToast }) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "تعذر إرسال الدعوة");
-      event.currentTarget.reset();
+      form.reset();
       onToast("تم إرسال الدعوة وربط الصلاحية بالحساب");
       await refresh();
     } catch (error) { onToast(error.message); } finally { setBusy(false); }
