@@ -190,6 +190,7 @@ const navItems = [
   { id: "clients", label: "العملاء", icon: UsersThree },
   { id: "finance", label: "الحسابات", icon: Wallet },
   { id: "team", label: "المتعاونون", icon: UserFocus },
+  { id: "access", label: "الحسابات والصلاحيات", icon: LockKey },
   { id: "studio-settings", label: "إعدادات العمل", icon: SlidersHorizontal },
   { id: "site-admin", label: "إدارة الموقع", icon: Globe },
   { id: "system", label: "الربط والإطلاق", icon: ShieldCheck },
@@ -2380,7 +2381,7 @@ function Sidebar({ section, setSection, onSite, onFocus, counts }) {
     <aside className="sidebar">
       <div className="sidebar-top"><Logo onClick={onSite} /><span className="workspace-label">استوديو عبد الوهاب</span></div>
       <nav aria-label="أقسام الإدارة">
-        {[{ label: "يومي والعمل", ids: ["overview", "requests", "projects", "work-orders", "briefs"] }, { label: "العلاقات والمال", ids: ["documents", "finance", "clients", "team"] }, { label: "الاستوديو", ids: ["studio-settings", "site-admin", "system", "scenario"] }].map((group) => <div className="cc-nav-group" key={group.label}><small>{group.label}</small>{group.ids.map((id) => navItems.find((item) => item.id === id)).map((item) => {
+        {[{ label: "يومي والعمل", ids: ["overview", "requests", "projects", "work-orders", "briefs"] }, { label: "العلاقات والمال", ids: ["documents", "finance", "clients", "team"] }, { label: "الاستوديو", ids: ["access", "studio-settings", "site-admin", "system", "scenario"] }].map((group) => <div className="cc-nav-group" key={group.label}><small>{group.label}</small>{group.ids.map((id) => navItems.find((item) => item.id === id)).map((item) => {
           const Icon = item.icon;
           return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label}</span>{counts?.[item.id] > 0 && <b>{counts[item.id]}</b>}</button>;
         })}</div>)}

@@ -805,18 +805,33 @@ function CreateRetainerForm({ data, access, refresh, onToast }) {
   return <form className="live-task-form" onSubmit={submit}><div className="field-row"><label>المشروع<select name="projectId" required defaultValue=""><option value="" disabled>اختر المشروع</option>{availableProjects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label><label>اسم العقد<input name="title" required placeholder="مثال: شراكة التصميم السنوية" /></label></div><div className="retainer-cycle-choice"><button type="button" className={billingCycle === "monthly" ? "active" : ""} onClick={() => setBillingCycle("monthly")}><strong>عقد شهري</strong><small>طلبات مفتوحة خلال الشهر</small></button><button type="button" className={billingCycle === "annual" ? "active" : ""} onClick={() => setBillingCycle("annual")}><strong>عقد سنوي</strong><small>طلبات مفتوحة طوال السنة</small></button></div><div className="field-row"><label>تاريخ البداية<input name="start" type="date" required /></label><label>تاريخ النهاية<input name="end" type="date" required /></label></div><div className="field-row"><label>{billingCycle === "annual" ? "قيمة العقد السنوية" : "القيمة الشهرية"}<input name="fee" type="number" min="0" step="0.01" required /></label><label>العملة<select name="currency" defaultValue="SAR"><option>SAR</option><option>USD</option><option>EUR</option></select></label></div><label>أنواع الأعمال المشمولة، كل عنصر في سطر<textarea name="units" rows="4" required /></label><label>قواعد الطلب والأولوية والمواعيد<textarea name="rules" rows="3" /></label><div className="form-note"><Handshake size={18} /> بعد التفعيل يبقى نموذج الطلب مفتوحاً للعميل حتى نهاية العقد، وكل طلب يدخل طابورك أولاً.</div><button className="button primary" type="submit"><Plus size={17} /> تفعيل العقد وفتح الطلبات</button></form>;
 }
 
+function MemberDirectory({ data, role }) {
+  const labels = { owner: "المالك", manager: "مدير", accountant: "محاسب", client: "عميل", collaborator: "متعاون" };
+  const people = (data.memberships || []).filter((person) => !role || person.role === role);
+  return <section className="panel"><h2>{role === "client" ? "حسابات العملاء" : "الحسابات والصلاحيات الحالية"}</h2>
+    <div className="live-member-list">{people.map((person) => <article key={person.id}>
+      <span className="person-avatar">{(person.display_name || "ح").slice(0, 1)}</span>
+      <div><strong>{person.display_name || "حساب"}</strong><small>{labels[person.role] || person.role}</small>
+        {person.role === "client" && !(data.clients || []).some((client) => client.user_id === person.user_id) && <small>الحساب موجود؛ لم يرتبط بملف عميل بعد.</small>}
+      </div><LiveStatus value={person.status} label={person.status === "active" ? "نشط" : person.status === "suspended" ? "موقوف" : "مدعو"} />
+    </article>)}</div>{!people.length && <p>لا توجد حسابات هنا بعد.</p>}
+  </section>;
+}
+
 function LiveClients({ data, access, refresh, onToast }) {
   const projectsByClient = (data.projects || []).reduce((grouped, project) => ({ ...grouped, [project.client_id]: [...(grouped[project.client_id] || []), project] }), {});
   const invoicesByClient = (data.invoices || []).reduce((grouped, item) => ({ ...grouped, [item.client_id]: [...(grouped[item.client_id] || []), item] }), {});
-  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>العملاء</h1><p>ملف موحد للتواصل والمشاريع والمستحقات.</p></div></div>{data.clients?.length ? <div className="client-directory live-client-directory">{data.clients.map((client) => { const due = (invoicesByClient[client.id] || []).filter((item) => ["issued", "sent", "overdue"].includes(item.status)); return <article className="client-entry" key={client.id}><span className="client-avatar">{client.company_name.slice(0, 1)}</span><span><strong>{client.company_name}</strong><small>{client.contact_name}</small></span><span><small>المشاريع</small><strong>{projectsByClient[client.id]?.length || 0}</strong></span><span><small>المستحق</small><strong>{Object.entries(due.reduce((totals, item) => { const currency = item.currency || "SAR"; totals[currency] = (totals[currency] || 0) + Number(item.amount || 0); return totals; }, {})).map(([currency, amount]) => formatMoney(amount, currency)).join(" · ") || formatMoney(0)}</strong></span><span className="health">{client.status === "active" ? "عميل نشط" : displayStatus(client.status)}</span></article>; })}</div> : <EmptyState icon={UsersThree} title="لا يوجد عملاء" body="يُنشأ ملف العميل مع أول طلب يصل من الموقع." />}<section className="panel"><div className="panel-heading"><div><h2>عقد تسويقي مستمر</h2><p>حدد المدة والقيمة والمخرجات، وسيظهر نموذج الطلب مباشرة في بوابة العميل.</p></div></div><CreateRetainerForm data={data} access={access} refresh={refresh} onToast={onToast} /></section></div>;
+  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>العملاء</h1><p>ملف موحد للتواصل والمشاريع والمستحقات.</p></div></div><MemberDirectory data={data} role="client" /><section className="panel"><h2>دعوة عميل</h2><InviteUserForm fixedRole="client" access={access} data={data} refresh={refresh} onToast={onToast} /></section>{data.clients?.length ? <div className="client-directory live-client-directory">{data.clients.map((client) => { const due = (invoicesByClient[client.id] || []).filter((item) => ["issued", "sent", "overdue"].includes(item.status)); return <article className="client-entry" key={client.id}><span className="client-avatar">{client.company_name.slice(0, 1)}</span><span><strong>{client.company_name}</strong><small>{client.contact_name}</small></span><span><small>المشاريع</small><strong>{projectsByClient[client.id]?.length || 0}</strong></span><span><small>المستحق</small><strong>{Object.entries(due.reduce((totals, item) => { const currency = item.currency || "SAR"; totals[currency] = (totals[currency] || 0) + Number(item.amount || 0); return totals; }, {})).map(([currency, amount]) => formatMoney(amount, currency)).join(" · ") || formatMoney(0)}</strong></span><span className="health">{client.status === "active" ? "عميل نشط" : displayStatus(client.status)}</span></article>; })}</div> : <EmptyState icon={UsersThree} title="لا يوجد عملاء" body="يُنشأ ملف العميل مع أول طلب يصل من الموقع." />}<section className="panel"><div className="panel-heading"><div><h2>عقد تسويقي مستمر</h2><p>حدد المدة والقيمة والمخرجات، وسيظهر نموذج الطلب مباشرة في بوابة العميل.</p></div></div><CreateRetainerForm data={data} access={access} refresh={refresh} onToast={onToast} /></section></div>;
 }
 
-function InviteUserForm({ access, data, refresh, onToast }) {
-  const [role, setRole] = useState("client");
+function InviteUserForm({ access, data, refresh, onToast, fixedRole }) {
+  const [role, setRole] = useState(fixedRole || "client");
+  const [feedback, setFeedback] = useState(null);
   const [busy, setBusy] = useState(false);
   const submit = async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
+    setFeedback(null);
     setBusy(true);
     const values = Object.fromEntries(new FormData(form));
     try {
@@ -828,11 +843,16 @@ function InviteUserForm({ access, data, refresh, onToast }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "تعذر إرسال الدعوة");
       form.reset();
+      setFeedback({ ok: true, message: `تم إرسال الدعوة إلى ${values.email}` });
       onToast("تم إرسال الدعوة وربط الصلاحية بالحساب");
       await refresh();
-    } catch (error) { onToast(error.message); } finally { setBusy(false); }
+    } catch (error) {
+      const message = /email rate limit exceeded/i.test(error.message) ? "تعذر إرسال الدعوة: بلغت خدمة البريد حد الإرسال. لم تُرسل الدعوة؛ حاول لاحقاً أو جهّز خدمة بريد خاصة." : error.message;
+      setFeedback({ ok: false, message });
+      onToast(message);
+    } finally { setBusy(false); }
   };
-  return <form className="live-invite-form" onSubmit={submit}><div className="field-row"><label>الاسم<input name="displayName" required /></label><label>البريد<input name="email" type="email" dir="ltr" required /></label></div><div className="field-row"><label>الجوال<input name="phone" type="tel" dir="ltr" /></label><label>الصلاحية<select value={role} onChange={(event) => setRole(event.target.value)}><option value="client">عميل</option><option value="collaborator">متعاون</option><option value="manager">مدير</option><option value="accountant">محاسب</option></select></label></div>{role === "client" && <label>ملف العميل<select name="clientId" defaultValue=""><option value="">اختر الملف</option>{(data.clients || []).map((client) => <option value={client.id} key={client.id}>{client.company_name}</option>)}</select></label>}<button className="button primary" type="submit" disabled={busy}>{busy ? <CircleNotch size={17} className="spin" /> : <PaperPlaneTilt size={17} />} إرسال الدعوة</button></form>;
+  return <form className="live-invite-form" onSubmit={submit}>{feedback && <p role={feedback.ok ? "status" : "alert"} className="form-note">{feedback.message}</p>}<div className="field-row"><label>الاسم<input name="displayName" required /></label><label>البريد<input name="email" type="email" dir="ltr" required /></label></div><div className="field-row"><label>الجوال<input name="phone" type="tel" dir="ltr" /></label><label>الصلاحية<select value={role} disabled={Boolean(fixedRole)} onChange={(event) => setRole(event.target.value)}><option value="client">عميل</option><option value="collaborator">متعاون</option><option value="manager">مدير</option><option value="accountant">محاسب</option></select></label></div>{role === "client" && <label>ملف العميل<select name="clientId" defaultValue=""><option value="">اختر الملف</option>{(data.clients || []).map((client) => <option value={client.id} key={client.id}>{client.company_name}</option>)}</select></label>}<button className="button primary" type="submit" disabled={busy}>{busy ? <CircleNotch size={17} className="spin" /> : <PaperPlaneTilt size={17} />} إرسال الدعوة</button></form>;
 }
 
 function CreateTaskForm({ access, data, refresh, onToast }) {
@@ -851,7 +871,7 @@ function CreateTaskForm({ access, data, refresh, onToast }) {
 }
 
 function CollaboratorRateForm({ access, data, refresh, onToast }) {
-  const collaborators = (data.memberships || []).filter((item) => item.role === "collaborator");
+  const collaborators = (data.memberships || []).filter((item) => item.role === "collaborator" && item.status === "active");
   const submit = async (event) => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
@@ -867,7 +887,7 @@ function CollaboratorRateForm({ access, data, refresh, onToast }) {
 }
 
 function LiveTeam({ data, access, refresh, onToast }) {
-  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>الفريق والصلاحيات</h1><p>هنا تدير حسابات المتعاونين وأسعارهم وصلاحياتهم. التكليف الفعلي يبدأ من «التنفيذ والتفويض».</p></div></div><section className="system-columns live-team-columns"><div className="panel"><div className="panel-heading"><div><h2>الأعضاء</h2><p>الحسابات المرتبطة بالمساحة.</p></div></div><div className="live-member-list">{(data.memberships || []).map((person) => <article key={person.id}><span className="person-avatar">{person.display_name.slice(0, 1)}</span><div><strong>{person.display_name}</strong><small>{person.role}</small></div><LiveStatus value={person.status} label={person.status === "active" ? "نشط" : undefined} /></article>)}</div></div><aside className="panel"><div className="panel-heading"><div><h2>دعوة مستخدم</h2><p>تُرسل من الخادم ولا تكشف مفاتيح الإدارة.</p></div></div><InviteUserForm access={access} data={data} refresh={refresh} onToast={onToast} /></aside></section><section className="panel team-workflow-note"><Target size={25} /><div><h2>التكليف من داخل العمل</h2><p>افتح العمل ثم أرسله كاملاً لمتعاون، أو قسّمه واربط كل جزء بمن سينفذه. لا توجد مرحلة إبداعية إلزامية قبل الإرسال.</p></div></section><section className="panel"><div className="panel-heading"><div><h2>أسعار المتعاونين</h2><p>سعر مستقل لكل قطعة وبالعملة المتفق عليها.</p></div></div><CollaboratorRateForm access={access} data={data} refresh={refresh} onToast={onToast} />{data.collaborator_rates?.length ? <div className="live-rate-list">{data.collaborator_rates.map((rate) => <span key={rate.id}><strong>{rate.collaborator_name}</strong><small>{rate.item_name}</small><b>{formatMoney(rate.unit_price, rate.currency)}</b></span>)}</div> : null}</section></div>;
+  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>المتعاونون</h1><p>هنا تجد المتعاونين وأسعار القطع فقط. التكليف الفعلي يبدأ من «التنفيذ والتفويض».</p></div></div><section className="system-columns live-team-columns"><div className="panel"><div className="panel-heading"><div><h2>حسابات المتعاونين</h2><p>الحسابات المرتبطة بالمساحة.</p></div></div><div className="live-member-list">{(data.memberships || []).filter((person) => person.role === "collaborator").map((person) => <article key={person.id}><span className="person-avatar">{person.display_name.slice(0, 1)}</span><div><strong>{person.display_name}</strong><small>{person.role}</small></div><LiveStatus value={person.status} label={person.status === "active" ? "نشط" : undefined} /></article>)}</div></div><aside className="panel"><div className="panel-heading"><div><h2>دعوة متعاون</h2><p>تُرسل من الخادم ولا تكشف مفاتيح الإدارة.</p></div></div><InviteUserForm fixedRole="collaborator" access={access} data={data} refresh={refresh} onToast={onToast} /></aside></section><section className="panel team-workflow-note"><Target size={25} /><div><h2>التكليف من داخل العمل</h2><p>افتح العمل ثم أرسله كاملاً لمتعاون، أو قسّمه واربط كل جزء بمن سينفذه. لا توجد مرحلة إبداعية إلزامية قبل الإرسال.</p></div></section><section className="panel"><div className="panel-heading"><div><h2>أسعار المتعاونين</h2><p>سعر مستقل لكل قطعة وبالعملة المتفق عليها.</p></div></div><CollaboratorRateForm access={access} data={data} refresh={refresh} onToast={onToast} />{data.collaborator_rates?.length ? <div className="live-rate-list">{data.collaborator_rates.map((rate) => <span key={rate.id}><strong>{rate.collaborator_name}</strong><small>{rate.item_name}</small><b>{formatMoney(rate.unit_price, rate.currency)}</b></span>)}</div> : null}</section></div>;
 }
 
 export function LiveOwnerSection({ section, data, access, refresh, onToast, setSection, ownerName, targetId }) {
@@ -879,6 +899,7 @@ export function LiveOwnerSection({ section, data, access, refresh, onToast, setS
   if (section === "documents") return <LiveDocuments data={data} access={access} refresh={refresh} onToast={onToast} ownerName={ownerName} />;
   if (section === "finance") return <LiveFinance data={data} refresh={refresh} onToast={onToast} />;
   if (section === "clients") return <LiveClients data={data} access={access} refresh={refresh} onToast={onToast} />;
+  if (section === "access") return <div className="dashboard-content page-stack"><div className="page-title"><h1>الحسابات والصلاحيات</h1></div><MemberDirectory data={data} /><section className="panel"><h2>دعوة حساب وتحديد صلاحيته</h2><InviteUserForm access={access} data={data} refresh={refresh} onToast={onToast} /></section></div>;
   if (section === "team") return <LiveTeam data={data} access={access} refresh={refresh} onToast={onToast} />;
   return <LiveOverview data={data} setSection={setSection} />;
 }

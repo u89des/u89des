@@ -307,7 +307,6 @@ export default function MarketingSite({ theme, onTheme, onRequest, content }) {
               <h2>مصمم علامات.<br />مدير إبداعي.</h2>
               <span>خبرة تمتد لأكثر من خمسة عشر عاماً في بناء هويات لمشاريع من قطاعات مختلفة.</span>
             </Reveal>
-            <div className="exhibit-signature" aria-hidden="true" />
           </section>}
         </main>
         <footer className="exhibit-footer"><span>عبد الوهاب بن سليمان السويد</span><a href="#top" aria-label="العودة إلى بداية الموقع">{content.domain || "U89DES.COM"} <ArrowUpLeft size={18} /></a><span>© {new Date().getFullYear()}</span></footer>
