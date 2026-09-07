@@ -11,6 +11,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { portfolioProjects as defaultPortfolioProjects } from "./portfolio-data";
+import { shuffleProjects } from "./lib/project-order";
 
 const servicePathDefinitions = [
   {
@@ -240,6 +241,7 @@ function Reveal({ children, className = "" }) {
 }
 
 export default function MarketingSite({ theme, onTheme, onRequest, content }) {
+  const [deckSeed] = useState(() => Math.floor(Math.random() * 4294967296));
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [showBrandIntro, setShowBrandIntro] = useState(true);
@@ -256,8 +258,8 @@ export default function MarketingSite({ theme, onTheme, onRequest, content }) {
   const projects = useMemo(() => {
     const source = Array.isArray(content.portfolioProjects) && content.portfolioProjects.length
       ? content.portfolioProjects : defaultPortfolioProjects;
-    return source.filter((_, index) => content.workVisibility?.[index] !== false);
-  }, [content.portfolioProjects, content.workVisibility]);
+    return shuffleProjects(source.filter((_, index) => content.workVisibility?.[index] !== false), deckSeed);
+  }, [content.portfolioProjects, content.workVisibility, deckSeed]);
   const services = useMemo(() => (content.services || []).filter((service) => service.active), [content.services]);
   const servicePaths = useMemo(() => servicePathDefinitions.map((path) => ({
     ...path,
