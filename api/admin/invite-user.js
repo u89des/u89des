@@ -44,6 +44,16 @@ export default async function handler(request, response) {
     return response.status(403).json({ error: "Only the owner can invite privileged roles" });
   }
 
+  // Resolve the exact client before sending an invitation or granting access.
+  if (role === "client") {
+    if (!clientId) return response.status(400).json({ error: "أنشئ ملف العميل واختره قبل إرسال الدعوة" });
+    const { data: client, error } = await admin.from("clients")
+      .select("id,user_id,email").eq("workspace_id", workspaceId).eq("id", clientId).maybeSingle();
+    if (error || !client) return response.status(400).json({ error: "ملف العميل غير موجود في مساحة العمل" });
+    if (client.user_id) return response.status(409).json({ error: "ملف العميل مرتبط بحساب بالفعل" });
+    if (client.email.trim().toLowerCase() !== email) return response.status(400).json({ error: "بريد الدعوة يجب أن يطابق بريد ملف العميل" });
+  }
+
   const redirectTo = `${process.env.PUBLIC_APP_URL || "https://u89des.com"}/`;
   const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo,
@@ -70,8 +80,10 @@ export default async function handler(request, response) {
       .from("clients")
       .update({ user_id: invitedUserId })
       .eq("workspace_id", workspaceId)
-      .eq("id", clientId);
-    if (clientError) return response.status(500).json({ error: clientError.message });
+      .eq("id", clientId)
+      .is("user_id", null)
+      .select("id").single();
+    if (clientError) return response.status(500).json({ error: "أُرسل بريد الدعوة لكن تعذر ربط الملف. راجع ملف العميل قبل إعادة الدعوة." });
   }
 
   return response.status(201).json({

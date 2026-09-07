@@ -2426,6 +2426,7 @@ function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast,
   if (section === "clients") return <ClientsView />;
   if (section === "finance") return <FinanceView onToast={onToast} settings={siteContent} scenario={scenario} setRole={setRole} />;
   if (section === "team") return <TeamView scenario={scenario} setRole={setRole} />;
+  if (section === "access") return <div className="dashboard-content"><section className="panel"><h1>الحسابات والصلاحيات</h1><p>سجّل الدخول بالحساب المتصل لإدارة الحسابات الحقيقية.</p></section></div>;
   if (section === "studio-settings") return <StudioSettingsView content={siteContent} onSave={onPublishSite} onToast={onToast} />;
   if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} />;
   if (section === "system") return <SystemCenterView access={platformAccess} />;

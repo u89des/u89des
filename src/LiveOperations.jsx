@@ -238,7 +238,8 @@ function CreateWorkOrderForm({ data, refresh, onToast, onCreated }) {
   const submit = async (event) => {
     event.preventDefault();
     setBusy(true);
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
     try {
       const order = await workflow.createWorkOrder({
         projectId: values.projectId,
@@ -252,7 +253,7 @@ function CreateWorkOrderForm({ data, refresh, onToast, onCreated }) {
         assigneeUserIds: [],
         sourceRetainerRequestId: values.retainerRequestId || null,
       });
-      event.currentTarget.reset();
+      form.reset();
       setProjectId("");
       onToast("أُضيف العمل. اختر الآن طريقة تنفيذه");
       await refresh();
@@ -776,7 +777,8 @@ function CreateRetainerForm({ data, access, refresh, onToast }) {
   const [billingCycle, setBillingCycle] = useState("monthly");
   const submit = async (event) => {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
     const project = (data.projects || []).find((item) => item.id === values.projectId);
     try {
       await insertRecord("retainers", {
@@ -795,7 +797,7 @@ function CreateRetainerForm({ data, access, refresh, onToast }) {
         request_rules: { note: values.rules || "", billingCycle, access: "open_during_contract" },
         status: "active",
       });
-      event.currentTarget.reset();
+      form.reset();
       onToast("تم تفعيل العقد التسويقي وفتح نموذج الطلب للعميل");
       await refresh();
     } catch (error) { onToast(error.message); }
@@ -818,10 +820,50 @@ function MemberDirectory({ data, role }) {
   </section>;
 }
 
+function ClientFileForm({ data, access, refresh, onToast }) {
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [clientId, setClientId] = useState("");
+  const client = (data.clients || []).find((item) => item.id === clientId);
+  const accounts = (data.memberships || []).filter((item) => item.role === "client" && item.status === "active");
+  const submit = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+    setBusy(true);
+    setFeedback("");
+    try {
+      const userId = values.userId || null;
+      if (userId && (data.clients || []).some((item) => item.user_id === userId && item.id !== clientId)) throw new Error("هذا الحساب مرتبط بملف عميل آخر. راجع الربط قبل المتابعة.");
+      if (client?.user_id && client.user_id !== userId) throw new Error("هذا الملف مرتبط بحساب بالفعل. لا يمكن نقل الوصول من هذا النموذج.");
+      const record = {
+        company_name: values.company.trim(), contact_name: values.contact.trim(),
+        email: values.email.trim().toLowerCase(), phone: values.phone.trim(),
+        preferred_contact: values.channel, notification_channels: [values.channel], user_id: userId,
+      };
+      const saved = clientId
+        ? await updateRecord("clients", clientId, record, access.workspaceId)
+        : await insertRecord("clients", { ...record, workspace_id: access.workspaceId, status: "lead" });
+      setFeedback(userId ? "تم حفظ ملف العميل وربط الحساب المحدد. تظهر المشاريع للحساب بعد إضافتها إلى هذا الملف." : "تم حفظ ملف العميل. يمكنك الآن دعوته من نموذج الدعوة أدناه.");
+      onToast("تم حفظ ملف العميل");
+      await refresh();
+      setClientId(saved.id);
+    } catch (error) { setFeedback(error.message); } finally { setBusy(false); }
+  };
+  return <section className="panel"><h2>ملف العميل وربط الدخول</h2><p>أنشئ الملف أولاً، ثم ادعُ العميل إليه أو اربطه بحسابه الموجود. ربط الحساب يمنحه الوصول إلى مشاريع هذا الملف.</p>
+    <label>ملف العميل<select value={clientId} onChange={(event) => { setClientId(event.target.value); setFeedback(""); }}><option value="">إنشاء ملف جديد</option>{(data.clients || []).map((item) => <option key={item.id} value={item.id}>{item.company_name}</option>)}</select></label>
+    <form key={clientId} className="live-task-form" onSubmit={submit}>
+      <div className="field-row"><label>اسم العميل أو المنشأة<input name="company" defaultValue={client?.company_name || ""} required /></label><label>اسم جهة التواصل<input name="contact" defaultValue={client?.contact_name || ""} required /></label></div>
+      <div className="field-row"><label>البريد<input name="email" type="email" dir="ltr" defaultValue={client?.email || ""} required /></label><label>الجوال<input name="phone" type="tel" dir="ltr" defaultValue={client?.phone || ""} required /></label></div>
+      <div className="field-row"><label>التواصل المفضل<select name="channel" defaultValue={client?.preferred_contact || "email"}><option value="email">إيميل</option><option value="whatsapp">واتساب</option></select></label><label>حساب الدخول<select name="userId" defaultValue={client?.user_id || ""}><option value="">بدون حساب، أدعوه لاحقاً</option>{accounts.filter((item) => !(data.clients || []).some((other) => other.user_id === item.user_id && other.id !== clientId)).map((item) => <option key={item.user_id} value={item.user_id}>{item.display_name}</option>)}</select></label></div>
+      {feedback && <p role="status">{feedback}</p>}<button className="button primary" disabled={busy} type="submit">{busy ? "جارٍ الحفظ..." : "حفظ ملف العميل والربط"}</button>
+    </form></section>;
+}
+
 function LiveClients({ data, access, refresh, onToast }) {
   const projectsByClient = (data.projects || []).reduce((grouped, project) => ({ ...grouped, [project.client_id]: [...(grouped[project.client_id] || []), project] }), {});
   const invoicesByClient = (data.invoices || []).reduce((grouped, item) => ({ ...grouped, [item.client_id]: [...(grouped[item.client_id] || []), item] }), {});
-  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>العملاء</h1><p>ملف موحد للتواصل والمشاريع والمستحقات.</p></div></div><MemberDirectory data={data} role="client" /><section className="panel"><h2>دعوة عميل</h2><InviteUserForm fixedRole="client" access={access} data={data} refresh={refresh} onToast={onToast} /></section>{data.clients?.length ? <div className="client-directory live-client-directory">{data.clients.map((client) => { const due = (invoicesByClient[client.id] || []).filter((item) => ["issued", "sent", "overdue"].includes(item.status)); return <article className="client-entry" key={client.id}><span className="client-avatar">{client.company_name.slice(0, 1)}</span><span><strong>{client.company_name}</strong><small>{client.contact_name}</small></span><span><small>المشاريع</small><strong>{projectsByClient[client.id]?.length || 0}</strong></span><span><small>المستحق</small><strong>{Object.entries(due.reduce((totals, item) => { const currency = item.currency || "SAR"; totals[currency] = (totals[currency] || 0) + Number(item.amount || 0); return totals; }, {})).map(([currency, amount]) => formatMoney(amount, currency)).join(" · ") || formatMoney(0)}</strong></span><span className="health">{client.status === "active" ? "عميل نشط" : displayStatus(client.status)}</span></article>; })}</div> : <EmptyState icon={UsersThree} title="لا يوجد عملاء" body="يُنشأ ملف العميل مع أول طلب يصل من الموقع." />}<section className="panel"><div className="panel-heading"><div><h2>عقد تسويقي مستمر</h2><p>حدد المدة والقيمة والمخرجات، وسيظهر نموذج الطلب مباشرة في بوابة العميل.</p></div></div><CreateRetainerForm data={data} access={access} refresh={refresh} onToast={onToast} /></section></div>;
+  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>العملاء</h1><p>ملف موحد للتواصل والمشاريع والمستحقات.</p></div></div><MemberDirectory data={data} role="client" /><ClientFileForm data={data} access={access} refresh={refresh} onToast={onToast} /><section className="panel"><h2>دعوة عميل</h2><InviteUserForm fixedRole="client" access={access} data={data} refresh={refresh} onToast={onToast} /></section>{data.clients?.length ? <div className="client-directory live-client-directory">{data.clients.map((client) => { const due = (invoicesByClient[client.id] || []).filter((item) => ["issued", "sent", "overdue"].includes(item.status)); return <article className="client-entry" key={client.id}><span className="client-avatar">{client.company_name.slice(0, 1)}</span><span><strong>{client.company_name}</strong><small>{client.contact_name}</small></span><span><small>المشاريع</small><strong>{projectsByClient[client.id]?.length || 0}</strong></span><span><small>المستحق</small><strong>{Object.entries(due.reduce((totals, item) => { const currency = item.currency || "SAR"; totals[currency] = (totals[currency] || 0) + Number(item.amount || 0); return totals; }, {})).map(([currency, amount]) => formatMoney(amount, currency)).join(" · ") || formatMoney(0)}</strong></span><span className="health">{client.status === "active" ? "عميل نشط" : displayStatus(client.status)}</span></article>; })}</div> : <EmptyState icon={UsersThree} title="لا يوجد عملاء" body="يُنشأ ملف العميل مع أول طلب يصل من الموقع." />}<section className="panel"><div className="panel-heading"><div><h2>عقد تسويقي مستمر</h2><p>حدد المدة والقيمة والمخرجات، وسيظهر نموذج الطلب مباشرة في بوابة العميل.</p></div></div><CreateRetainerForm data={data} access={access} refresh={refresh} onToast={onToast} /></section></div>;
 }
 
 function InviteUserForm({ access, data, refresh, onToast, fixedRole }) {
@@ -852,21 +894,22 @@ function InviteUserForm({ access, data, refresh, onToast, fixedRole }) {
       onToast(message);
     } finally { setBusy(false); }
   };
-  return <form className="live-invite-form" onSubmit={submit}>{feedback && <p role={feedback.ok ? "status" : "alert"} className="form-note">{feedback.message}</p>}<div className="field-row"><label>الاسم<input name="displayName" required /></label><label>البريد<input name="email" type="email" dir="ltr" required /></label></div><div className="field-row"><label>الجوال<input name="phone" type="tel" dir="ltr" /></label><label>الصلاحية<select value={role} disabled={Boolean(fixedRole)} onChange={(event) => setRole(event.target.value)}><option value="client">عميل</option><option value="collaborator">متعاون</option><option value="manager">مدير</option><option value="accountant">محاسب</option></select></label></div>{role === "client" && <label>ملف العميل<select name="clientId" defaultValue=""><option value="">اختر الملف</option>{(data.clients || []).map((client) => <option value={client.id} key={client.id}>{client.company_name}</option>)}</select></label>}<button className="button primary" type="submit" disabled={busy}>{busy ? <CircleNotch size={17} className="spin" /> : <PaperPlaneTilt size={17} />} إرسال الدعوة</button></form>;
+  return <form className="live-invite-form" onSubmit={submit}>{feedback && <p role={feedback.ok ? "status" : "alert"} className="form-note">{feedback.message}</p>}<div className="field-row"><label>الاسم<input name="displayName" required /></label><label>البريد<input name="email" type="email" dir="ltr" required /></label></div><div className="field-row"><label>الجوال<input name="phone" type="tel" dir="ltr" /></label><label>الصلاحية<select value={role} disabled={Boolean(fixedRole)} onChange={(event) => setRole(event.target.value)}><option value="client">عميل</option><option value="collaborator">متعاون</option><option value="manager">مدير</option><option value="accountant">محاسب</option></select></label></div>{role === "client" && <label>ملف العميل<select name="clientId" required defaultValue=""><option value="">اختر الملف</option>{(data.clients || []).map((client) => <option value={client.id} key={client.id}>{client.company_name}</option>)}</select></label>}<button className="button primary" type="submit" disabled={busy}>{busy ? <CircleNotch size={17} className="spin" /> : <PaperPlaneTilt size={17} />} إرسال الدعوة</button></form>;
 }
 
 function CreateTaskForm({ access, data, refresh, onToast }) {
   const submit = async (event) => {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
     try {
       await insertRecord("project_tasks", { workspace_id: access.workspaceId, project_id: values.projectId, title: values.title, description: values.description || null, assignee_user_id: values.assigneeId || null, due_date: values.due || null, priority: values.priority, status: values.assigneeId ? "todo" : "todo" });
-      event.currentTarget.reset();
+      form.reset();
       onToast("تم إنشاء المهمة وإسنادها");
       await refresh();
     } catch (error) { onToast(error.message); }
   };
-  const assignees = (data.memberships || []).filter((item) => ["manager", "collaborator"].includes(item.role));
+  const assignees = (data.memberships || []).filter((item) => ["manager", "collaborator"].includes(item.role) && item.status === "active");
   return <form className="live-task-form" onSubmit={submit}><label>المهمة<input name="title" required placeholder="المخرج أو القرار المطلوب" /></label><div className="field-row"><label>المشروع<select name="projectId" required defaultValue=""><option value="" disabled>اختر المشروع</option>{(data.projects || []).map((project) => <option value={project.id} key={project.id}>{project.name}</option>)}</select></label><label>المسؤول<select name="assigneeId" defaultValue=""><option value="">غير مسند</option>{assignees.map((person) => <option value={person.user_id} key={person.user_id}>{person.display_name}</option>)}</select></label></div><div className="field-row"><label>الاستحقاق<input name="due" type="date" /></label><label>الأولوية<select name="priority" defaultValue="normal"><option value="low">منخفضة</option><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></label></div><label>تفاصيل مختصرة<textarea name="description" rows="3" /></label><button className="button primary" type="submit"><Plus size={17} /> إنشاء المهمة</button></form>;
 }
 
@@ -874,11 +917,12 @@ function CollaboratorRateForm({ access, data, refresh, onToast }) {
   const collaborators = (data.memberships || []).filter((item) => item.role === "collaborator" && item.status === "active");
   const submit = async (event) => {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
     const person = collaborators.find((item) => item.user_id === values.collaboratorId);
     try {
       await insertRecord("collaborator_rates", { workspace_id: access.workspaceId, collaborator_user_id: person.user_id, collaborator_name: person.display_name, item_name: values.item, unit_price: Number(values.price), currency: values.currency, active: true });
-      event.currentTarget.reset();
+      form.reset();
       onToast("تم حفظ سعر القطعة للمتعاون");
       await refresh();
     } catch (error) { onToast(error.message); }
@@ -943,10 +987,11 @@ function ClientBriefAction({ brief, projectId, access, refresh, onToast }) {
 function ClientRetainerRequest({ retainer, access, refresh, onToast }) {
   const submit = async (event) => {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
     try {
       await insertRecord("retainer_requests", { workspace_id: access.workspaceId, retainer_id: retainer.id, project_id: retainer.project_id, title: values.title, request_type: values.requestType, brief: values.brief, priority: values.priority, requested_due_date: values.due || null, status: "new" });
-      event.currentTarget.reset();
+      form.reset();
       onToast("وصل الطلب إلى طابور التنفيذ");
       await refresh();
     } catch (error) { onToast(error.message); }
@@ -1031,10 +1076,11 @@ function CollaboratorClaimForm({ task, data, access, refresh, onToast }) {
   const member = data.memberships?.find((item) => item.user_id === access.user.id);
   const submit = async (event) => {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
     try {
       await insertRecord("collaborator_claims", { workspace_id: access.workspaceId, project_id: task.project_id, work_order_id: task.id, collaborator_user_id: access.user.id, collaborator_name: member?.display_name || access.user.email, item_name: rate?.item_name || values.item, unit_price: rate ? Number(rate.unit_price) : Number(values.price), quantity: Number(values.quantity || 1), currency: rate?.currency || values.currency, due_date: values.due || null, status: "submitted", notes: values.notes || null });
-      event.currentTarget.reset();
+      form.reset();
       onToast("تم إرسال المطالبة إلى الحسابات للمراجعة");
       await refresh();
     } catch (error) { onToast(error.message); }
