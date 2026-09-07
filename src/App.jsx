@@ -35,6 +35,7 @@ import {
   Check,
   CheckCircle,
   CircleNotch,
+  EnvelopeSimple,
   Clock,
   Coins,
   Command,
@@ -188,6 +189,7 @@ const navItems = [
   { id: "briefs", label: "البريفات", icon: List },
   { id: "documents", label: "العروض والعقود", icon: FileText },
   { id: "clients", label: "العملاء", icon: UsersThree },
+  { id: "contact-inbox", label: "رسائل التواصل", icon: EnvelopeSimple },
   { id: "finance", label: "الحسابات", icon: Wallet },
   { id: "team", label: "المتعاونون", icon: UserFocus },
   { id: "access", label: "الحسابات والصلاحيات", icon: LockKey },
@@ -950,6 +952,30 @@ function Modal({ title, children, onClose, size = "normal" }) {
       </section>
     </div>
   );
+}
+
+function QuickContactModal({ onClose }) {
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const submit = async (event) => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    setStatus("sending"); setError("");
+    try {
+      const response = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+      const result = await response.json();
+      if (!response.ok || !result.sent) throw new Error(result.error || "تعذر إرسال الرسالة");
+      setStatus("sent");
+    } catch (err) { setError(err.message || "تعذر الإرسال. حاول مرة أخرى."); setStatus(""); }
+  };
+  return <Modal title="تواصل معنا" onClose={onClose}>{status === "sent" ? <div className="success-state"><CheckCircle size={46} /><h3>وصلت رسالتك</h3><p>شكراً لتواصلك. سنرد عليك عبر وسيلة التواصل التي كتبتها.</p><button className="button primary" onClick={onClose}>تم</button></div> : <form className="request-form" onSubmit={submit}>
+    <label className="request-honeypot" aria-hidden="true">الموقع<input name="website" tabIndex="-1" autoComplete="off" /></label>
+    <label>اسمك<input name="name" maxLength={100} autoComplete="name" required /></label>
+    <label>وسيلة التواصل<input name="contact" minLength={5} maxLength={200} placeholder="بريدك الإلكتروني أو رقم جوالك" required /></label>
+    <label>رسالتك<textarea name="message" rows={5} maxLength={4000} required /></label>
+    <small>نستخدم بياناتك للرد على رسالتك فقط.</small>
+    {error && <p role="alert">{error}</p>}<button className="button primary" type="submit" disabled={status === "sending"}>{status === "sending" ? "جارٍ الإرسال..." : "إرسال الرسالة"}</button>
+  </form>}</Modal>;
 }
 
 function ServiceRequestModal({ onClose, onSubmit, settings }) {
@@ -2381,7 +2407,7 @@ function Sidebar({ section, setSection, onSite, onFocus, counts }) {
     <aside className="sidebar">
       <div className="sidebar-top"><Logo onClick={onSite} /><span className="workspace-label">استوديو عبد الوهاب</span></div>
       <nav aria-label="أقسام الإدارة">
-        {[{ label: "يومي والعمل", ids: ["overview", "requests", "projects", "work-orders", "briefs"] }, { label: "العلاقات والمال", ids: ["documents", "finance", "clients", "team"] }, { label: "الاستوديو", ids: ["access", "studio-settings", "site-admin", "system", "scenario"] }].map((group) => <div className="cc-nav-group" key={group.label}><small>{group.label}</small>{group.ids.map((id) => navItems.find((item) => item.id === id)).map((item) => {
+        {[{ label: "يومي والعمل", ids: ["overview", "contact-inbox", "requests", "projects", "work-orders", "briefs"] }, { label: "العلاقات والمال", ids: ["documents", "finance", "clients", "team"] }, { label: "الاستوديو", ids: ["access", "studio-settings", "site-admin", "system", "scenario"] }].map((group) => <div className="cc-nav-group" key={group.label}><small>{group.label}</small>{group.ids.map((id) => navItems.find((item) => item.id === id)).map((item) => {
           const Icon = item.icon;
           return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label}</span>{counts?.[item.id] > 0 && <b>{counts[item.id]}</b>}</button>;
         })}</div>)}
@@ -2427,6 +2453,7 @@ function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast,
   if (section === "finance") return <FinanceView onToast={onToast} settings={siteContent} scenario={scenario} setRole={setRole} />;
   if (section === "team") return <TeamView scenario={scenario} setRole={setRole} />;
   if (section === "access") return <div className="dashboard-content"><section className="panel"><h1>الحسابات والصلاحيات</h1><p>سجّل الدخول بالحساب المتصل لإدارة الحسابات الحقيقية.</p></section></div>;
+  if (section === "contact-inbox") return <div className="dashboard-content"><section className="panel"><h1>رسائل التواصل</h1><p>سجّل الدخول بالحساب المتصل لقراءة الرسائل.</p></section></div>;
   if (section === "studio-settings") return <StudioSettingsView content={siteContent} onSave={onPublishSite} onToast={onToast} />;
   if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} />;
   if (section === "system") return <SystemCenterView access={platformAccess} />;
@@ -2881,7 +2908,7 @@ export default function App() {
     setView("site");
   };
   const openRequest = () => {
-    if (siteContent.acceptingRequests) setRequestOpen(true);
+    setRequestOpen(true);
   };
   const publishSite = async (nextContent) => {
     setSiteContent(nextContent);
@@ -2907,7 +2934,7 @@ export default function App() {
       ) : (
         <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
-      {requestOpen && <ServiceRequestModal onClose={() => setRequestOpen(false)} onSubmit={submitRequest} settings={siteContent} />}
+      {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} />}
       {accessOpen && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
     </>
   );

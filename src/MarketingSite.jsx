@@ -295,8 +295,8 @@ export default function MarketingSite({ theme, onTheme, onRequest, content }) {
                   <summary>{path.title}<Plus size={23} /></summary>
                   <div className="exhibit-service-body"><p>{path.description}</p><div>{path.services.map((service) => <span key={service.id}>{service.title}</span>)}</div></div>
                 </details>)}
-                <button className="exhibit-contact" onClick={onRequest} disabled={!content.acceptingRequests}>
-                  <span>{content.acceptingRequests ? "تواصل معنا" : "التواصل غير متاح حالياً"}</span><ArrowUpLeft size={36} />
+                <button className="exhibit-contact" onClick={onRequest}>
+                  <span>تواصل معنا</span><ArrowUpLeft size={36} />
                 </button>
               </div>
             </div>

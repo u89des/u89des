@@ -807,6 +807,28 @@ function CreateRetainerForm({ data, access, refresh, onToast }) {
   return <form className="live-task-form" onSubmit={submit}><div className="field-row"><label>المشروع<select name="projectId" required defaultValue=""><option value="" disabled>اختر المشروع</option>{availableProjects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label><label>اسم العقد<input name="title" required placeholder="مثال: شراكة التصميم السنوية" /></label></div><div className="retainer-cycle-choice"><button type="button" className={billingCycle === "monthly" ? "active" : ""} onClick={() => setBillingCycle("monthly")}><strong>عقد شهري</strong><small>طلبات مفتوحة خلال الشهر</small></button><button type="button" className={billingCycle === "annual" ? "active" : ""} onClick={() => setBillingCycle("annual")}><strong>عقد سنوي</strong><small>طلبات مفتوحة طوال السنة</small></button></div><div className="field-row"><label>تاريخ البداية<input name="start" type="date" required /></label><label>تاريخ النهاية<input name="end" type="date" required /></label></div><div className="field-row"><label>{billingCycle === "annual" ? "قيمة العقد السنوية" : "القيمة الشهرية"}<input name="fee" type="number" min="0" step="0.01" required /></label><label>العملة<select name="currency" defaultValue="SAR"><option>SAR</option><option>USD</option><option>EUR</option></select></label></div><label>أنواع الأعمال المشمولة، كل عنصر في سطر<textarea name="units" rows="4" required /></label><label>قواعد الطلب والأولوية والمواعيد<textarea name="rules" rows="3" /></label><div className="form-note"><Handshake size={18} /> بعد التفعيل يبقى نموذج الطلب مفتوحاً للعميل حتى نهاية العقد، وكل طلب يدخل طابورك أولاً.</div><button className="button primary" type="submit"><Plus size={17} /> تفعيل العقد وفتح الطلبات</button></form>;
 }
 
+function ContactInbox({ access }) {
+  const [messages, setMessages] = useState([]);
+  const [offset, setOffset] = useState(0);
+  const [version, setVersion] = useState(0);
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    setBusy(true); setError("");
+    fetch(`/api/contact?offset=${offset}`, { headers: { Authorization: `Bearer ${access.session.access_token}` }, signal: controller.signal })
+      .then(async (response) => { const result = await response.json(); if (!response.ok) throw new Error(result.error || "تعذر تحميل الرسائل"); return result.messages; })
+      .then((items) => { if (!controller.signal.aborted) setMessages(items); })
+      .catch((err) => { if (!controller.signal.aborted) setError(err.message); })
+      .finally(() => { if (!controller.signal.aborted) setBusy(false); });
+    return () => controller.abort();
+  }, [offset, version, access.session.access_token]);
+  return <div className="dashboard-content page-stack"><div className="page-title"><div><h1>رسائل التواصل</h1><p>رسائل نموذج الموقع. الرد يكون مباشرة عبر وسيلة التواصل المكتوبة، ولا تُرسل نسخة بريدية تلقائياً حالياً.</p></div><button className="button ghost" disabled={busy} onClick={() => setVersion((v) => v + 1)}>تحديث</button></div>
+    {busy ? <p role="status">جارٍ تحميل الرسائل...</p> : error ? <p role="alert">{error}</p> : <section className="panel live-entity-list">{messages.length ? messages.map((item) => <article key={item.id}><h2>{item.actor_label}</h2><p style={{ unicodeBidi: "plaintext" }}>{item.contact}</p><small>{new Date(item.created_at).toLocaleString("ar-SA")}</small><p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.label}</p></article>) : <p>لا توجد رسائل في هذه الصفحة.</p>}</section>}
+    <div className="live-actions"><button className="button ghost" disabled={busy || offset === 0} onClick={() => setOffset((value) => Math.max(0, value - 50))}>الأحدث</button><button className="button ghost" disabled={busy || Boolean(error) || messages.length < 50} onClick={() => setOffset((value) => value + 50)}>الأقدم</button></div>
+  </div>;
+}
+
 function MemberDirectory({ data, role }) {
   const labels = { owner: "المالك", manager: "مدير", accountant: "محاسب", client: "عميل", collaborator: "متعاون" };
   const people = (data.memberships || []).filter((person) => !role || person.role === role);
@@ -935,6 +957,7 @@ function LiveTeam({ data, access, refresh, onToast }) {
 }
 
 export function LiveOwnerSection({ section, data, access, refresh, onToast, setSection, ownerName, targetId }) {
+  if (section === "contact-inbox") return <ContactInbox access={access} />;
   if (section === "overview" || section === "scenario") return <LiveOverview data={data} setSection={setSection} />;
   if (section === "requests") return <LiveRequests data={data} refresh={refresh} onToast={onToast} access={access} setSection={setSection} />;
   if (section === "projects") return <LiveProjects data={data} refresh={refresh} onToast={onToast} />;
