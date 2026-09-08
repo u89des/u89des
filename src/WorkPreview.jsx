@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MarketingSite from "./MarketingSite";
 import "./work-preview.css";
 
-const logoFiles = Array.from(
-  { length: 43 },
-  (_, index) => `/logos-rendered/logo-${String(index + 1).padStart(2, "0")}.webp`,
-);
+const logoFiles = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 22,
+  23, 24, 25, 26, 27, 28, 29, 30, 36, 37, 38, 41, 42, 43, 46, 49, 62, 63,
+  73, 80, 83, 85, 99,
+].map((number) => `/logos-original/Artboard ${number}-2.svg`);
 
 const campaignFrames = [
   { src: "/portfolio/bukhary-posters.webp", alt: "ملصقات بخاري أختر" },
@@ -93,38 +94,6 @@ function CampaignPreview() {
   );
 }
 
-function TypePreview() {
-  const [typeSize, setTypeSize] = useState(104);
-  const [typeWeight, setTypeWeight] = useState(650);
-  return (
-    <section className="type-preview" id="type" aria-labelledby="type-title">
-      <div className="type-heading">
-        <h2 id="type-title">الخط مساحة للتجربة.</h2>
-        <p>اكتب، غيّر الحجم والوزن، وشاهد شخصية الخط وهي تعمل.</p>
-      </div>
-      <div className="type-lab">
-        <div className="type-canvas" contentEditable suppressContentEditableWarning role="textbox" aria-label="اكتب لتجربة الخط" spellCheck="false" style={{ fontSize: `${typeSize}px`, fontWeight: typeWeight }}>
-          اكتب أثرك هنا
-        </div>
-        <div className="type-controls">
-          <label>
-            <span>الحجم</span>
-            <input type="range" min="48" max="180" value={typeSize} onChange={(event) => setTypeSize(Number(event.target.value))} />
-            <output>{typeSize}</output>
-          </label>
-          <div className="weight-controls" aria-label="وزن الخط">
-            {[300, 500, 650, 800].map((weight) => (
-              <button type="button" key={weight} className={typeWeight === weight ? "is-active" : ""} onClick={() => setTypeWeight(weight)} aria-pressed={typeWeight === weight}>
-                {weight}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export default function WorkPreview({ theme, onTheme, onRequest, content }) {
   useEffect(() => {
     const previousTitle = document.title;
@@ -142,7 +111,6 @@ export default function WorkPreview({ theme, onTheme, onRequest, content }) {
         <div className="work-preview-additions">
           <LogoArchive />
           <CampaignPreview />
-          <TypePreview />
         </div>
       )}
     />
