@@ -46,7 +46,7 @@ as $$
     case when m.role = 'owner' then coalesce(nullif(s.email, ''), u.email) else u.email end,
     m.phone,
     array['in_app']::text[]
-      || case when coalesce(case when m.role = 'owner' then nullif(s.email, '') else u.email end, '') <> '' then array['email']::text[] else array[]::text[] end
+      || case when coalesce(case when m.role = 'owner' then coalesce(nullif(s.email, ''), u.email) else u.email end, '') <> '' then array['email']::text[] else array[]::text[] end
       || case when coalesce((m.notification_preferences->>'whatsapp')::boolean, false) and m.phone is not null then array['whatsapp']::text[] else array[]::text[] end,
     notification_kind,
     notification_subject,
