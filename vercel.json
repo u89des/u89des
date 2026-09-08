@@ -12,6 +12,6 @@
     { "source": "/portal/:path*", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/notifications/dispatch", "schedule": "0 3 * * *" }
+    { "path": "/api/notifications/dispatch", "schedule": "* * * * *" }
   ]
 }
