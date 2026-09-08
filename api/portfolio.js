@@ -46,9 +46,22 @@ export default async function handler(req, res) {
       }
       const { data: site } = await db.from("public_site_content").select("content").eq("workspace_id", workspace.id).maybeSingle();
       const collaborators = owner ? check(await db.from("memberships").select("user_id,display_name,notification_preferences").eq("workspace_id", workspace.id).eq("role", "collaborator").eq("status", "active")) : [];
-      return res.json({ drafts, projects: site?.content?.portfolioProjects || portfolioProjects, collaborators: collaborators.map((person) => ({ user_id: person.user_id, display_name: person.display_name, enabled: person.notification_preferences?.portfolioEditor === true })), owner });
+      return res.json({ drafts, projects: site?.content?.portfolioProjects || portfolioProjects, visibility: site?.content?.workVisibility || [], collaborators: collaborators.map((person) => ({ user_id: person.user_id, display_name: person.display_name, enabled: person.notification_preferences?.portfolioEditor === true })), owner });
     }
     const body = req.body || {};
+    if (body.action === "visibility") {
+      if (!owner) return res.status(403).json({ error: "المالك فقط يتحكم بظهور الأعمال" });
+      if (typeof body.visible !== "boolean") fail("بيانات غير صالحة");
+      const { data: site, error } = await db.from("public_site_content").select("content,updated_at").eq("workspace_id", workspace.id).maybeSingle();
+      if (error) fail(error.message);
+      const projects = site?.content?.portfolioProjects || portfolioProjects;
+      if (!projects.some((project) => project.id === body.projectId)) fail("المشروع غير موجود");
+      const workVisibility = projects.map((project, index) => project.id === body.projectId ? body.visible : site?.content?.workVisibility?.[index] !== false);
+      const content = { ...site?.content, portfolioProjects: projects, workVisibility };
+      if (site) check(await db.from("public_site_content").update({ content }).eq("workspace_id", workspace.id).eq("updated_at", site.updated_at).select("workspace_id").single());
+      else check(await db.from("public_site_content").insert({ workspace_id: workspace.id, content, published: true, published_at: new Date().toISOString() }));
+      return res.json({ saved: true });
+    }
     if (body.action === "permission") {
       if (!owner) return res.status(403).json({ error: "المالك فقط يحدد الصلاحيات" });
       if (typeof body.enabled !== "boolean" || typeof body.userId !== "string") fail("بيانات غير صالحة");

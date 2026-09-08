@@ -2855,7 +2855,7 @@ export default function App() {
             finalTitle: defaultSiteContent.finalTitle,
             services: defaultSiteContent.services,
             portfolioProjects: published.portfolioProjects || defaultSiteContent.portfolioProjects,
-            workVisibility: defaultSiteContent.workVisibility,
+            workVisibility: published.workVisibility || defaultSiteContent.workVisibility,
           }
         : published;
       setSiteContent((current) => ({

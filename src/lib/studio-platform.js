@@ -70,6 +70,7 @@ export async function publishSiteContent(workspaceId, content) {
   const { data: latestSite, error: latestError } = await supabase.from("public_site_content").select("content").eq("workspace_id", workspaceId).maybeSingle();
   throwIfError(latestError);
   if (latestSite?.content?.portfolioProjects) publicContent.portfolioProjects = latestSite.content.portfolioProjects;
+  if (latestSite?.content?.workVisibility) publicContent.workVisibility = latestSite.content.workVisibility;
   const { data, error } = await supabase
     .from("public_site_content")
     .upsert({
