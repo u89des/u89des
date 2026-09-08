@@ -21,6 +21,7 @@ import {
   useWorkspaceData,
 } from "./LiveOperations";
 import MarketingSite from "./MarketingSite";
+import PortfolioDesk from "./PortfolioDesk";
 import ControlCenter, { buildControlModel, groupMoney, CommandPalette, FocusSession } from "./ControlCenter";
 import "./control-center.css";
 import { portfolioProjects } from "./portfolio-data";
@@ -2173,7 +2174,7 @@ function StudioSettingsView({ content, onSave, onToast }) {
   </div>;
 }
 
-function SiteAdminView({ content, onPublish, onPreview, onToast }) {
+function SiteAdminView({ content, onPublish, onPreview, onToast, access }) {
   const [tab, setTab] = useState("content");
   const [draft, setDraft] = useState(content);
   const tabs = [
@@ -2281,7 +2282,7 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
     <div className="dashboard-content page-stack site-admin-page">
       <div className="page-title site-admin-title">
         <div><span className="eyebrow">CMS</span><h1>إدارة الموقع</h1><p>غيّر المحتوى والأقسام ونموذج الطلب ومحركات البحث من مكان واحد.</p></div>
-        <div className="site-admin-actions"><button className="button ghost" onClick={onPreview}><Globe size={18} /> معاينة الموقع</button><button className="button primary" onClick={publish}><FloppyDisk size={18} /> نشر التغييرات</button></div>
+        <div className="site-admin-actions"><button className="button ghost" onClick={onPreview}><Globe size={18} /> معاينة الموقع</button>{!(tab === "work" && access) && <button className="button primary" onClick={publish}><FloppyDisk size={18} /> نشر التغييرات</button>}</div>
       </div>
 
       <div className="cms-status"><span><CheckCircle size={18} weight="fill" /> الموقع منشور</span><small>{draft.domain} · آخر تحديث الآن في النموذج</small></div>
@@ -2311,7 +2312,8 @@ function SiteAdminView({ content, onPublish, onPreview, onToast }) {
             <div className="service-editor-list">{draft.services.map((service, index) => <article className="service-editor-item service-editor-expanded" key={service.id}><span className="cms-list-index">{String(index + 1).padStart(2, "0")}</span><div><div className="field-row"><label>اسم الخدمة<input value={service.title} onChange={(event) => updateService(index, "title", event.target.value)} /></label><label>نوع التعاقد<select value={service.engagement || "project"} onChange={(event) => updateService(index, "engagement", event.target.value)}><option value="project">مشروع محدد</option><option value="retainer">طلبات مفتوحة بعقد</option></select></label></div><label>الوصف<textarea rows="2" value={service.description} onChange={(event) => updateService(index, "description", event.target.value)} /></label><label>عنوان الاختيارات<input value={service.selectionLabel || ""} onChange={(event) => updateService(index, "selectionLabel", event.target.value)} /></label><label>خيارات نطاق الخدمة، افصل بينها بعلامة ،<textarea rows="3" value={(service.options || []).join("، ")} onChange={(event) => updateService(index, "options", event.target.value.split("،").map((item) => item.trim()).filter(Boolean))} /></label>{(service.options || []).includes("الهوية البصرية") && <label>تطبيقات الهوية التي تظهر عند اختيار الهوية البصرية<textarea rows="3" value={(service.conditionalOptions || identityApplications).join("، ")} onChange={(event) => { updateService(index, "conditionalOption", "الهوية البصرية"); updateService(index, "conditionalLabel", "اختر تطبيقات الهوية التي تحتاجها"); updateService(index, "conditionalOptions", event.target.value.split("،").map((item) => item.trim()).filter(Boolean)); }} /></label>}{service.engagement === "retainer" && <label>مدد التعاقد المتاحة<input value={(service.billingOptions || ["شهري", "سنوي"]).join("، ")} onChange={(event) => updateService(index, "billingOptions", event.target.value.split("،").map((item) => item.trim()).filter(Boolean))} /></label>}</div><div className="service-editor-actions"><label><input type="checkbox" checked={service.active} onChange={(event) => updateService(index, "active", event.target.checked)} /> ظاهرة</label><button aria-label={`حذف ${service.title}`} onClick={() => removeService(index)}><X size={17} /></button></div></article>)}</div>
           </>}
 
-          {tab === "work" && <>
+          {tab === "work" && access && <PortfolioDesk access={access} />}
+          {tab === "work" && !access && <>
             <div className="cms-editor-heading"><div><h2>الأعمال المختارة</h2><p>المشاريع ودراسات الحالة التي تظهر في واجهة الموقع التعريفية.</p></div><button className="button ghost small" onClick={addPortfolioProject}><Plus size={17} /> إضافة مشروع</button></div>
             <div className="cms-portfolio-editor">{(draft.portfolioProjects || []).map((project, index) => <article className="cms-portfolio-item" key={project.id}>
               <img src={project.cover} alt="" />
@@ -2455,7 +2457,7 @@ function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast,
   if (section === "access") return <div className="dashboard-content"><section className="panel"><h1>الحسابات والصلاحيات</h1><p>سجّل الدخول بالحساب المتصل لإدارة الحسابات الحقيقية.</p></section></div>;
   if (section === "contact-inbox") return <div className="dashboard-content"><section className="panel"><h1>رسائل التواصل</h1><p>سجّل الدخول بالحساب المتصل لقراءة الرسائل.</p></section></div>;
   if (section === "studio-settings") return <StudioSettingsView content={siteContent} onSave={onPublishSite} onToast={onToast} />;
-  if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} />;
+  if (section === "site-admin") return <SiteAdminView content={siteContent} onPublish={onPublishSite} onPreview={onSite} onToast={onToast} access={platformAccess} />;
   if (section === "system") return <SystemCenterView access={platformAccess} />;
   return <OwnerOverview onProject={onProject} onCapture={onCapture} setSection={setSection} />;
 }
@@ -2798,12 +2800,13 @@ export default function App() {
     let active = true;
     const applyAccess = async (session) => {
       if (!session) {
-        if (active) setPlatformAccess(null);
+        if (active) { setPlatformAccess(null); setView("site"); if (window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname)) setAccessOpen(true); }
         return;
       }
       try {
         const access = await getCurrentAccess();
-        if (!active || !access) return;
+        if (!active) return;
+        if (!access) { setPlatformAccess(null); setView("site"); setAccessOpen(true); return; }
         if (["owner", "manager", "accountant"].includes(access.role)) {
           const privateSettings = await loadStudioSettings(access.workspaceId);
           if (privateSettings && active) setSiteContent((current) => ({ ...current, ...privateSettings }));
@@ -2813,7 +2816,7 @@ export default function App() {
         setAccessOpen(false);
         setView("workspace");
       } catch {
-        if (active) setPlatformAccess(null);
+        if (active) { setPlatformAccess(null); setView("site"); setAccessOpen(true); }
       }
     };
     getCurrentAccess().then((access) => {
@@ -2851,7 +2854,7 @@ export default function App() {
             workTitle: defaultSiteContent.workTitle,
             finalTitle: defaultSiteContent.finalTitle,
             services: defaultSiteContent.services,
-            portfolioProjects: defaultSiteContent.portfolioProjects,
+            portfolioProjects: published.portfolioProjects || defaultSiteContent.portfolioProjects,
             workVisibility: defaultSiteContent.workVisibility,
           }
         : published;
@@ -2911,14 +2914,15 @@ export default function App() {
     setRequestOpen(true);
   };
   const publishSite = async (nextContent) => {
-    setSiteContent(nextContent);
-    window.localStorage.setItem("u89-site-content", JSON.stringify(nextContent));
+    if (platformConfig.configured && !platformAccess?.workspaceId) throw new Error("انتهت جلسة الدخول. سجّل الدخول قبل نشر التغييرات.");
     if (platformAccess?.workspaceId) {
       await Promise.all([
         publishSiteContent(platformAccess.workspaceId, nextContent),
         saveStudioSettings(platformAccess.workspaceId, nextContent),
       ]);
     }
+    setSiteContent(nextContent);
+    window.localStorage.setItem("u89-site-content", JSON.stringify(nextContent));
   };
   const submitRequest = async (data) => {
     const service = siteContent.services.find((item) => item.id === data.serviceId);
@@ -2929,7 +2933,7 @@ export default function App() {
 
   return (
     <>
-      {view === "site" ? (
+      {view === "site" || (platformConfig.configured && !platformAccess) ? (
         <MarketingSite theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
       ) : (
         <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />

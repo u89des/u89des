@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import { parse } from "libpg-query";
 
-const migrationPath = new URL("../supabase/migrations/202608050001_u89_studio_os.sql", import.meta.url);
-const sql = fs.readFileSync(migrationPath, "utf8");
-await parse(sql);
+const directory = new URL("../supabase/migrations/", import.meta.url);
+for (const name of fs.readdirSync(directory).filter((name) => name.endsWith(".sql")).sort()) {
+  await parse(fs.readFileSync(new URL(name, directory), "utf8"));
+}
 console.log("Supabase migration SQL parsed successfully");

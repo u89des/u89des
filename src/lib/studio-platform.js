@@ -60,11 +60,16 @@ export async function publishSiteContent(workspaceId, content) {
     "heroTitle", "heroBody", "heroCta", "servicesTitle", "workTitle", "finalTitle",
     "email", "phone", "domain", "seoTitle", "seoDescription", "indexable", "catalogVersion",
     "acceptingRequests", "maintenance", "sectionVisibility", "serviceVisibility",
-    "workVisibility", "services", "requestQuestions",
+    "workVisibility", "portfolioProjects", "services", "requestQuestions",
   ];
   const publicContent = Object.fromEntries(
     publicKeys.filter((key) => Object.hasOwn(content, key)).map((key) => [key, content[key]]),
   );
+  // Portfolio publishing has its own owner-approved workflow. Do not overwrite it
+  // with an older CMS tab's in-memory copy when publishing other site settings.
+  const { data: latestSite, error: latestError } = await supabase.from("public_site_content").select("content").eq("workspace_id", workspaceId).maybeSingle();
+  throwIfError(latestError);
+  if (latestSite?.content?.portfolioProjects) publicContent.portfolioProjects = latestSite.content.portfolioProjects;
   const { data, error } = await supabase
     .from("public_site_content")
     .upsert({
@@ -322,6 +327,7 @@ export const workflow = Object.freeze({
     p_contract_id: contractId,
     p_signer_name: signerName,
   }),
+  issueProjectInvoice: (invoiceId) => callWorkflow("issue_project_invoice", { p_invoice_id: invoiceId }),
   recordInvoicePayment: (invoiceId, method, reference = null) => callWorkflow("record_invoice_payment", {
     p_invoice_id: invoiceId,
     p_payment_method: method,
