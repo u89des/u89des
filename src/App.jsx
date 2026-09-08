@@ -24,6 +24,7 @@ import {
   useWorkspaceData,
 } from "./LiveOperations";
 import MarketingSite from "./MarketingSite";
+import WorkPreview from "./WorkPreview";
 import PortfolioDesk from "./PortfolioDesk";
 import { authErrorMessage, needsFirstPassword, passwordValidation } from "./lib/auth-flow.js";
 import { isStudioPath, normalizeStudioAction, readStudioLocation, studioHref } from "./lib/studio-route.js";
@@ -2771,6 +2772,7 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
 }
 
 export default function App() {
+  const workPreview = /^\/work-preview(?:\/|$)/.test(window.location.pathname);
   const [view, setView] = useState("site");
   const [platformAccess, setPlatformAccess] = useState(null);
   const [passwordSetup, setPasswordSetup] = useState(authLanding.password);
@@ -2957,7 +2959,7 @@ export default function App() {
       robots.setAttribute("name", "robots");
       document.head.appendChild(robots);
     }
-    robots.setAttribute("content", isStudioPath(window.location.pathname) ? "noindex, nofollow" : siteContent.indexable ? "index, follow" : "noindex, nofollow");
+    robots.setAttribute("content", isStudioPath(window.location.pathname) || workPreview ? "noindex, nofollow" : siteContent.indexable ? "index, follow" : "noindex, nofollow");
   }, [siteContent]);
   const enterWorkspace = (role) => {
     if (!isStudioPath(window.location.pathname)) window.history.replaceState(null, "", studioHref());
@@ -3027,7 +3029,9 @@ export default function App() {
 
   return (
     <>
-      {view === "site" || (platformConfig.configured && !platformAccess) ? (
+      {workPreview ? (
+        <WorkPreview theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
+      ) : view === "site" || (platformConfig.configured && !platformAccess) ? (
         isStudioPath(window.location.pathname)
           ? <div className="studio-entry" aria-hidden="true"><img src="/u89-logo.svg" alt="" /><span>مساحة العمل الخاصة</span></div>
           : <MarketingSite theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
@@ -3035,8 +3039,8 @@ export default function App() {
         <Workspace theme={theme} onTheme={toggleTheme} onSite={openSite} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
       {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} />}
-      {accessOpen && !(passwordSetup && platformAccess) && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
-      {passwordSetup && platformAccess && <PasswordSetupModal user={platformAccess.user} onLogout={logout} onComplete={(user) => { setPlatformAccess((current) => current ? { ...current, user } : current); setPasswordSetup(false); setAccessOpen(false); window.history.replaceState(null, "", studioHref()); setView("workspace"); }} />}
+      {!workPreview && accessOpen && !(passwordSetup && platformAccess) && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
+      {!workPreview && passwordSetup && platformAccess && <PasswordSetupModal user={platformAccess.user} onLogout={logout} onComplete={(user) => { setPlatformAccess((current) => current ? { ...current, user } : current); setPasswordSetup(false); setAccessOpen(false); window.history.replaceState(null, "", studioHref()); setView("workspace"); }} />}
     </>
   );
 }

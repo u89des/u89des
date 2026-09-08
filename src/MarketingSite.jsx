@@ -240,7 +240,7 @@ function Reveal({ children, className = "" }) {
   return <div ref={element} className={`exhibit-reveal ${className}`}>{children}</div>;
 }
 
-export default function MarketingSite({ theme, onTheme, onRequest, content }) {
+export default function MarketingSite({ theme, onTheme, onRequest, content, afterWork = null }) {
   const [deckSeed] = useState(() => Math.floor(Math.random() * 4294967296));
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -288,6 +288,7 @@ export default function MarketingSite({ theme, onTheme, onRequest, content }) {
         </header>
         <main>
           <ExhibitHero projects={visible.work === false ? [] : projects} content={content} onSelect={setSelectedProject} />
+          {afterWork}
           {visible.services !== false && <section className="exhibit-services" id="services">
             <Reveal><h2>{content.servicesTitle || "كيف أقدر أخدمك؟"}</h2></Reveal>
             <div className="exhibit-services-layout">
