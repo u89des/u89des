@@ -960,7 +960,7 @@ function Modal({ title, children, onClose, size = "normal" }) {
   );
 }
 
-function QuickContactModal({ onClose }) {
+function QuickContactModal({ onClose, onProject }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const submit = async (event) => {
@@ -981,6 +981,7 @@ function QuickContactModal({ onClose }) {
     <label>رسالتك<textarea name="message" rows={5} maxLength={4000} required /></label>
     <small>نستخدم بياناتك للرد على رسالتك فقط.</small>
     {error && <p role="alert">{error}</p>}<button className="button primary" type="submit" disabled={status === "sending"}>{status === "sending" ? "جارٍ الإرسال..." : "إرسال الرسالة"}</button>
+    {onProject && <button className="button ghost" type="button" onClick={onProject}>لدي مشروع وأريد تحديد الخدمة</button>}
   </form>}</Modal>;
 }
 
@@ -1048,7 +1049,7 @@ function ServiceRequestModal({ onClose, onSubmit, settings }) {
           </div>
           <div className="field-row">
             <label>التواصل المفضل<select name="communication" required defaultValue="واتساب"><option value="واتساب">واتساب</option><option value="البريد الإلكتروني">البريد الإلكتروني</option><option value="اتصال هاتفي">اتصال هاتفي</option></select></label>
-            <label>طريقة استلام الرد<select name="notifications" required defaultValue="واتساب"><option value="واتساب">واتساب</option><option value="البريد الإلكتروني">البريد الإلكتروني</option><option value="واتساب والبريد">واتساب والبريد</option></select></label>
+            <label>إشعارات متابعة الطلب<select name="notifications" required defaultValue="البريد الإلكتروني"><option value="البريد الإلكتروني">البريد الإلكتروني</option></select></label>
           </div>
           <label>الخدمة المطلوبة
             <select required value={serviceId} onChange={(event) => selectService(event.target.value)}><option value="" disabled>اختر الخدمة</option>{(settings.services || []).filter((service) => service.active).map((service) => <option value={service.id} key={service.id}>{service.title}</option>)}</select>
@@ -2470,7 +2471,7 @@ function AppTopbar({ theme, onTheme, role, setRole, onCapture, onSearch, canPrev
           <button className={role === "client" ? "active" : ""} onClick={() => setRole("client")}>معاينة العميل</button>
           <button className={role === "collaborator" ? "active" : ""} onClick={() => setRole("collaborator")}>معاينة المتعاون</button>
         </div>}
-      </> : <div className="portal-identity"><Logo compact /><span><strong>{role === "client" ? "بوابة العميل" : "مساحة المتعاون"}</strong><small>دخول خاص وآمن</small></span></div>}
+      </> : <div className="portal-identity"><Logo compact /><span><strong>{role === "client" ? "بوابة العميل" : role === "accountant" ? "مساحة الحسابات" : "مساحة المتعاون"}</strong><small>دخول خاص وآمن</small></span></div>}
       <div className="topbar-actions">
         {canPreview && role === "owner" && <><button className="icon-button" aria-label="البحث والانتقال السريع" onClick={onSearch}><MagnifyingGlass size={20} /></button><button className="quick-capture" onClick={onCapture}><Plus size={18} /> التقاط سريع <kbd>⌘ ⇧ K</kbd></button></>}
         <ThemeButton theme={theme} onToggle={onTheme} />
@@ -2759,6 +2760,7 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
         {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && canPreview && role === "owner" && (section === "overview" ? <ControlCenter model={controlModel} onNavigate={navigate} onCapture={() => setCaptureOpen(true)} onFocus={setFocusTask} notes={notes} onToggleNote={(id) => setNotes((items) => items.map((item) => item.id === id ? { ...item, done: !item.done } : item))} onSearch={() => setSearchOpen(true)} /> : <OwnerApp targetId={targetId} section={section} setSection={navigate} setRole={setRole} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} scenario={scenario} onScenarioAdvance={advanceScenario} onScenarioPatch={patchScenario} onScenarioReset={resetScenario} platformAccess={platformAccess} liveData={platformAccess ? liveWorkspace.data : null} onRefreshLiveData={liveWorkspace.refresh} />)}
         {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && role === "client" && (platformAccess ? <LiveClientPortal data={liveWorkspace.data || {}} access={platformAccess} refresh={liveWorkspace.refresh} onToast={showToast} /> : <ClientPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} onPatch={patchScenario} />)}
         {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && role === "collaborator" && (platformAccess ? <LiveCollaboratorPortal data={liveWorkspace.data || {}} access={platformAccess} refresh={liveWorkspace.refresh} onToast={showToast} /> : <CollaboratorPortal onToast={showToast} scenario={scenario} onAdvance={advanceScenario} />)}
+        {platformAccess && !liveWorkspace.loading && !liveWorkspace.error && role === "accountant" && <LiveOwnerSection section="finance" targetId={targetId} data={liveWorkspace.data || {}} access={platformAccess} refresh={liveWorkspace.refresh} onToast={showToast} setSection={navigate} ownerName={siteContent.ownerNameAr} />}
       </div>
       {canPreview && role === "owner" && <MobileNav section={section} setSection={navigate} />}
       {canPreview && role === "owner" && captureOpen && <CaptureModal onClose={() => setCaptureOpen(false)} onAdd={(text) => { setNotes((items) => [{ id: crypto.randomUUID(), text: text.trim(), createdAt: new Date().toISOString(), done: false }, ...items]); showToast("حُفظت الفكرة في صندوق أفكارك على هذا الجهاز"); }} />}
@@ -2833,8 +2835,9 @@ export default function App() {
   });
   const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
+  const [serviceRequestOpen, setServiceRequestOpen] = useState(false);
   const [accessOpen, setAccessOpen] = useState(() => readStudioLocation(window.location).studio);
-  const roleForWorkspace = (role) => ["owner", "manager", "accountant"].includes(role) ? "owner" : role;
+  const roleForWorkspace = (role) => ["owner", "manager"].includes(role) ? "owner" : role;
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
@@ -3037,7 +3040,8 @@ export default function App() {
       ) : (
         <Workspace theme={theme} onTheme={toggleTheme} onSite={openSite} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
-      {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} />}
+      {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} onProject={() => { setRequestOpen(false); setServiceRequestOpen(true); }} />}
+      {serviceRequestOpen && <ServiceRequestModal settings={siteContent} onSubmit={submitRequest} onClose={() => setServiceRequestOpen(false)} />}
       {!workPreview && accessOpen && !(passwordSetup && platformAccess) && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
       {!workPreview && passwordSetup && platformAccess && <PasswordSetupModal user={platformAccess.user} onLogout={logout} onComplete={(user) => { setPlatformAccess((current) => current ? { ...current, user } : current); setPasswordSetup(false); setAccessOpen(false); window.history.replaceState(null, "", studioHref()); setView("workspace"); }} />}
     </>
