@@ -74,6 +74,31 @@ body {
   color: var(--ink);
 }
 
+.studio-entry {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  justify-items: center;
+  gap: 22px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.studio-entry img {
+  width: min(46vw, 210px);
+  max-height: 96px;
+  object-fit: contain;
+  filter: var(--entry-logo-filter, none);
+}
+
+.studio-entry span {
+  font-size: .84rem;
+}
+
+:root[data-theme="dark"] .studio-entry img {
+  filter: invert(1);
+}
+
 button,
 input,
 select,

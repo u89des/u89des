@@ -151,6 +151,8 @@
 .exhibit-signature { width: 100%; aspect-ratio: 1.65; background: var(--creative-ink); mask: url('/u89-logo.svg') center / contain no-repeat; -webkit-mask: url('/u89-logo.svg') center / contain no-repeat; transform: rotate(-12deg); opacity: .16; }
 .exhibit-footer { margin: 0 4vw; border-top: 1px solid var(--creative-line); display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 30px 0; font-size: 13px; color: var(--creative-soft); }
 .exhibit-footer a { display: flex; align-items: center; gap: 15px; }
+.exhibit-footer-identity { display: grid; gap: 4px; }
+.exhibit-footer-identity a { width: fit-content; color: var(--creative-ink); font-size: 12px; letter-spacing: .025em; }
 .exhibit-intro { position: fixed; inset: 0; z-index: 80; background: #a7bc64; display: grid; place-items: center; pointer-events: none; animation: exhibit-curtain 1.7s cubic-bezier(.76,0,.24,1) both; }
 .exhibit-intro-mark { width: min(45vw, 480px); aspect-ratio: 1.72; animation: exhibit-mark 1.25s cubic-bezier(.16,1,.3,1) both; }
 .exhibit-intro-mark img { object-fit: contain; filter: brightness(0); opacity: .8; }

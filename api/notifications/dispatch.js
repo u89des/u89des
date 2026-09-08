@@ -1,3 +1,6 @@
+import { renderNotificationEmail, notificationText } from "../_lib/email-template.js";
+import { normalizeStudioAction } from "../../src/lib/studio-route.js";
+
 const requiredServerConfig = () => ({
   supabaseUrl: process.env.SUPABASE_URL,
   serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -17,6 +20,7 @@ async function sendEmail(notification) {
     return { channel: "email", skipped: true, reason: "خدمة البريد غير مهيأة" };
   }
 
+  const actionUrl = notification.action_url ? resolveActionUrl(notification.action_url) : "";
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -27,7 +31,9 @@ async function sendEmail(notification) {
       from: process.env.RESEND_FROM_EMAIL,
       to: [notification.recipient_email],
       subject: notification.subject,
-      html: `<div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.8"><h2>${escapeHtml(notification.subject)}</h2><p>${escapeHtml(notification.message)}</p>${notification.action_url ? `<p><a href="${escapeAttribute(resolveActionUrl(notification.action_url))}">فتح مساحة العمل</a></p>` : ""}</div>`,
+      html: renderNotificationEmail(notification, actionUrl),
+      text: notificationText(notification, actionUrl),
+      ...(process.env.RESEND_REPLY_TO ? { reply_to: process.env.RESEND_REPLY_TO } : {}),
     }),
   });
 
@@ -75,22 +81,9 @@ async function sendWhatsApp(notification) {
   return { channel: "whatsapp", sent: true };
 }
 
-function escapeHtml(value = "") {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function escapeAttribute(value = "") {
-  return escapeHtml(value).replaceAll("`", "&#096;");
-}
-
 function resolveActionUrl(actionUrl) {
   const baseUrl = process.env.PUBLIC_APP_URL || "https://u89des.com";
-  return new URL(actionUrl, baseUrl).toString();
+  return new URL(normalizeStudioAction(actionUrl), baseUrl).toString();
 }
 
 async function updateNotification(config, id, patch) {

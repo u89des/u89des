@@ -1,7 +1,7 @@
 import { passwordValidation } from "./auth-flow.js";
 
-export async function requestPasswordReset(auth, email, origin) {
-  const { error } = await auth.resetPasswordForEmail(email.trim(), { redirectTo: `${origin}/` });
+export async function requestPasswordReset(auth, email, redirectBase) {
+  const { error } = await auth.resetPasswordForEmail(email.trim(), { redirectTo: redirectBase });
   if (error) throw error;
 }
 

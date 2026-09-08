@@ -23,8 +23,8 @@ const auth = {
   async resetPasswordForEmail(email, options) { calls.push({ email, options }); return { error: null }; },
   async updateUser(payload) { calls.push(payload); return { data: { user: { id: "test-user", user_metadata: payload.data } }, error: null }; },
 };
-await requestPasswordReset(auth, " test@example.com ", "https://www.u89des.com");
-assert.deepEqual(calls.pop(), { email: "test@example.com", options: { redirectTo: "https://www.u89des.com/" } });
+await requestPasswordReset(auth, " test@example.com ", "https://www.u89des.com/studio");
+assert.deepEqual(calls.pop(), { email: "test@example.com", options: { redirectTo: "https://www.u89des.com/studio" } });
 await assert.rejects(updateOwnPassword(auth, "short", "short"));
 await assert.rejects(updateOwnPassword(auth, "long-test-password", "does-not-match"));
 assert.equal(calls.length, 0, "Invalid passwords must never reach the auth service");
@@ -33,5 +33,5 @@ assert.equal(user.user_metadata.password_setup_complete, true);
 assert.deepEqual(Object.keys(calls[0]).sort(), ["data", "password"]);
 assert.deepEqual(calls[0].data, { password_setup_complete: true }, "No role or membership changes");
 await assert.rejects(updateOwnPassword({ updateUser: async () => ({ data: null, error: new Error("session expired") }) }, "long-test-password", "long-test-password"), /expired/);
-await assert.rejects(requestPasswordReset({ resetPasswordForEmail: async () => ({ error: new Error("rate limit") }) }, "test@example.com", "https://www.u89des.com"), /rate limit/);
+await assert.rejects(requestPasswordReset({ resetPasswordForEmail: async () => ({ error: new Error("rate limit") }) }, "test@example.com", "https://www.u89des.com/studio"), /rate limit/);
 console.log("Auth flow passed: invite/recovery intent, first-password UX, validation, self-only updates, reset redirects, and failure handling. No live credentials changed.");

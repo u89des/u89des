@@ -311,7 +311,11 @@ export default function MarketingSite({ theme, onTheme, onRequest, content }) {
             </Reveal>
           </section>}
         </main>
-        <footer className="exhibit-footer"><span>عبد الوهاب بن سليمان السويد</span><a href="#top" aria-label="العودة إلى بداية الموقع">{content.domain || "U89DES.COM"} <ArrowUpLeft size={18} /></a><span>© {new Date().getFullYear()}</span></footer>
+        <footer className="exhibit-footer">
+          <span className="exhibit-footer-identity">عبد الوهاب بن سليمان السويد<a dir="ltr" href={`tel:${String(content.phone || "").replace(/\s/g, "")}`}>{content.phone}</a></span>
+          <a href="#top" aria-label="العودة إلى بداية الموقع">{content.domain || "U89DES.COM"} <ArrowUpLeft size={18} /></a>
+          <span>© {new Date().getFullYear()}</span>
+        </footer>
       </div>
       <CaseStudy key={selectedProject?.id || "closed-project"} project={selectedProject} projects={projects} onClose={() => setSelectedProject(null)} onSelectProject={setSelectedProject} />
     </div>

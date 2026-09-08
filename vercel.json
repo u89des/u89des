@@ -4,6 +4,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/studio", "destination": "/index.html" },
+    { "source": "/studio/:path*", "destination": "/index.html" },
     { "source": "/workspace/:path*", "destination": "/index.html" },
     { "source": "/portal/:path*", "destination": "/index.html" }
   ],

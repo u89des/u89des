@@ -54,7 +54,8 @@ export default async function handler(request, response) {
     if (client.email.trim().toLowerCase() !== email) return response.status(400).json({ error: "بريد الدعوة يجب أن يطابق بريد ملف العميل" });
   }
 
-  const redirectTo = `${process.env.PUBLIC_APP_URL || "https://u89des.com"}/`;
+  const publicAppUrl = (process.env.PUBLIC_APP_URL || "https://www.u89des.com").replace(/\/$/, "");
+  const redirectTo = `${publicAppUrl}/studio`;
   const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo,
     data: { display_name: displayName, invited_role: role, workspace_id: workspaceId },

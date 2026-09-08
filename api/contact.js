@@ -50,7 +50,26 @@ export default async function handler(req, res) {
     if (error) return res.status(503).json({ error: "تعذر استقبال الرسالة الآن." });
     if (count >= limit) return res.status(429).json({ error: "وصلت للحد المؤقت للرسائل. حاول بعد ساعة." });
   }
-  const { error } = await db.from("activity_events").insert({ workspace_id: workspace.id, actor_label: name, event_type: "contact_message", label: message, metadata: { contact, fingerprint, contactHash } });
+  const { data: savedMessage, error } = await db.from("activity_events")
+    .insert({ workspace_id: workspace.id, actor_label: name, event_type: "contact_message", label: message, metadata: { contact, fingerprint, contactHash } })
+    .select("id")
+    .single();
   if (error) return res.status(500).json({ error: "لم تُحفظ الرسالة. حاول مرة أخرى." });
+  const [{ data: owner }, { data: settings }] = await Promise.all([
+    db.from("memberships").select("user_id").eq("workspace_id", workspace.id).eq("role", "owner").eq("status", "active").order("created_at").limit(1).maybeSingle(),
+    db.from("studio_settings").select("email").eq("workspace_id", workspace.id).maybeSingle(),
+  ]);
+  if (owner?.user_id && settings?.email) {
+    await db.from("notifications").insert({
+      workspace_id: workspace.id,
+      recipient_user_id: owner.user_id,
+      recipient_email: settings.email,
+      channels: ["in_app", "email"],
+      kind: "contact.received",
+      subject: `رسالة تواصل جديدة من ${name}`,
+      message: `${message}\nوسيلة التواصل: ${contact}`,
+      action_url: `/studio?section=contact-inbox&target=${savedMessage.id}`,
+    });
+  }
   return res.status(201).json({ sent: true });
 }

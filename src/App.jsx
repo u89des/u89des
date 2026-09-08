@@ -26,6 +26,7 @@ import {
 import MarketingSite from "./MarketingSite";
 import PortfolioDesk from "./PortfolioDesk";
 import { authErrorMessage, needsFirstPassword, passwordValidation } from "./lib/auth-flow.js";
+import { isStudioPath, normalizeStudioAction, readStudioLocation, studioHref } from "./lib/studio-route.js";
 import ControlCenter, { buildControlModel, groupMoney, CommandPalette, FocusSession } from "./ControlCenter";
 import "./control-center.css";
 import { portfolioProjects } from "./portfolio-data";
@@ -941,8 +942,8 @@ function Toast({ message }) {
   );
 }
 
-function NotificationCenter({ items, onClose, onRead }) {
-  return <aside className="notification-center" aria-label="مركز الإشعارات"><header><div><small>القرارات والتحديثات</small><h2>الإشعارات</h2></div><IconButton label="إغلاق الإشعارات" onClick={onClose}><X size={18} /></IconButton></header>{items.length ? <div className="notification-list">{items.map((item) => <button key={item.id} className={item.read_at ? "read" : ""} onClick={() => onRead(item)}><span className="notification-dot" /><span><strong>{item.subject}</strong><p>{item.message}</p><small>{item.created_at ? new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at)) : "الآن"}</small></span></button>)}</div> : <div className="notification-empty"><Bell size={28} /><strong>لا توجد إشعارات جديدة</strong><p>سيظهر هنا فقط ما يحتاج معرفة أو قراراً.</p></div>}</aside>;
+function NotificationCenter({ items, onClose, onOpen }) {
+  return <aside className="notification-center" aria-label="مركز الإشعارات"><header><div><small>القرارات والتحديثات</small><h2>الإشعارات</h2></div><IconButton label="إغلاق الإشعارات" onClick={onClose}><X size={18} /></IconButton></header>{items.length ? <div className="notification-list">{items.map((item) => <button key={item.id} className={item.read_at ? "read" : ""} onClick={() => onOpen(item)}><span className="notification-dot" /><span><strong>{item.subject}</strong><p>{item.message}</p><small>{item.created_at ? new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.created_at)) : "الآن"}</small></span></button>)}</div> : <div className="notification-empty"><Bell size={28} /><strong>لا توجد إشعارات جديدة</strong><p>سيظهر هنا فقط ما يحتاج معرفة أو قراراً.</p></div>}</aside>;
 }
 
 function Modal({ title, children, onClose, size = "normal" }) {
@@ -2660,10 +2661,11 @@ function MobileNav({ section, setSection }) {
 }
 
 function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublishSite, scenario, onUpdateScenario, onResetScenario, platformAccess, onLogout }) {
+  const initialLocation = useMemo(() => readStudioLocation(window.location), []);
   const [role, setRole] = useState(initialRole);
   const canPreview = initialRole === "owner";
-  const [section, setSection] = useState("overview");
-  const [targetId, setTargetId] = useState(null);
+  const [section, setSection] = useState(initialLocation.section);
+  const [targetId, setTargetId] = useState(initialLocation.targetId);
   const [searchOpen, setSearchOpen] = useState(false);
   const [focusTask, setFocusTask] = useState(null);
   const [notes, setNotes] = usePersistentState(`u89-capture-notes-${platformAccess?.user?.id || "local"}`, []);
@@ -2674,7 +2676,21 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
   const [localReadNotifications, setLocalReadNotifications] = useState([]);
   const liveWorkspace = useWorkspaceData(platformAccess);
   const controlModel = useMemo(() => buildControlModel({ liveData: platformAccess ? liveWorkspace.data || {} : null, seeds: { orders: initialWorkOrders, invoices, claims: collaboratorBills, requests: retainerRequests }, scenario }), [platformAccess, liveWorkspace.data, section, scenario]);
-  const navigate = (nextSection, id = null) => { setTargetId(id); setSection(nextSection); };
+  const navigate = (nextSection, id = null) => {
+    setTargetId(id);
+    setSection(nextSection);
+    window.history.replaceState(null, "", studioHref(nextSection, id));
+  };
+  useEffect(() => {
+    const syncLocation = () => {
+      const next = readStudioLocation(window.location);
+      if (!next.studio) return;
+      setSection(next.section);
+      setTargetId(next.targetId);
+    };
+    window.addEventListener("popstate", syncLocation);
+    return () => window.removeEventListener("popstate", syncLocation);
+  }, []);
   useEffect(() => {
     if (!canPreview || role !== "owner") return;
     const shortcut = (event) => {
@@ -2722,6 +2738,12 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
         setLocalReadNotifications((current) => [...new Set([...current, item.id])]);
       }
     }
+    if (item.action_url) {
+      const action = new URL(normalizeStudioAction(item.action_url), window.location.origin);
+      const destination = readStudioLocation(action);
+      navigate(destination.section, destination.targetId);
+      setNotificationsOpen(false);
+    }
   };
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
@@ -2731,7 +2753,7 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
       {canPreview && role === "owner" && <Sidebar section={section} setSection={navigate} onSite={onSite} onFocus={() => setFocusTask({ title: "مساحة لعملك الإبداعي", section: "work-orders" })} counts={{ requests: controlModel.requestCount, overview: controlModel.decisions.length }} />}
       <div className={`workspace-main ${role !== "owner" || !canPreview ? "portal-main" : ""}`}>
         <AppTopbar theme={theme} onTheme={onTheme} role={role} setRole={setRole} onCapture={() => setCaptureOpen(true)} onSearch={() => setSearchOpen(true)} canPreview={canPreview} onExit={onSite} connected={Boolean(platformAccess?.session)} onLogout={onLogout} notificationCount={unreadNotificationCount} notificationsOpen={notificationsOpen} onNotifications={() => setNotificationsOpen(true)} />
-        {notificationsOpen && <NotificationCenter items={personalNotifications} onClose={() => setNotificationsOpen(false)} onRead={readNotification} />}
+        {notificationsOpen && <NotificationCenter items={personalNotifications} onClose={() => setNotificationsOpen(false)} onOpen={readNotification} />}
         {platformAccess && liveWorkspace.loading && <div className="workspace-loading"><div /><div /><div /><span>جارٍ تحميل مساحة العمل</span></div>}
         {platformAccess && liveWorkspace.error && <div className="workspace-error-state"><ShieldCheck size={32} /><h2>تعذر تحميل مساحة العمل</h2><p>{liveWorkspace.error}</p><button className="button primary" onClick={liveWorkspace.refresh}>إعادة المحاولة</button></div>}
         {(!platformAccess || (!liveWorkspace.loading && !liveWorkspace.error)) && canPreview && role === "owner" && (section === "overview" ? <ControlCenter model={controlModel} onNavigate={navigate} onCapture={() => setCaptureOpen(true)} onFocus={setFocusTask} notes={notes} onToggleNote={(id) => setNotes((items) => items.map((item) => item.id === id ? { ...item, done: !item.done } : item))} onSearch={() => setSearchOpen(true)} /> : <OwnerApp targetId={targetId} section={section} setSection={navigate} setRole={setRole} onProject={setSelectedProject} onCapture={() => setCaptureOpen(true)} onToast={showToast} siteContent={siteContent} onPublishSite={onPublishSite} onSite={onSite} scenario={scenario} onScenarioAdvance={advanceScenario} onScenarioPatch={patchScenario} onScenarioReset={resetScenario} platformAccess={platformAccess} liveData={platformAccess ? liveWorkspace.data : null} onRefreshLiveData={liveWorkspace.refresh} />)}
@@ -2810,7 +2832,7 @@ export default function App() {
   });
   const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
-  const [accessOpen, setAccessOpen] = useState(() => window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname));
+  const [accessOpen, setAccessOpen] = useState(() => readStudioLocation(window.location).studio);
   const roleForWorkspace = (role) => ["owner", "manager", "accountant"].includes(role) ? "owner" : role;
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
@@ -2822,12 +2844,24 @@ export default function App() {
   }, [view]);
   useEffect(() => {
     const syncPrivateEntry = () => {
-      if (window.location.hash === "#studio" && view === "site") setAccessOpen(true);
+      const location = readStudioLocation(window.location);
+      if (location.studio && !isStudioPath(window.location.pathname)) {
+        window.history.replaceState(null, "", studioHref(location.section, location.targetId));
+      }
+      if (location.studio && view === "site" && !platformAccess) setAccessOpen(true);
+      if (!location.studio) {
+        setAccessOpen(false);
+        setView("site");
+      }
     };
     syncPrivateEntry();
     window.addEventListener("hashchange", syncPrivateEntry);
-    return () => window.removeEventListener("hashchange", syncPrivateEntry);
-  }, [view]);
+    window.addEventListener("popstate", syncPrivateEntry);
+    return () => {
+      window.removeEventListener("hashchange", syncPrivateEntry);
+      window.removeEventListener("popstate", syncPrivateEntry);
+    };
+  }, [view, platformAccess]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
@@ -2840,7 +2874,13 @@ export default function App() {
     const applyAccess = async (session, event) => {
       if (event === "PASSWORD_RECOVERY" && active) setPasswordSetup(true);
       if (!session) {
-        if (active) { setPlatformAccess(null); setPasswordSetup(false); setView("site"); if (window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname) || authLanding.error || authLanding.password) setAccessOpen(true); }
+        if (active) {
+          const privateEntry = readStudioLocation(window.location).studio || authLanding.error || authLanding.password;
+          setPlatformAccess(null);
+          setPasswordSetup(false);
+          setView("site");
+          setAccessOpen(privateEntry);
+        }
         return;
       }
       try {
@@ -2855,7 +2895,7 @@ export default function App() {
         if (needsFirstPassword(access.user)) setPasswordSetup(true);
         setWorkspaceRole(roleForWorkspace(access.role));
         setAccessOpen(false);
-        setView("workspace");
+        setView(readStudioLocation(window.location).studio || authLanding.password ? "workspace" : "site");
       } catch {
         if (active) { setPlatformAccess(null); setView("site"); setAccessOpen(true); }
       }
@@ -2865,7 +2905,7 @@ export default function App() {
       setPlatformAccess(access);
       if (needsFirstPassword(access.user)) setPasswordSetup(true);
       setWorkspaceRole(roleForWorkspace(access.role));
-      if (window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname)) {
+      if (readStudioLocation(window.location).studio) {
         setAccessOpen(false);
         setView("workspace");
       }
@@ -2917,9 +2957,10 @@ export default function App() {
       robots.setAttribute("name", "robots");
       document.head.appendChild(robots);
     }
-    robots.setAttribute("content", siteContent.indexable ? "index, follow" : "noindex, nofollow");
+    robots.setAttribute("content", isStudioPath(window.location.pathname) ? "noindex, nofollow" : siteContent.indexable ? "index, follow" : "noindex, nofollow");
   }, [siteContent]);
   const enterWorkspace = (role) => {
+    if (!isStudioPath(window.location.pathname)) window.history.replaceState(null, "", studioHref());
     setWorkspaceRole(role);
     setAccessOpen(false);
     setView("workspace");
@@ -2955,6 +2996,13 @@ export default function App() {
     setPlatformAccess(null);
     setWorkspaceRole("owner");
     setView("site");
+    window.history.replaceState(null, "", studioHref());
+    setAccessOpen(true);
+  };
+  const openSite = () => {
+    window.history.pushState(null, "", "/");
+    setAccessOpen(false);
+    setView("site");
   };
   const openRequest = () => {
     setRequestOpen(true);
@@ -2980,13 +3028,15 @@ export default function App() {
   return (
     <>
       {view === "site" || (platformConfig.configured && !platformAccess) ? (
-        <MarketingSite theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
+        isStudioPath(window.location.pathname)
+          ? <div className="studio-entry" aria-hidden="true"><img src="/u89-logo.svg" alt="" /><span>مساحة العمل الخاصة</span></div>
+          : <MarketingSite theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
       ) : (
-        <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
+        <Workspace theme={theme} onTheme={toggleTheme} onSite={openSite} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
       {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} />}
       {accessOpen && !(passwordSetup && platformAccess) && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
-      {passwordSetup && platformAccess && <PasswordSetupModal user={platformAccess.user} onLogout={logout} onComplete={(user) => { setPlatformAccess((current) => current ? { ...current, user } : current); setPasswordSetup(false); setAccessOpen(false); window.history.replaceState(null, "", `${window.location.pathname}#studio`); setView("workspace"); }} />}
+      {passwordSetup && platformAccess && <PasswordSetupModal user={platformAccess.user} onLogout={logout} onComplete={(user) => { setPlatformAccess((current) => current ? { ...current, user } : current); setPasswordSetup(false); setAccessOpen(false); window.history.replaceState(null, "", studioHref()); setView("workspace"); }} />}
     </>
   );
 }

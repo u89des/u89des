@@ -192,7 +192,7 @@ export async function signInWithPassword(email, password) {
 
 export async function sendMagicLink(email) {
   assertConnected();
-  const redirectTo = `${window.location.origin}/`;
+  const redirectTo = `${window.location.origin}/studio`;
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
@@ -203,7 +203,7 @@ export async function sendMagicLink(email) {
 
 export async function sendPasswordReset(email) {
   assertConnected();
-  return requestPasswordReset(supabase.auth, email, window.location.origin);
+  return requestPasswordReset(supabase.auth, email, `${window.location.origin}/studio`);
 }
 
 export async function setMyPassword(password, confirmation) {
