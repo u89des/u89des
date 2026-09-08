@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MarketingSite from "./MarketingSite";
 import "./work-preview.css";
 
@@ -25,15 +25,38 @@ function shuffle(items) {
 
 function LogoArchive() {
   const logos = useMemo(() => shuffle(logoFiles), []);
-  const [round, setRound] = useState(0);
+  const [visibleLogos, setVisibleLogos] = useState(() => logos.slice(0, 16));
+  const logoCursor = useRef(16);
+  const lastChangedCell = useRef(-1);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
-    const timer = window.setInterval(() => setRound((value) => value + 1), 5000);
-    return () => window.clearInterval(timer);
-  }, []);
+    logos.forEach((src) => {
+      const image = new Image();
+      image.src = src;
+    });
+    const timer = window.setInterval(() => {
+      setVisibleLogos((current) => {
+        let cell = Math.floor(Math.random() * current.length);
+        while (cell === lastChangedCell.current) cell = Math.floor(Math.random() * current.length);
+        lastChangedCell.current = cell;
 
-  const visibleLogos = Array.from({ length: 16 }, (_, index) => logos[(round * 16 + index) % logos.length]);
+        const occupied = new Set(current);
+        let replacement = logos[logoCursor.current % logos.length];
+        let attempts = 0;
+        while (occupied.has(replacement) && attempts < logos.length) {
+          logoCursor.current += 1;
+          replacement = logos[logoCursor.current % logos.length];
+          attempts += 1;
+        }
+        logoCursor.current += 1;
+        const next = [...current];
+        next[cell] = replacement;
+        return next;
+      });
+    }, 1250);
+    return () => window.clearInterval(timer);
+  }, [logos]);
 
   return (
     <section className="logo-archive" id="logos" aria-labelledby="logos-title">
@@ -41,10 +64,10 @@ function LogoArchive() {
         <h2 id="logos-title">شعارات</h2>
         <p>نماذج مختارة من العلامات التي صممتها.</p>
       </div>
-      <div className="logo-grid" aria-label="مجموعة شعارات تتغير كل خمس ثوانٍ">
+      <div className="logo-grid" aria-label="مجموعة شعارات تتغير تدريجياً">
         {visibleLogos.map((src, index) => (
-          <figure className="logo-cell" key={`${round}-${src}-${index}`} style={{ "--logo-index": index }}>
-            <img src={src} alt="شعار من تصميم عبد الوهاب السويد" loading={round === 0 ? "eager" : "lazy"} />
+          <figure className="logo-cell" key={`${src}-${index}`} style={{ "--logo-index": index }}>
+            <img src={src} alt="شعار من تصميم عبد الوهاب السويد" loading="eager" />
           </figure>
         ))}
       </div>

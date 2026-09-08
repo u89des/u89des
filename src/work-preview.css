@@ -36,7 +36,6 @@
 
 .logo-cell {
   --logo-scale: .5;
-  --logo-entry-scale: .4;
   --logo-hover-scale: .62;
   display: grid;
   min-width: 0;
@@ -97,7 +96,7 @@
   }
 }
 
-@keyframes logo-change-in { from { opacity: 0; transform: scale(var(--logo-entry-scale)); } to { opacity: 1; transform: scale(var(--logo-scale)); } }
+@keyframes logo-change-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes preview-frame-in { from { opacity: .25; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
 
 @media (max-width: 767px) {
@@ -105,7 +104,7 @@
   .logo-archive-heading { margin-bottom: 44px; }
   .logo-archive-heading h2, .campaign-copy h2, .type-heading h2 { font-size: clamp(43px, 13vw, 68px); }
   .logo-archive-heading p, .campaign-copy p, .type-heading p { font-size: 15px; }
-  .logo-cell { --logo-scale: .64; --logo-entry-scale: .52; --logo-hover-scale: .78; aspect-ratio: 1; }
+  .logo-cell { --logo-scale: .64; --logo-hover-scale: .78; aspect-ratio: 1; }
   .campaign-preview { padding: 100px 0; }
   .campaign-copy { padding: 0 16px 48px; }
   .campaign-track { display: flex; min-height: 0; padding: 0 16px; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; }
