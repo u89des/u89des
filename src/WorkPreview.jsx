@@ -95,12 +95,6 @@ function CampaignPreview() {
 }
 
 export default function WorkPreview({ theme, onTheme, onRequest, content }) {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = "تصور معرض الأعمال | عبد الوهاب السويد";
-    return () => { document.title = previousTitle; };
-  }, []);
-
   return (
     <MarketingSite
       theme={theme}

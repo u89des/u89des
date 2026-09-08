@@ -23,7 +23,6 @@ import {
   LiveOwnerSection,
   useWorkspaceData,
 } from "./LiveOperations";
-import MarketingSite from "./MarketingSite";
 import WorkPreview from "./WorkPreview";
 import PortfolioDesk from "./PortfolioDesk";
 import { authErrorMessage, needsFirstPassword, passwordValidation } from "./lib/auth-flow.js";
@@ -3034,7 +3033,7 @@ export default function App() {
       ) : view === "site" || (platformConfig.configured && !platformAccess) ? (
         isStudioPath(window.location.pathname)
           ? <div className="studio-entry" aria-hidden="true"><img src="/u89-logo.svg" alt="" /><span>مساحة العمل الخاصة</span></div>
-          : <MarketingSite theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
+          : <WorkPreview theme={theme} onTheme={toggleTheme} onRequest={openRequest} content={siteContent} />
       ) : (
         <Workspace theme={theme} onTheme={toggleTheme} onSite={openSite} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
