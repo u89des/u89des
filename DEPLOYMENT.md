@@ -67,7 +67,7 @@ npm run dev
 5. اختبر بطلب خدمة جديد من الموقع.
 6. راجع Vercel Logs وجدول `notifications` للتأكد من تغير الحالة إلى `sent`.
 
-يوجد Cron احتياطي في `vercel.json` يعمل مرة يومياً. خطة Vercel Hobby تسمح بتشغيل Cron مرة واحدة يومياً، لذلك لا تغيره إلى كل عشر دقائق إلا إذا كانت الخطة تسمح بذلك. مرجع Vercel الرسمي: [إدارة Cron Jobs](https://vercel.com/docs/cron-jobs/manage-cron-jobs)
+يوجد Cron في `vercel.json` يعمل كل دقيقة على خطة Vercel Pro الحالية. تشغيله يتطلب `CRON_SECRET` في Production. لا تنقل هذه الجدولة إلى خطة Hobby دون مراجعة حدود الخطة. مرجع Vercel الرسمي: [إدارة Cron Jobs](https://vercel.com/docs/cron-jobs/manage-cron-jobs)
 
 ## البريد عبر Resend
 
