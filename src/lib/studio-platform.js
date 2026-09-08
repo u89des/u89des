@@ -1,4 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
+import { readAuthLanding } from "./auth-flow.js";
+import { requestPasswordReset, updateOwnPassword } from "./password-actions.js";
+
+// Capture only intent, never tokens, before the SDK consumes the callback URL.
+export const authLanding = readAuthLanding(window.location.hash);
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const publishableKey = (
@@ -196,6 +201,16 @@ export async function sendMagicLink(email) {
   return data;
 }
 
+export async function sendPasswordReset(email) {
+  assertConnected();
+  return requestPasswordReset(supabase.auth, email, window.location.origin);
+}
+
+export async function setMyPassword(password, confirmation) {
+  assertConnected();
+  return updateOwnPassword(supabase.auth, password, confirmation);
+}
+
 export async function signOutPlatform() {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
@@ -233,8 +248,12 @@ export async function getCurrentAccess() {
 
 export function subscribeToAuth(callback) {
   if (!supabase) return () => {};
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
-  return () => data.subscription.unsubscribe();
+  let active = true;
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    // Supabase calls listeners under its auth lock. Defer SDK work to avoid deadlocks.
+    setTimeout(() => { if (active) callback(session, event); }, 0);
+  });
+  return () => { active = false; data.subscription.unsubscribe(); };
 }
 
 export async function loadWorkspaceSnapshot(workspaceId) {

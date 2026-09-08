@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "check": "npm run build && npm run check:sql && npm run check:copy && npm run check:api",
-    "check:api": "node scripts/test-contact.mjs && node scripts/test-portfolio.mjs && node scripts/test-portfolio-publishing.mjs",
+    "check:api": "node scripts/test-contact.mjs && node scripts/test-portfolio.mjs && node scripts/test-portfolio-publishing.mjs && node scripts/test-auth-flow.mjs",
     "check:sql": "node scripts/check-sql.mjs",
     "check:copy": "! rg '[—–]' src README.md DEPLOYMENT.md PRODUCT_BLUEPRINT.md U89_OPERATIONS_SPEC.md CONTRACT_DRAFT.md"
   },

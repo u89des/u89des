@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   checkPlatformConnection,
+  authLanding,
+  sendPasswordReset,
+  setMyPassword,
   getCurrentAccess,
   loadPublishedSiteContent,
   loadStudioSettings,
@@ -22,6 +25,7 @@ import {
 } from "./LiveOperations";
 import MarketingSite from "./MarketingSite";
 import PortfolioDesk from "./PortfolioDesk";
+import { authErrorMessage, needsFirstPassword, passwordValidation } from "./lib/auth-flow.js";
 import ControlCenter, { buildControlModel, groupMoney, CommandPalette, FocusSession } from "./ControlCenter";
 import "./control-center.css";
 import { portfolioProjects } from "./portfolio-data";
@@ -1076,20 +1080,21 @@ function AccessModal({ onClose, onEnter, connected, onAuthenticate }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("idle");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(authLanding.error ? authErrorMessage({ code: "otp_expired" }) : "");
+  const changeMethod = (next) => { setMethod(next); setStatus("idle"); setMessage(""); setPassword(""); };
   const authenticate = async (event) => {
     event.preventDefault();
     setStatus("loading");
     setMessage("");
     try {
       const result = await onAuthenticate({ email, password, method });
-      if (result?.magic) {
+      if (result?.magic || result?.reset) {
         setStatus("sent");
-        setMessage("أرسلنا رابط الدخول إلى بريدك. افتحه من الجهاز نفسه لإكمال الدخول.");
+        setMessage(result.reset ? "إذا كان البريد مرتبطًا بحساب، ستصلك رسالة لتعيين كلمة مرور جديدة. افتح أحدث رسالة فقط." : "أرسلنا رابط الدخول إلى بريدك. افتحه على الجهاز الذي تريد الدخول منه، ولا تشارك الرابط.");
       }
     } catch (error) {
       setStatus("error");
-      setMessage(error.message || "تعذر تسجيل الدخول. راجع البيانات وحاول مرة أخرى.");
+      setMessage(authErrorMessage(error));
     }
   };
 
@@ -1097,11 +1102,13 @@ function AccessModal({ onClose, onEnter, connected, onAuthenticate }) {
     <Modal title="دخول المنصة" onClose={onClose} size="compact">
       {connected ? <form className="platform-login" onSubmit={authenticate}>
         <div className="connection-chip connected"><ShieldCheck size={18} weight="fill" /><span><strong>دخول آمن</strong><small>تحدد صلاحيتك تلقائياً بعد التحقق من الحساب</small></span></div>
-        <div className="login-methods"><button type="button" className={method === "password" ? "active" : ""} onClick={() => setMethod("password")}>كلمة المرور</button><button type="button" className={method === "magic" ? "active" : ""} onClick={() => setMethod("magic")}>رابط على البريد</button></div>
+        <div className="login-methods"><button disabled={status === "loading"} type="button" className={method === "password" ? "active" : ""} onClick={() => changeMethod("password")}>كلمة المرور</button><button disabled={status === "loading"} type="button" className={method === "magic" ? "active" : ""} onClick={() => changeMethod("magic")}>رابط على البريد</button></div>
+        {method === "reset" && <p>استعادة كلمة المرور: أدخل بريد الحساب لتصلك رسالة التعيين.</p>}
         <label>البريد الإلكتروني<input type="email" dir="ltr" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
         {method === "password" && <label>كلمة المرور<input type="password" dir="ltr" required value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" /></label>}
+        {method === "password" && <button type="button" className="button ghost" disabled={status === "loading"} onClick={() => changeMethod("reset")}>نسيت كلمة المرور؟</button>}
         {message && <div className={`login-message ${status}`} role="status">{message}</div>}
-        <button className="button primary full" type="submit" disabled={status === "loading" || status === "sent"}>{status === "loading" ? <><CircleNotch size={18} className="spin" /> جارٍ التحقق</> : method === "magic" ? "إرسال رابط الدخول" : "دخول"}</button>
+        <button className="button primary full" type="submit" disabled={status === "loading" || status === "sent"}>{status === "loading" ? <><CircleNotch size={18} className="spin" /> جارٍ التحقق</> : method === "reset" ? "إرسال رابط الاستعادة" : method === "magic" ? "إرسال رابط الدخول" : "دخول"}</button>
         <p className="login-privacy"><LockKey size={16} /> لا يختار المستخدم دوره. الصلاحية تأتي من حسابه في قاعدة البيانات.</p>
       </form> : <div className="access-panel">
         <div className="connection-chip local"><ShieldCheck size={18} /><span><strong>وضع التجربة المحلية</strong><small>اختر دوراً لمعاينة الرحلة قبل ربط قاعدة البيانات</small></span></div>
@@ -1111,6 +1118,37 @@ function AccessModal({ onClose, onEnter, connected, onAuthenticate }) {
       </div>}
     </Modal>
   );
+}
+
+function PasswordSetupModal({ user, onComplete, onLogout }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [savedUser, setSavedUser] = useState(null);
+  const save = async (event) => {
+    event.preventDefault();
+    const validation = passwordValidation(password, confirmation);
+    if (validation) { setMessage(validation); return; }
+    setBusy(true); setMessage("");
+    try {
+      const updated = await setMyPassword(password, confirmation);
+      setPassword(""); setConfirmation(""); setSavedUser(updated);
+    } catch (error) { setMessage(authErrorMessage(error)); }
+    finally { setBusy(false); }
+  };
+  return <Modal title="تعيين كلمة المرور" size="compact" onClose={() => { if (!busy) savedUser ? onComplete(savedUser) : onLogout(); }}>
+    {savedUser ? <div className="platform-login"><p role="status">تم حفظ كلمة المرور. يمكنك الدخول ببريدك وكلمة المرور من أي جهاز.</p><button className="button primary full" onClick={() => onComplete(savedUser)}>الدخول إلى مساحتي</button></div> : <form className="platform-login" onSubmit={save}>
+      <p>اختر كلمة مرور خاصة بك. صلاحيات حسابك محددة مسبقًا ولا تتغير بهذه الخطوة.</p>
+      <label>البريد الإلكتروني<input type="email" dir="ltr" value={user.email || ""} readOnly autoComplete="username" /></label>
+      <label>كلمة المرور الجديدة<input type="password" dir="ltr" required minLength={12} maxLength={128} autoComplete="new-password" value={password} disabled={busy} onChange={(event) => setPassword(event.target.value)} /></label>
+      <small>12 حرفًا على الأقل. يمكنك استخدام عبارة طويلة يسهل تذكرها.</small>
+      <label>تأكيد كلمة المرور<input type="password" dir="ltr" required autoComplete="new-password" value={confirmation} disabled={busy} onChange={(event) => setConfirmation(event.target.value)} /></label>
+      {message && <p role="alert" className="form-error">{message}</p>}
+      <button type="submit" className="button primary full" disabled={busy}>{busy ? "جارٍ الحفظ" : "حفظ كلمة المرور"}</button>
+      <button type="button" className="button ghost" disabled={busy} onClick={onLogout}>خروج</button>
+    </form>}
+  </Modal>;
 }
 
 function SiteHeader({ theme, onTheme, onAccess, onRequest, acceptingRequests }) {
@@ -2713,6 +2751,7 @@ function Workspace({ theme, onTheme, onSite, initialRole, siteContent, onPublish
 export default function App() {
   const [view, setView] = useState("site");
   const [platformAccess, setPlatformAccess] = useState(null);
+  const [passwordSetup, setPasswordSetup] = useState(authLanding.password);
   const initialTheme = useMemo(() => {
     const saved = window.localStorage.getItem("u89-theme");
     if (saved) return saved;
@@ -2798,9 +2837,10 @@ export default function App() {
   useEffect(() => {
     if (!platformConfig.configured) return undefined;
     let active = true;
-    const applyAccess = async (session) => {
+    const applyAccess = async (session, event) => {
+      if (event === "PASSWORD_RECOVERY" && active) setPasswordSetup(true);
       if (!session) {
-        if (active) { setPlatformAccess(null); setView("site"); if (window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname)) setAccessOpen(true); }
+        if (active) { setPlatformAccess(null); setPasswordSetup(false); setView("site"); if (window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname) || authLanding.error || authLanding.password) setAccessOpen(true); }
         return;
       }
       try {
@@ -2812,6 +2852,7 @@ export default function App() {
           if (privateSettings && active) setSiteContent((current) => ({ ...current, ...privateSettings }));
         }
         setPlatformAccess(access);
+        if (needsFirstPassword(access.user)) setPasswordSetup(true);
         setWorkspaceRole(roleForWorkspace(access.role));
         setAccessOpen(false);
         setView("workspace");
@@ -2822,6 +2863,7 @@ export default function App() {
     getCurrentAccess().then((access) => {
       if (!active || !access) return;
       setPlatformAccess(access);
+      if (needsFirstPassword(access.user)) setPasswordSetup(true);
       setWorkspaceRole(roleForWorkspace(access.role));
       if (window.location.hash === "#studio" || /^\/(workspace|portal)(\/|$)/.test(window.location.pathname)) {
         setAccessOpen(false);
@@ -2883,6 +2925,10 @@ export default function App() {
     setView("workspace");
   };
   const authenticate = async ({ email, password, method }) => {
+    if (method === "reset") {
+      await sendPasswordReset(email);
+      return { reset: true };
+    }
     if (method === "magic") {
       await sendMagicLink(email);
       return { magic: true };
@@ -2939,7 +2985,8 @@ export default function App() {
         <Workspace theme={theme} onTheme={toggleTheme} onSite={() => setView("site")} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
       {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} />}
-      {accessOpen && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
+      {accessOpen && !(passwordSetup && platformAccess) && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
+      {passwordSetup && platformAccess && <PasswordSetupModal user={platformAccess.user} onLogout={logout} onComplete={(user) => { setPlatformAccess((current) => current ? { ...current, user } : current); setPasswordSetup(false); setAccessOpen(false); window.history.replaceState(null, "", `${window.location.pathname}#studio`); setView("workspace"); }} />}
     </>
   );
 }
