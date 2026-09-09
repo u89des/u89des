@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
-import { portfolioProjects } from "../src/portfolio-data.js";
+import { portfolioCatalog, originalLogos } from "../src/showcase-data.js";
 
 const privateBucket = "portfolio-drafts";
 const publicBucket = "portfolio-published";
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       }
       const { data: site } = await db.from("public_site_content").select("content").eq("workspace_id", workspace.id).maybeSingle();
       const collaborators = owner ? check(await db.from("memberships").select("user_id,display_name,notification_preferences").eq("workspace_id", workspace.id).eq("role", "collaborator").eq("status", "active")) : [];
-      return res.json({ drafts, projects: site?.content?.portfolioProjects || portfolioProjects, visibility: site?.content?.workVisibility || [], collaborators: collaborators.map((person) => ({ user_id: person.user_id, display_name: person.display_name, enabled: person.notification_preferences?.portfolioEditor === true })), owner });
+      return res.json({ drafts, projects: portfolioCatalog(site?.content), visibility: site?.content?.workVisibility || [], collaborators: collaborators.map((person) => ({ user_id: person.user_id, display_name: person.display_name, enabled: person.notification_preferences?.portfolioEditor === true })), owner });
     }
     const body = req.body || {};
     if (body.action === "visibility") {
@@ -54,10 +54,10 @@ export default async function handler(req, res) {
       if (typeof body.visible !== "boolean") fail("بيانات غير صالحة");
       const { data: site, error } = await db.from("public_site_content").select("content,updated_at").eq("workspace_id", workspace.id).maybeSingle();
       if (error) fail(error.message);
-      const projects = site?.content?.portfolioProjects || portfolioProjects;
+      const projects = portfolioCatalog(site?.content);
       if (!projects.some((project) => project.id === body.projectId)) fail("المشروع غير موجود");
       const workVisibility = projects.map((project, index) => project.id === body.projectId ? body.visible : site?.content?.workVisibility?.[index] !== false);
-      const content = { ...site?.content, portfolioProjects: projects, workVisibility };
+      const content = { ...site?.content, portfolioProjects: projects, portfolioCollectionsInitialized: true, workVisibility };
       if (site) check(await db.from("public_site_content").update({ content }).eq("workspace_id", workspace.id).eq("updated_at", site.updated_at).select("workspace_id").single());
       else check(await db.from("public_site_content").insert({ workspace_id: workspace.id, content, published: true, published_at: new Date().toISOString() }));
       return res.json({ saved: true });
@@ -90,6 +90,7 @@ export default async function handler(req, res) {
       const cleanText = (value, max = 6000) => String(value || "").trim().slice(0, max);
       const validImage = (value) => {
         const path = cleanText(value, 2000);
+        if (originalLogos.some((item) => item.cover === path)) return path;
         if (!path || path.startsWith(`/portfolio/`) && !path.includes("..")) return path;
         if (path.startsWith(`draft:${workspace.id}/${draft.actor_user_id}/${draft.id}/`) && !path.includes("..")) return path;
         const prefix = `${process.env.SUPABASE_URL}/storage/v1/object/public/${publicBucket}/${workspace.id}/`;
@@ -99,6 +100,8 @@ export default async function handler(req, res) {
       const color = (value, fallback) => /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
       const project = { id: /^[a-z0-9-]{1,100}$/i.test(source.id) ? source.id : draft.metadata.project.id, name: cleanText(source.name, 150), nameEn: cleanText(source.nameEn, 150), category: cleanText(source.category, 150), statement: cleanText(source.statement), story: cleanText(source.story), cover: validImage(source.cover), scope: (Array.isArray(source.scope) ? source.scope : []).slice(0, 40).map((value) => cleanText(value, 300)), consulting: (Array.isArray(source.consulting) ? source.consulting : []).slice(0, 40).map((value) => cleanText(value, 300)), palette: { surface: color(source.palette?.surface, "#edf0e8"), ink: color(source.palette?.ink, "#151814"), accent: color(source.palette?.accent, "#b7d43b") }, gallery: (Array.isArray(source.gallery) ? source.gallery : []).slice(0, 20).map((image) => ({ src: validImage(image.src), alt: cleanText(image.alt, 300), layout: ["wide", "standard"].includes(image.layout) ? image.layout : "standard" })) };
       if (!project.name) fail("اسم المشروع مطلوب");
+      if (source.kind && !["brand", "logo", "campaign"].includes(source.kind)) fail("نوع العمل غير صالح");
+      project.kind = source.kind || "brand";
       check(await db.from("activity_events").update({ metadata: { ...draft.metadata, project, status: body.submit ? "submitted" : "draft", savedAt: new Date().toISOString() } }).eq("id", draft.id));
       return res.json({ saved: true });
     }
@@ -119,10 +122,10 @@ export default async function handler(req, res) {
       for (const image of project.gallery || []) image.src = await publishImage(image.src);
       const { data: site, error: siteError } = await db.from("public_site_content").select("content,updated_at").eq("workspace_id", workspace.id).maybeSingle();
       if (siteError) fail(siteError.message);
-      const projects = [...(site?.content?.portfolioProjects || portfolioProjects)];
+      const projects = [...portfolioCatalog(site?.content)];
       const index = projects.findIndex((item) => item.id === project.id);
       if (index < 0) projects.push(project); else projects[index] = project;
-      const content = { ...site?.content, portfolioProjects: projects };
+      const content = { ...site?.content, portfolioProjects: projects, portfolioCollectionsInitialized: true };
       if (site) check(await db.from("public_site_content").update({ content, published: true, published_at: new Date().toISOString() }).eq("workspace_id", workspace.id).eq("updated_at", site.updated_at).select("workspace_id").single());
       else check(await db.from("public_site_content").insert({ workspace_id: workspace.id, content, published: true, published_at: new Date().toISOString() }));
       check(await db.from("activity_events").update({ metadata: { ...draft.metadata, status: "published", publishedAt: new Date().toISOString(), publishedBy: auth.user.id } }).eq("id", draft.id));

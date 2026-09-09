@@ -65,7 +65,7 @@ export async function publishSiteContent(workspaceId, content) {
     "heroTitle", "heroBody", "heroCta", "servicesTitle", "workTitle", "finalTitle",
     "email", "phone", "domain", "seoTitle", "seoDescription", "indexable", "catalogVersion",
     "acceptingRequests", "maintenance", "sectionVisibility", "serviceVisibility",
-    "workVisibility", "portfolioProjects", "services", "requestQuestions",
+    "workVisibility", "portfolioProjects", "portfolioCollectionsInitialized", "services", "requestQuestions",
   ];
   const publicContent = Object.fromEntries(
     publicKeys.filter((key) => Object.hasOwn(content, key)).map((key) => [key, content[key]]),
@@ -75,6 +75,7 @@ export async function publishSiteContent(workspaceId, content) {
   const { data: latestSite, error: latestError } = await supabase.from("public_site_content").select("content").eq("workspace_id", workspaceId).maybeSingle();
   throwIfError(latestError);
   if (latestSite?.content?.portfolioProjects) publicContent.portfolioProjects = latestSite.content.portfolioProjects;
+  if (latestSite?.content?.portfolioCollectionsInitialized === true) publicContent.portfolioCollectionsInitialized = true;
   if (latestSite?.content?.workVisibility) publicContent.workVisibility = latestSite.content.workVisibility;
   const { data, error } = await supabase
     .from("public_site_content")

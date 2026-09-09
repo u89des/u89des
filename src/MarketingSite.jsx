@@ -258,7 +258,7 @@ export default function MarketingSite({ theme, onTheme, onRequest, content, afte
   const projects = useMemo(() => {
     const source = Array.isArray(content.portfolioProjects) && content.portfolioProjects.length
       ? content.portfolioProjects : defaultPortfolioProjects;
-    return shuffleProjects(source.filter((_, index) => content.workVisibility?.[index] !== false), deckSeed);
+    return shuffleProjects(source.filter((item, index) => (!item.kind || item.kind === "brand") && content.workVisibility?.[index] !== false), deckSeed);
   }, [content.portfolioProjects, content.workVisibility, deckSeed]);
   const services = useMemo(() => (content.services || []).filter((service) => service.active), [content.services]);
   const servicePaths = useMemo(() => servicePathDefinitions.map((path) => ({

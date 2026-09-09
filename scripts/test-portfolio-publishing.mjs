@@ -65,7 +65,8 @@ assert.equal((await call({ action: "publish", id: "draft-1" })).body.published, 
 const published = siteWrites.at(-1);
 assert.deepEqual(published.content.hero, originalContent.hero);
 assert.deepEqual(published.content.workVisibility, [false, true]);
-assert.equal(published.content.portfolioProjects.length, 2);
+assert.equal(published.content.portfolioProjects.length, 49);
+assert.equal(published.content.portfolioCollectionsInitialized, true);
 assert.equal(published.content.portfolioProjects[0].name, "Updated name");
 assert.deepEqual(published.content.portfolioProjects[1], originalContent.portfolioProjects[1]);
 assert.equal(eventWrites.at(-1).metadata.status, "published");

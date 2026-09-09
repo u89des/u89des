@@ -36,6 +36,12 @@ assert.equal(writes, 0);
 const saved = await call({ action: "save", id: "draft-1", project: { name: "Test project", cover: "/portfolio/mamola-logo.webp", scope: ["تصميم الهوية"] }, submit: true });
 assert.equal(saved.body.saved, true);
 assert.equal(writes, 1);
+for (const kind of ["logo", "campaign"]) {
+  assert.equal((await call({ action: "save", id: "draft-1", project: { name: "Collection item", kind, cover: "/logos-original/Artboard 1-2.svg" }, submit: true })).body.saved, true);
+  assert.equal((await call({ action: "publish", id: "draft-1" })).code, 403);
+}
+assert.equal((await call({ action: "save", id: "draft-1", project: { name: "Bad type", kind: "admin" } })).code, 400);
+assert.equal((await call({ action: "save", id: "draft-1", project: { name: "Bad source", kind: "logo", cover: "/logos-original/unknown.svg" } })).code, 400);
 role = "client";
 assert.equal((await call({ action: "create" })).code, 403);
 console.log("Portfolio role boundaries, owner-only publishing, draft isolation, and image validation passed.");

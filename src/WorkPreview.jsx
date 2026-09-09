@@ -1,19 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import MarketingSite from "./MarketingSite";
 import "./work-preview.css";
-
-const logoFiles = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 22,
-  23, 24, 25, 26, 27, 28, 29, 30, 36, 37, 38, 41, 42, 43, 46, 49, 62, 63,
-  73, 80, 83, 85, 99,
-].map((number) => `/logos-original/Artboard ${number}-2.svg`);
-
-const campaignFrames = [
-  { src: "/portfolio/bukhary-posters.webp", alt: "ملصقات بخاري أختر" },
-  { src: "/portfolio/spices-billboard.webp", alt: "حملة قصر التوابل" },
-  { src: "/portfolio/tashkeela-van.webp", alt: "حملة ششاي على المركبة" },
-  { src: "/portfolio/bukhary-billboard.webp", alt: "لوحة بخاري أختر الإعلانية" },
-];
+import { visiblePortfolio } from "./showcase-data";
 
 function shuffle(items) {
   const result = [...items];
@@ -24,14 +12,14 @@ function shuffle(items) {
   return result;
 }
 
-function LogoArchive() {
-  const logos = useMemo(() => shuffle(logoFiles), []);
+function LogoArchive({ projects }) {
+  const logos = useMemo(() => shuffle([...new Set(projects.map((item) => item.cover).filter(Boolean))]), [projects]);
   const [visibleLogos, setVisibleLogos] = useState(() => logos.slice(0, 16));
   const logoCursor = useRef(16);
   const lastChangedCell = useRef(-1);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    if (logos.length <= 16 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
     logos.forEach((src) => {
       const image = new Image();
       image.src = src;
@@ -76,7 +64,8 @@ function LogoArchive() {
   );
 }
 
-function CampaignPreview() {
+function CampaignPreview({ projects }) {
+  const frames = projects.flatMap((item) => [{ src: item.cover, alt: item.name }, ...(item.gallery || [])]).filter((item) => item.src);
   return (
     <section className="campaign-preview" id="campaigns" aria-labelledby="campaigns-title">
       <div className="campaign-copy">
@@ -84,8 +73,8 @@ function CampaignPreview() {
         <p>مشاهد متصلة توضح الفكرة وإيقاعها عبر القنوات.</p>
       </div>
       <div className="campaign-track">
-        {campaignFrames.map((frame, index) => (
-          <figure key={frame.src} className={`campaign-frame campaign-frame-${index + 1}`}>
+        {frames.map((frame, index) => (
+          <figure key={`${frame.src}-${index}`} className={`campaign-frame campaign-frame-${index % 4 + 1}`}>
             <img src={frame.src} alt={frame.alt} loading="lazy" />
           </figure>
         ))}
@@ -95,6 +84,8 @@ function CampaignPreview() {
 }
 
 export default function WorkPreview({ theme, onTheme, onRequest, content }) {
+  const logos = useMemo(() => visiblePortfolio(content, "logo"), [content]);
+  const campaigns = useMemo(() => visiblePortfolio(content, "campaign"), [content]);
   return (
     <MarketingSite
       theme={theme}
@@ -103,8 +94,8 @@ export default function WorkPreview({ theme, onTheme, onRequest, content }) {
       content={content}
       afterWork={(
         <div className="work-preview-additions">
-          <LogoArchive />
-          <CampaignPreview />
+          {logos.length > 0 && <LogoArchive key={JSON.stringify(logos.map((item) => item.cover))} projects={logos} />}
+          {campaigns.length > 0 && <CampaignPreview projects={campaigns} />}
         </div>
       )}
     />
