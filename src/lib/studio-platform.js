@@ -450,9 +450,13 @@ export const workflow = Object.freeze({
 export async function uploadProjectFile({ workspaceId, projectId, file, category = "general", invoiceId = null, workOrderId = null, messageId = null, onProgress = () => {} }) {
   assertConnected();
   onProgress("جارٍ التحقق من جلسة الدخول...");
-  const { data: authData, error: authError } = await supabase.auth.getUser();
+  // This ID is metadata only. Storage and table RLS independently validate the
+  // signed JWT and require uploaded_by = auth.uid(); the browser is not authority.
+  // Avoid a redundant /auth/user round-trip before every file upload.
+  const { data: authData, error: authError } = await supabase.auth.getSession();
   throwIfError(authError);
-  if (!authData.user) throw new Error("يلزم تسجيل الدخول قبل رفع الملفات.");
+  const uploadUser = authData.session?.user;
+  if (!uploadUser) throw new Error("يلزم تسجيل الدخول قبل رفع الملفات.");
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
   const fileId = crypto.randomUUID();
   const path = `${workspaceId}/${projectId}/${category}/${fileId}-${safeName}`;
@@ -474,7 +478,7 @@ export async function uploadProjectFile({ workspaceId, projectId, file, category
     storage_path: path,
     mime_type: file.type || null,
     size_bytes: file.size,
-    uploaded_by: authData.user.id,
+    uploaded_by: uploadUser.id,
   });
   return record;
 }
