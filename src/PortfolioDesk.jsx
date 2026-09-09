@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "./lib/studio-platform";
+import "./portfolio-desk.css";
 
 export default function PortfolioDesk({ access }) {
   const [data, setData] = useState(null);
@@ -51,6 +52,7 @@ export default function PortfolioDesk({ access }) {
   const imageUrl = (src) => src?.startsWith("draft:") ? previews[src] : src;
   return <section className="panel page-stack"><div className="panel-heading"><div><h2>معرض الأعمال: الإعداد والمراجعة</h2><p>ارفع الصور من جهازك. الحفظ والإرسال للمراجعة لا ينشران العمل للزوار.</p></div><button className="button primary" disabled={busy || !data} onClick={create}>إضافة مسودة عمل</button></div>
     {message && <p role="status">{message}</p>}
+    {(!data || busy) && !message && <p role="status">{busy ? "جارٍ حفظ التغييرات أو رفع الصور، انتظر اكتمال العملية." : "جارٍ تحميل الأعمال والمسودات..."}</p>}
     <label>عرض النوع<select value={kindFilter} onChange={(event) => setKindFilter(event.target.value)}><option value="all">كل الأعمال</option>{Object.entries(kinds).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
     {data && <details><summary>اختيار عمل منشور لتعديله</summary><div className="portfolio-gallery-editor">{data.projects.filter((item) => kindFilter === "all" || (item.kind || "brand") === kindFilter).map((item) => <article key={item.id}><img src={item.cover} alt={item.name} style={{ width: 120, height: 90, objectFit: "contain" }} /><p>{item.name} · {kinds[item.kind || "brand"]}</p><button className="button ghost small" disabled={busy} onClick={() => { if (project && !window.confirm("فتح مسودة لهذا العمل؟ احفظ تعديلاتك الحالية أولاً.")) return; run(async () => { const created = await request({ action: "create" }); await request({ action: "save", id: created.id, project: structuredClone(item) }); const result = await load(); select(result.drafts.find((draft) => draft.id === created.id)); }); }}>تعديل في مسودة</button></article>)}</div></details>}
     {data?.owner && <details><summary>ظهور الأعمال المنشورة</summary>{data.projects.map((item, index) => <label className="consent-field" key={item.id}><input type="checkbox" checked={data.visibility?.[index] !== false} disabled={busy} onChange={(event) => { const visible = event.target.checked; if (!window.confirm(`${visible ? "إظهار" : "إخفاء"} «${item.name}» في الموقع؟`)) return; run(async () => { await request({ action: "visibility", projectId: item.id, visible }); await load(); setMessage("تم تحديث ظهور العمل في الموقع"); }); }} />{item.name}</label>)}</details>}
