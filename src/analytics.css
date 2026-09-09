@@ -1,7 +1,6 @@
 .visit-privacy {position:fixed;inset-inline-end:16px;bottom:16px;z-index:80;max-width:min(420px,calc(100vw - 32px));}
 .visit-consent {padding:20px;background:var(--surface,#f4f5ef);color:var(--text,#20221d);border:1px solid #818477;border-radius:16px;box-shadow:0 8px 32px #0002;}
 .visit-consent p {font-size:14px;line-height:1.8;margin-block:10px;}
-.visit-consent summary {font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
 .visit-consent {max-height:calc(100dvh - 32px);overflow-y:auto;}
 .visit-consent>div {display:flex;gap:12px;justify-content:flex-end;margin-block:12px;}
 .visit-privacy-link {font:inherit;font-size:12px;background:var(--surface,#f4f5ef);color:var(--text,#20221d);padding:6px 12px;border:1px solid #818477;border-radius:8px;cursor:pointer;}
