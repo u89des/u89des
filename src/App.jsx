@@ -26,6 +26,7 @@ import {
 import WorkPreview from "./WorkPreview";
 import PortfolioDesk from "./PortfolioDesk";
 import AnalyticsDesk from "./AnalyticsDesk";
+import { homeSections, sectionIsVisible } from "./section-visibility";
 import VisitConsent from "./VisitConsent";
 import { recordVisitAction } from "./lib/visit-tracker";
 import { authErrorMessage, needsFirstPassword, passwordValidation } from "./lib/auth-flow.js";
@@ -696,6 +697,9 @@ const defaultSiteContent = {
     services: true,
     work: true,
     about: true,
+    logos: true,
+    campaigns: false,
+    typography: false,
   },
 };
 
@@ -2347,8 +2351,8 @@ function SiteAdminView({ content, onPublish, onPreview, onToast, access }) {
               <label className="cms-field">عنوان الخدمات<input value={draft.servicesTitle} onChange={(event) => update("servicesTitle", event.target.value)} /></label>
               <label className="cms-field">عنوان الأعمال<input value={draft.workTitle} onChange={(event) => update("workTitle", event.target.value)} /></label>
             </div>
-            <div className="cms-section"><h3>إظهار أقسام الصفحة</h3><div className="cms-toggle-grid">
-              {[["services", "الخدمات"], ["work", "الأعمال المختارة"], ["about", "نبذة شخصية"]].map(([id, label]) => <label className="cms-toggle" key={id}><span><strong>{label}</strong><small>{draft.sectionVisibility[id] ? "ظاهر في الموقع" : "مخفي مؤقتاً"}</small></span><input type="checkbox" checked={draft.sectionVisibility[id]} onChange={(event) => updateSection(id, event.target.checked)} /></label>)}
+            <div className="cms-section"><h3>إظهار أقسام الصفحة</h3><p>الإخفاء لا يحذف الأعمال أو الصور. فعّل القسم ثم اضغط «نشر التغييرات» لإظهاره للزوار. أقسام المعرض الفارغة لا تظهر حتى تضيف أعمالاً وتنشرها من تبويب الأعمال. إخفاء بطاقات العلامات يبقي مقدمة الموقع.</p>{!sectionIsVisible(draft, "services") && <p role="status">تنبيه: إخفاء الخدمات يخفي زر التواصل الموجود داخلها أيضاً. رقم الجوال يبقى في الفوتر.</p>}<div className="cms-toggle-grid">
+              {homeSections.map(({id, label}) => <label className="cms-toggle" key={id}><span><strong>{label}</strong><small>{sectionIsVisible(draft, id) ? "مفعّل للعرض بعد النشر" : "مخفي مؤقتاً"}</small></span><input type="checkbox" checked={sectionIsVisible(draft, id)} onChange={(event) => updateSection(id, event.target.checked)} /></label>)}
             </div></div>
           </>}
 

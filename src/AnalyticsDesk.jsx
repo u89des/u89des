@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import './analytics.css';
-const labels={work:'بداية الموقع والعلامات',logos:'شبكة الشعارات',campaigns:'الحملات',services:'الخدمات',about:'النبذة',footer:'نهاية الصفحة',mobile:'جوال',tablet:'جهاز لوحي',desktop:'كمبيوتر',direct:'مباشر أو مصدر غير متاح',unknown:'غير معروف',Other:'أخرى'};
+const labels={work:'بداية الموقع والعلامات',logos:'شبكة الشعارات',campaigns:'الحملات',typography:'الخطوط الطباعية',services:'الخدمات',about:'النبذة',footer:'نهاية الصفحة',mobile:'جوال',tablet:'جهاز لوحي',desktop:'كمبيوتر',direct:'مباشر أو مصدر غير متاح',unknown:'غير معروف',Other:'أخرى'};
 const n=value=>Number(value||0).toLocaleString('ar-SA');
 const countryName=code=>{try{return code==='unknown'?'غير معروف':new Intl.DisplayNames(['ar'],{type:'region'}).of(code);}catch{return code;}};
 function Breakdown({title,items=[],countries=false}) {return <section className="panel analytics-breakdown"><h2>{title}</h2>{items.length?<dl>{items.map(item=><div key={item.name}><dt>{countries?countryName(item.name):labels[item.name]||item.name}</dt><dd>{n(item.count)}</dd></div>)}</dl>:<p>لا توجد بيانات بعد.</p>}</section>;}

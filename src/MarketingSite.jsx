@@ -277,9 +277,9 @@ export default function MarketingSite({ theme, onTheme, onRequest, content, afte
         <header className="exhibit-header">
           <a className="exhibit-brand" href="#top" aria-label="العودة إلى بداية الموقع"><img src="/u89-logo.svg" alt="عبد الوهاب السويد" /></a>
           <nav className={menuOpen ? "is-open" : ""} id="exhibit-navigation" aria-label="التنقل الرئيسي">
-            <a href="#work" onClick={closeMenu}>الأعمال</a>
-            <a href="#services" onClick={closeMenu}>الخدمات</a>
-            <a href="#about" onClick={closeMenu}>عني</a>
+            {visible.work !== false && <a href="#work" onClick={closeMenu}>الأعمال</a>}
+            {visible.services !== false && <a href="#services" onClick={closeMenu}>الخدمات</a>}
+            {visible.about !== false && <a href="#about" onClick={closeMenu}>عني</a>}
           </nav>
           <div className="exhibit-header-actions">
             <button className="exhibit-theme" aria-label={theme === "dark" ? "استخدام الوضع الفاتح" : "استخدام الوضع الداكن"} onClick={onTheme}>{theme === "dark" ? <Sun size={21} /> : <Moon size={21} />}</button>

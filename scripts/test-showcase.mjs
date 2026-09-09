@@ -15,3 +15,10 @@ assert.deepEqual(visiblePortfolio({ portfolioCollectionsInitialized: true, portf
 assert(originalLogos.every((item) => item.cover.endsWith('.svg')));
 assert(originalCampaigns.every((item) => item.kind === 'campaign'));
 console.log('Showcase migration, legacy visibility, empty collections and section isolation passed.');
+import { sectionIsVisible, homeSections } from '../src/section-visibility.js';
+for (const section of homeSections) {
+  if (sectionIsVisible({sectionVisibility:{[section.id]:false}},section.id)) throw Error('Hidden section visible');
+  if (!sectionIsVisible({sectionVisibility:{[section.id]:true}},section.id)) throw Error('Enabled section hidden');
+}
+if (sectionIsVisible({},'campaigns') || sectionIsVisible({},'typography')) throw Error('Unprepared sections should default to hidden');
+if (!sectionIsVisible({},'logos')) throw Error('Existing logo grid should remain visible');

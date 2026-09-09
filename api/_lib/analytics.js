@@ -1,4 +1,4 @@
-export const sections = ['work','logos','campaigns','services','about','footer'];
+export const sections = ['work','logos','campaigns','typography','services','about','footer'];
 const flags = ['contact_open','service_open','contact_sent','project_sent'];
 export function normalizeVisit(body, headers = {}) {
   if (!body || body.consent !== true || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.id || '')) throw new Error('Invalid visit');

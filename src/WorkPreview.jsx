@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MarketingSite from "./MarketingSite";
 import "./work-preview.css";
 import { visiblePortfolio } from "./showcase-data";
+import { sectionIsVisible } from "./section-visibility";
 
 function shuffle(items) {
   const result = [...items];
@@ -64,13 +65,13 @@ function LogoArchive({ projects }) {
   );
 }
 
-function CampaignPreview({ projects }) {
+function CampaignPreview({ projects, typography = false }) {
   const frames = projects.flatMap((item) => [{ src: item.cover, alt: item.name }, ...(item.gallery || [])]).filter((item) => item.src);
   return (
-    <section className="campaign-preview" id="campaigns" aria-labelledby="campaigns-title">
+    <section className="campaign-preview" id={typography ? "typography" : "campaigns"} aria-labelledby={typography ? "typography-title" : "campaigns-title"}>
       <div className="campaign-copy">
-        <h2 id="campaigns-title">الحملة كتتابع بصري.</h2>
-        <p>مشاهد متصلة توضح الفكرة وإيقاعها عبر القنوات.</p>
+        <h2 id={typography ? "typography-title" : "campaigns-title"}>{typography ? "الخطوط الطباعية" : "الحملة كتتابع بصري."}</h2>
+        <p>{typography ? "حروف صُممت لتمنح الكلمات شخصيتها." : "مشاهد متصلة توضح الفكرة وإيقاعها عبر القنوات."}</p>
       </div>
       <div className="campaign-track">
         {frames.map((frame, index) => (
@@ -86,6 +87,7 @@ function CampaignPreview({ projects }) {
 export default function WorkPreview({ theme, onTheme, onRequest, content }) {
   const logos = useMemo(() => visiblePortfolio(content, "logo"), [content]);
   const campaigns = useMemo(() => visiblePortfolio(content, "campaign"), [content]);
+  const typography = useMemo(() => visiblePortfolio(content, "typography"), [content]);
   return (
     <MarketingSite
       theme={theme}
@@ -94,8 +96,9 @@ export default function WorkPreview({ theme, onTheme, onRequest, content }) {
       content={content}
       afterWork={(
         <div className="work-preview-additions">
-          {logos.length > 0 && <LogoArchive key={JSON.stringify(logos.map((item) => item.cover))} projects={logos} />}
-          {campaigns.length > 0 && <CampaignPreview projects={campaigns} />}
+          {sectionIsVisible(content, "logos") && logos.length > 0 && <LogoArchive key={JSON.stringify(logos.map((item) => item.cover))} projects={logos} />}
+          {sectionIsVisible(content, "campaigns") && campaigns.length > 0 && <CampaignPreview projects={campaigns} />}
+          {sectionIsVisible(content, "typography") && typography.length > 0 && <CampaignPreview projects={typography} typography />}
         </div>
       )}
     />

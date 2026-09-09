@@ -100,7 +100,7 @@ export default async function handler(req, res) {
       const color = (value, fallback) => /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
       const project = { id: /^[a-z0-9-]{1,100}$/i.test(source.id) ? source.id : draft.metadata.project.id, name: cleanText(source.name, 150), nameEn: cleanText(source.nameEn, 150), category: cleanText(source.category, 150), statement: cleanText(source.statement), story: cleanText(source.story), cover: validImage(source.cover), scope: (Array.isArray(source.scope) ? source.scope : []).slice(0, 40).map((value) => cleanText(value, 300)), consulting: (Array.isArray(source.consulting) ? source.consulting : []).slice(0, 40).map((value) => cleanText(value, 300)), palette: { surface: color(source.palette?.surface, "#edf0e8"), ink: color(source.palette?.ink, "#151814"), accent: color(source.palette?.accent, "#b7d43b") }, gallery: (Array.isArray(source.gallery) ? source.gallery : []).slice(0, 20).map((image) => ({ src: validImage(image.src), alt: cleanText(image.alt, 300), layout: ["wide", "standard"].includes(image.layout) ? image.layout : "standard" })) };
       if (!project.name) fail("اسم المشروع مطلوب");
-      if (source.kind && !["brand", "logo", "campaign"].includes(source.kind)) fail("نوع العمل غير صالح");
+      if (source.kind && !["brand", "logo", "campaign", "typography"].includes(source.kind)) fail("نوع العمل غير صالح");
       project.kind = source.kind || "brand";
       check(await db.from("activity_events").update({ metadata: { ...draft.metadata, project, status: body.submit ? "submitted" : "draft", savedAt: new Date().toISOString() } }).eq("id", draft.id));
       return res.json({ saved: true });

@@ -32,7 +32,7 @@ export function startVisitTracking() {
       state.last_section=section;
     }
   },{rootMargin:'-20% 0px -45% 0px',threshold:0});
-  document.querySelectorAll('#work,#logos,#campaigns,#services,#about,footer').forEach(el=>observer.observe(el));
+  document.querySelectorAll('#work,#logos,#campaigns,#typography,#services,#about,footer').forEach(el=>observer.observe(el));
   currentTracker=name=>{state[name]=true;flush();};
   const onVisibility = () => { if (document.visibilityState === 'hidden') flush(); else {lastTick=performance.now();wasVisible=true;} };
   const timer=setInterval(()=>{if(document.visibilityState==='visible')flush();},15000);
