@@ -447,19 +447,21 @@ export const workflow = Object.freeze({
   markNotificationRead: (notificationId) => callWorkflow("mark_notification_read", { p_notification_id: notificationId }),
 });
 
-export async function uploadProjectFile({ workspaceId, projectId, file, category = "general", invoiceId = null, workOrderId = null, messageId = null }) {
+export async function uploadProjectFile({ workspaceId, projectId, file, category = "general", invoiceId = null, workOrderId = null, messageId = null, onProgress = () => {} }) {
   assertConnected();
+  onProgress("جارٍ التحقق من جلسة الدخول...");
   const { data: authData, error: authError } = await supabase.auth.getUser();
   throwIfError(authError);
   if (!authData.user) throw new Error("يلزم تسجيل الدخول قبل رفع الملفات.");
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
   const fileId = crypto.randomUUID();
   const path = `${workspaceId}/${projectId}/${category}/${fileId}-${safeName}`;
+  onProgress("جارٍ رفع الملف إلى التخزين الخاص...");
   const { error: uploadError } = await supabase.storage
     .from("project-files")
     .upload(path, file, { upsert: false, contentType: file.type || undefined });
   throwIfError(uploadError);
-
+  onProgress("اكتمل الرفع. جارٍ ربط الملف بطلب العمل...");
   const record = await insertRecord("project_files", {
     id: fileId,
     workspace_id: workspaceId,

@@ -490,6 +490,7 @@ function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }
   const [description, setDescription] = useState(order.description || "");
   const [recommendations, setRecommendations] = useState(order.owner_recommendations || "");
   const [privateNotes, setPrivateNotes] = useState(order.creative_notes || "");
+  const [uploadStatus, setUploadStatus] = useState("");
   const childOrders = (data.work_orders || []).filter((item) => item.parent_work_order_id === order.id);
   const parentOrder = order.parent_work_order_id ? (data.work_orders || []).find((item) => item.id === order.parent_work_order_id) : null;
   const [mode, setMode] = useState(childOrders.length ? "split" : order.execution_mode || "owner_led");
@@ -578,7 +579,11 @@ function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }
   const upload = async (file) => {
     if (!file) return;
     setBusy("upload");
-    try { await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file, category: "source" }); onToast("أُرفق الملف بهذا العمل"); await refresh(); } catch (error) { onToast(error.message); } finally { setBusy(""); }
+    try {
+      await uploadProjectFile({ workspaceId: access.workspaceId, projectId: order.project_id, workOrderId: order.id, file, category: "source", onProgress: setUploadStatus });
+      setUploadStatus("أُرفق الملف بهذا العمل وحُفظ في التخزين الخاص.");
+      await refresh();
+    } catch (error) { setUploadStatus(`تعذر رفع الملف: ${error.message}`); onToast(error.message); } finally { setBusy(""); }
   };
   const postMessage = async (event) => {
     event.preventDefault();
@@ -637,6 +642,7 @@ function SimpleWorkOrderRoom({ order, data, access, refresh, onToast, onSelect }
     {order.status === "owner_production" && mode === "owner_led" && <section className="owner-proof-station"><div><span>تنفيذك</span><h3>ارفع البروفة عندما تصبح جاهزة</h3><p>لا توجد خطوة إضافية قبل ذلك.</p></div><label>ملف البروفة<input type="file" onChange={(event) => setProofFile(event.target.files?.[0] || null)} /></label><label>ملاحظة<textarea rows="3" value={proofNote} onChange={(event) => setProofNote(event.target.value)} /></label><button className="button primary" disabled={busy === "proof" || !proofFile} onClick={submitProof}><FileArrowUp size={18} /> رفع للمراجعة</button></section>}
     {proof?.status === "internal_review" && <section className="work-order-proof-gate"><div><span>قرارك مطلوب</span><h3>{proof.title}</h3><p>{proof.note || "راجع الملف ثم اعتمده أو اطلب تعديلاً."}</p></div><WorkOrderFiles files={proofFiles} onOpen={openFile} /><label>ملاحظة القرار<textarea rows="3" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></label><div className="live-actions"><button className="button ghost" disabled={Boolean(busy)} onClick={() => review("changes_requested")}><X size={17} /> طلب تعديل</button><button className="button primary" disabled={Boolean(busy) || !proofFiles.length} onClick={() => review("approved", false)}><Check size={17} /> اعتماد وإنهاء</button>{order.requires_client_approval && <button className="button primary secondary-action" disabled={Boolean(busy) || !proofFiles.length} onClick={() => review("approved", true)}><PaperPlaneTilt size={17} /> اعتماد وإرسال للعميل</button>}</div></section>}
     <section className="work-order-room-columns"><div><div className="work-order-section-title"><div><h3>الملفات</h3><p>المراجع والملفات المرتبطة بهذا العمل.</p></div><label className="button ghost small upload-button">إرفاق ملف <FileArrowUp size={16} /><input type="file" onChange={(event) => { upload(event.target.files?.[0]); event.target.value = ""; }} /></label></div><WorkOrderFiles files={files} onOpen={openFile} /></div>{order.dispatched_at ? <div><div className="work-order-section-title"><div><h3>غرفة العمل</h3><p>نقاش مباشر خاص بهذا العمل.</p></div></div><WorkOrderMessages messages={messages} currentUserId={access.user.id} /><form className="work-order-composer" onSubmit={postMessage}><textarea rows="3" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="اكتب توجيهاً أو رداً" /><div><label className="text-link">إرفاق<input type="file" onChange={(event) => setMessageFile(event.target.files?.[0] || null)} /></label>{messageFile && <small>{messageFile.name}</small>}<button className="button primary small" type="submit" disabled={busy === "message" || (!message.trim() && !messageFile)}>إرسال <PaperPlaneTilt size={16} /></button></div></form></div> : <div className="creative-private-journal"><LockKey size={25} /><h3>لم يُرسل لمتعاون</h3><p>سيبقى خاصاً بعبد الوهاب حتى يضغط الإرسال بنفسه.</p></div>}</section>
+    {uploadStatus && <p role="status">{uploadStatus}</p>}
   </section>;
 }
 
