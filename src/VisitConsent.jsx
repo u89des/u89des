@@ -9,5 +9,11 @@ export default function VisitConsent({enabled}) {
   useEffect(()=>{if(enabled && choice==='yes' && !protectedBrowser)return startVisitTracking();},[enabled,choice,protectedBrowser]);
   if(!enabled) return null;
   const save=value=>{try{localStorage.setItem('u89-analytics-consent',value);}catch{} setChoice(value);setEditing(false);};
-  return <div className="visit-privacy">{(!choice&&!protectedBrowser)||editing ? <section className="visit-consent" aria-label="خصوصية إحصاءات الزيارة"><strong>هل تسمح بإحصاءات الزيارة؟</strong><p>نقيس الأقسام التي تشاهدها ونوع الجهاز ومصدر الدخول والدولة التقريبية لتحسين الموقع. دون اسم أو عنوان IP محفوظ، ودون تسجيل الشاشة أو محتوى رسالتك. نحتفظ بالإحصاءات 90 يوماً.</p>{protectedBrowser&&<p>إعداد عدم التتبع في متصفحك مفعّل؛ لن نجمع بيانات زيارتك.</p>}<div><button className="button ghost small" onClick={()=>save('no')}>لا أوافق</button><button className="button primary small" disabled={protectedBrowser} onClick={()=>save('yes')}>أوافق</button></div><small>يمكنك تغيير اختيارك لاحقاً من «خصوصية الزيارة».</small></section>:<button className="visit-privacy-link" onClick={()=>setEditing(true)}>خصوصية الزيارة</button>}</div>;
+  return <div className="visit-privacy">{(!choice&&!protectedBrowser)||editing ? <section className="visit-consent" aria-label="تفضيلات الخصوصية">
+    <strong>خصوصيتك تهمنا</strong>
+    <p>نستخدم تقنيات تحليل الزيارات لفهم استخدام الموقع وتحسين تجربتك. يمكنك قبولها أو المتابعة دونها.</p>
+    <details><summary>تفاصيل الخصوصية</summary><p>بعد موافقتك، نقيس الأقسام التي تشاهدها ونوع الجهاز ومصدر الدخول والدولة التقريبية. دون اسم أو عنوان IP محفوظ، ودون تسجيل الشاشة أو محتوى رسالتك. نحتفظ بالإحصاءات 90 يوماً، ويمكنك تغيير اختيارك في أي وقت من «إعدادات الخصوصية».</p></details>
+    {protectedBrowser&&<p>إعداد عدم التتبع في متصفحك مفعّل؛ لن نجمع بيانات زيارتك.</p>}
+    <div><button className="button ghost small" onClick={()=>save('no')}>رفض</button><button className="button primary small" disabled={protectedBrowser} onClick={()=>save('yes')}>قبول</button></div>
+  </section>:<button className="visit-privacy-link" onClick={()=>setEditing(true)}>إعدادات الخصوصية</button>}</div>;
 }
