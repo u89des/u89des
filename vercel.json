@@ -12,6 +12,7 @@
     { "source": "/portal/:path*", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/notifications/dispatch", "schedule": "* * * * *" }
+    { "path": "/api/notifications/dispatch", "schedule": "* * * * *" },
+    { "path": "/api/analytics-cleanup", "schedule": "0 0 * * *" }
   ]
 }

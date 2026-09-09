@@ -25,6 +25,9 @@ import {
 } from "./LiveOperations";
 import WorkPreview from "./WorkPreview";
 import PortfolioDesk from "./PortfolioDesk";
+import AnalyticsDesk from "./AnalyticsDesk";
+import VisitConsent from "./VisitConsent";
+import { recordVisitAction } from "./lib/visit-tracker";
 import { authErrorMessage, needsFirstPassword, passwordValidation } from "./lib/auth-flow.js";
 import { isStudioPath, normalizeStudioAction, readStudioLocation, studioHref } from "./lib/studio-route.js";
 import ControlCenter, { buildControlModel, groupMoney, CommandPalette, FocusSession } from "./ControlCenter";
@@ -201,6 +204,7 @@ const navItems = [
   { id: "access", label: "الحسابات والصلاحيات", icon: LockKey },
   { id: "studio-settings", label: "إعدادات العمل", icon: SlidersHorizontal },
   { id: "site-admin", label: "إدارة الموقع", icon: Globe },
+  { id: "analytics", label: "زيارات الموقع", icon: ChartLineUp },
   { id: "system", label: "الربط والإطلاق", icon: ShieldCheck },
 ];
 
@@ -972,6 +976,7 @@ function QuickContactModal({ onClose, onProject }) {
       const result = await response.json();
       if (!response.ok || !result.sent) throw new Error(result.error || "تعذر إرسال الرسالة");
       setStatus("sent");
+      recordVisitAction("contact_sent");
     } catch (err) { setError(err.message || "تعذر الإرسال. حاول مرة أخرى."); setStatus(""); }
   };
   return <Modal title="تواصل معنا" onClose={onClose}>{status === "sent" ? <div className="success-state"><CheckCircle size={46} /><h3>وصلت رسالتك</h3><p>شكراً لتواصلك. سنرد عليك عبر وسيلة التواصل التي كتبتها.</p><button className="button primary" onClick={onClose}>تم</button></div> : <form className="request-form" onSubmit={submit}>
@@ -2449,7 +2454,7 @@ function Sidebar({ section, setSection, onSite, onFocus, counts }) {
     <aside className="sidebar">
       <div className="sidebar-top"><Logo onClick={onSite} /><span className="workspace-label">استوديو عبد الوهاب</span></div>
       <nav aria-label="أقسام الإدارة">
-        {[{ label: "يومي والعمل", ids: ["overview", "contact-inbox", "requests", "projects", "work-orders", "briefs"] }, { label: "العلاقات والمال", ids: ["documents", "finance", "clients", "team"] }, { label: "الاستوديو", ids: ["access", "studio-settings", "site-admin", "system", "scenario"] }].map((group) => <div className="cc-nav-group" key={group.label}><small>{group.label}</small>{group.ids.map((id) => navItems.find((item) => item.id === id)).map((item) => {
+        {[{ label: "يومي والعمل", ids: ["overview", "contact-inbox", "requests", "projects", "work-orders", "briefs"] }, { label: "العلاقات والمال", ids: ["documents", "finance", "clients", "team"] }, { label: "الاستوديو", ids: ["access", "studio-settings", "site-admin", "analytics", "system", "scenario"] }].map((group) => <div className="cc-nav-group" key={group.label}><small>{group.label}</small>{group.ids.map((id) => navItems.find((item) => item.id === id)).map((item) => {
           const Icon = item.icon;
           return <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><Icon size={20} weight={section === item.id ? "fill" : "regular"} /><span>{item.label}</span>{counts?.[item.id] > 0 && <b>{counts[item.id]}</b>}</button>;
         })}</div>)}
@@ -2484,6 +2489,7 @@ function AppTopbar({ theme, onTheme, role, setRole, onCapture, onSearch, canPrev
 }
 
 function OwnerApp({ section, setSection, setRole, onProject, onCapture, onToast, siteContent, onPublishSite, onSite, scenario, onScenarioAdvance, onScenarioPatch, onScenarioReset, platformAccess, liveData, onRefreshLiveData, targetId }) {
+  if (section === "analytics") return <AnalyticsDesk access={platformAccess} />;
   if (liveData && !["studio-settings", "site-admin", "system"].includes(section)) return <LiveOwnerSection section={section} targetId={targetId} data={liveData} access={platformAccess} refresh={onRefreshLiveData} onToast={onToast} setSection={setSection} ownerName={siteContent.ownerNameAr} />;
   if (section === "scenario") return <ScenarioCenter scenario={scenario} onReset={onScenarioReset} setSection={setSection} setRole={setRole} />;
   if (section === "projects") return <ProjectsView onProject={onProject} scenario={scenario} onAdvance={onScenarioAdvance} onToast={onToast} />;
@@ -2836,6 +2842,7 @@ export default function App() {
   const [workspaceRole, setWorkspaceRole] = useState("owner");
   const [requestOpen, setRequestOpen] = useState(false);
   const [serviceRequestOpen, setServiceRequestOpen] = useState(false);
+  const [analyticsReady, setAnalyticsReady] = useState(!platformConfig.configured);
   const [accessOpen, setAccessOpen] = useState(() => readStudioLocation(window.location).studio);
   const roleForWorkspace = (role) => ["owner", "manager"].includes(role) ? "owner" : role;
   const toggleTheme = () => {
@@ -2918,7 +2925,7 @@ export default function App() {
           if (privateSettings && active) setSiteContent((current) => ({ ...current, ...privateSettings }));
         }).catch(() => {});
       }
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => { if (active) setAnalyticsReady(true); });
     const unsubscribe = subscribeToAuth(applyAccess);
     return () => {
       active = false;
@@ -3009,6 +3016,7 @@ export default function App() {
     setView("site");
   };
   const openRequest = () => {
+    recordVisitAction("contact_open");
     setRequestOpen(true);
   };
   const publishSite = async (nextContent) => {
@@ -3026,6 +3034,7 @@ export default function App() {
     const service = siteContent.services.find((item) => item.id === data.serviceId);
     const payload = { ...data, serviceName: service?.title || "خدمة إبداعية" };
     if (platformConfig.configured) await submitPublicServiceRequest(payload);
+    if (platformConfig.configured) recordVisitAction("project_sent");
     setScenario(scenarioFromRequest(payload, siteContent));
   };
 
@@ -3040,7 +3049,8 @@ export default function App() {
       ) : (
         <Workspace theme={theme} onTheme={toggleTheme} onSite={openSite} initialRole={workspaceRole} siteContent={siteContent} onPublishSite={publishSite} scenario={scenario} onUpdateScenario={setScenario} onResetScenario={() => setScenario({ ...defaultScenario, activity: [...defaultScenario.activity] })} platformAccess={platformAccess} onLogout={logout} />
       )}
-      {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} onProject={() => { setRequestOpen(false); setServiceRequestOpen(true); }} />}
+      <VisitConsent enabled={platformConfig.configured && analyticsReady && !platformAccess && view === "site" && window.location.pathname === "/" && window.location.hash !== "#studio"} />
+      {requestOpen && <QuickContactModal onClose={() => setRequestOpen(false)} onProject={() => { recordVisitAction("service_open"); setRequestOpen(false); setServiceRequestOpen(true); }} />}
       {serviceRequestOpen && <ServiceRequestModal settings={siteContent} onSubmit={submitRequest} onClose={() => setServiceRequestOpen(false)} />}
       {!workPreview && accessOpen && !(passwordSetup && platformAccess) && <AccessModal onClose={() => setAccessOpen(false)} onEnter={enterWorkspace} connected={platformConfig.configured} onAuthenticate={authenticate} />}
       {!workPreview && passwordSetup && platformAccess && <PasswordSetupModal user={platformAccess.user} onLogout={logout} onComplete={(user) => { setPlatformAccess((current) => current ? { ...current, user } : current); setPasswordSetup(false); setAccessOpen(false); window.history.replaceState(null, "", studioHref()); setView("workspace"); }} />}
