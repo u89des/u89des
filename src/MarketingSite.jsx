@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import "./wahb-counter.js";
 import {
   ArrowLeft,
   ArrowRight,
@@ -51,11 +52,7 @@ function CreativeLogo() {
 
 function BrandIntro() {
   return (
-    <div className="exhibit-intro" aria-hidden="true">
-      <div className="exhibit-intro-mark">
-        <img src="/u89-logo.svg" alt="" />
-      </div>
-    </div>
+    <wahb-counter intro="" aria-hidden="true" style={{ '--wahb-background': 'var(--creative-bg, #f1f2ec)', '--wahb-ink': 'var(--creative-ink, #404041)', '--wahb-dot': '#9eb555', '--wahb-size': '520px', '--wahb-z': 80 }} />
   );
 }
 
@@ -247,7 +244,7 @@ export default function MarketingSite({ theme, onTheme, onRequest, content, afte
   const [showBrandIntro, setShowBrandIntro] = useState(true);
   useEffect(() => {
     const timer = window.setTimeout(() => setShowBrandIntro(false),
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1700);
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 5500);
     return () => window.clearTimeout(timer);
   }, []);
   useEffect(() => {
