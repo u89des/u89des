@@ -11,7 +11,7 @@
   overflow: clip;
   color: var(--creative-ink);
   background: var(--creative-bg);
-  font-family: "Fustat", Arial, sans-serif;
+  font-family: "Thmanyah", Arial, sans-serif;
 }
 
 :root[data-theme="dark"] .creative-site {
@@ -70,7 +70,7 @@
 
 .creative-logo strong {
   color: var(--creative-ink);
-  font-family: "Fustat", Arial, sans-serif;
+  font-family: "Thmanyah", Arial, sans-serif;
   font-size: 1.46rem;
   font-weight: 800;
   letter-spacing: -0.08em;
@@ -513,7 +513,7 @@
 .creative-project-controls span {
   min-width: 72px;
   color: var(--creative-soft);
-  font-family: "Fustat", Arial, sans-serif;
+  font-family: "Thmanyah", Arial, sans-serif;
   font-size: 0.75rem;
   text-align: center;
 }
@@ -1987,7 +1987,7 @@
   top: 50%;
   left: 50%;
   color: color-mix(in srgb, var(--creative-ink) 6%, transparent);
-  font-family: "Fustat", Arial, sans-serif;
+  font-family: "Thmanyah", Arial, sans-serif;
   font-size: clamp(10rem, 24vw, 26rem);
   font-weight: 900;
   letter-spacing: -.12em;
@@ -2332,7 +2332,7 @@
 
 .kinetic-about-mark {
   color: var(--creative-accent);
-  font-family: "Fustat", Arial, sans-serif;
+  font-family: "Thmanyah", Arial, sans-serif;
   font-size: clamp(10rem, 24vw, 28rem);
   font-weight: 900;
   letter-spacing: -.14em;
@@ -2749,7 +2749,7 @@
 
 .case-study-title > p {
   margin-top: 24px;
-  font-family: "Fustat", Arial, sans-serif;
+  font-family: "Thmanyah", Arial, sans-serif;
   font-size: clamp(1.25rem, 2vw, 2.25rem);
   font-weight: 700;
   letter-spacing: -.045em;
